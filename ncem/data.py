@@ -22,6 +22,7 @@ class GraphTools:
                 transform=transform,
                 key_added='adjacency_matrix'
             )
+            print(adata)
 
 
 class DataLoader(GraphTools):
@@ -29,7 +30,6 @@ class DataLoader(GraphTools):
             self,
             data_path: str,
             radius: int,
-            undefined_node_types: Union[str, None] = None
     ):
         self.data_path = data_path
 
