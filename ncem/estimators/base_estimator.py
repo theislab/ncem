@@ -6,8 +6,10 @@ import warnings
 import time
 import pickle
 
-# ToDo ncem losses
-# ToDo ncem metrics
+from ncem.utils.losses import GaussianLoss, NegBinLoss, KLLoss
+from ncem.utils.metrics import custom_mae, custom_mean_sd, custom_mse, custom_mse_scaled, gaussian_reconstruction_loss, \
+    nb_reconstruction_loss, custom_kl, r_squared, r_squared_linreg, \
+    logp1_custom_mse, logp1_r_squared, logp1_r_squared_linreg
 
 
 class Estimator:
@@ -96,4 +98,4 @@ class Estimator:
         self.size_factors = self.data.size_factors()
 
         self.node_covar = {k: np.empty((adata.shape[0], 0)) for k, adata in self.data.img_celldata.items()}
-        
+
