@@ -33,13 +33,13 @@ You can either clone the public repository:
 
 .. code-block:: console
 
-    $ git clone git://github.com/AnnaChristina/ncem
+    $ git clone git://github.com/theislab/ncem
 
 Or download the `tarball`_:
 
 .. code-block:: console
 
-    $ curl -OJL https://github.com/AnnaChristina/ncem/tarball/master
+    $ curl -OJL https://github.com/theislab/ncem/tarball/master
 
 Once you have a copy of the source, you can install it with:
 
@@ -48,6 +48,6 @@ Once you have a copy of the source, you can install it with:
     $ make install
 
 
-.. _Github repo: https://github.com/AnnaChristina/ncem
-.. _tarball: https://github.com/AnnaChristina/ncem/tarball/master
+.. _Github repo: https://github.com/theislab/ncem
+.. _tarball: https://github.com/theislab/ncem/tarball/master
 .. _poetry: https://python-poetry.org/
