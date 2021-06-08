@@ -1,0 +1,19 @@
+cookietemple_version: '1.3.5 # <<COOKIETEMPLE_NO_BUMP>>'
+domain: cli
+language: python
+project_slug: ncem
+project_slug_no_hyphen: ncem
+template_version: '2.0.0 # <<COOKIETEMPLE_NO_BUMP>>'
+template_handle: cli-python
+github_username: theislab
+creator_github_username: AnnaChristina
+is_github_repo: true
+is_repo_private: true
+is_github_orga: true
+github_orga: theislab
+full_name: Anna Schaar
+email: anna.schaar@helmholtz-muenchen.de
+project_name: ncem
+project_short_description: ncem. A cookietemple based .
+version: 0.1.0
+license: BSD
