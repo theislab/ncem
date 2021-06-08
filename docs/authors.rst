@@ -5,6 +5,7 @@ Credits
 Development Lead
 ----------------
 
+* David Fischer <david.fischer@helmholtz-muenchen.de>
 * Anna Schaar <anna.schaar@helmholtz-muenchen.de>
 
 Contributors
