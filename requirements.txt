@@ -1,0 +1,3 @@
+scanpy
+squidpy
+tensorflow==2.4.1
