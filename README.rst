@@ -10,7 +10,7 @@ ncem
    :target: https://pypi.org/project/ncem
    :alt: Python Version
 .. |License| image:: https://img.shields.io/github/license/theislab/ncem
-   :target: https://opensource.org/licenses/BSD
+   :target: https://opensource.org/licenses/BSD-3-Clause
    :alt: License
 .. |Read the Docs| image:: https://img.shields.io/readthedocs/ncem/latest.svg?label=Read%20the%20Docs
    :target: https://ncem.readthedocs.io/
