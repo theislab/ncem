@@ -9,20 +9,20 @@ ncem
 .. |Python Version| image:: https://img.shields.io/pypi/pyversions/ncem
    :target: https://pypi.org/project/ncem
    :alt: Python Version
-.. |License| image:: https://img.shields.io/github/license/AnnaChristina/ncem
+.. |License| image:: https://img.shields.io/github/license/theislab/ncem
    :target: https://opensource.org/licenses/BSD
    :alt: License
 .. |Read the Docs| image:: https://img.shields.io/readthedocs/ncem/latest.svg?label=Read%20the%20Docs
    :target: https://ncem.readthedocs.io/
    :alt: Read the documentation at https://ncem.readthedocs.io/
-.. |Build| image:: https://github.com/AnnaChristina/ncem/workflows/Build%20ncem%20Package/badge.svg
-   :target: https://github.com/AnnaChristina/ncem/actions?workflow=Package
+.. |Build| image:: https://github.com/theislab/ncem/workflows/Build%20ncem%20Package/badge.svg
+   :target: https://github.com/theislab/ncem/actions?workflow=Package
    :alt: Build Package Status
-.. |Tests| image:: https://github.com/AnnaChristina/ncem/workflows/Run%20ncem%20Tests/badge.svg
-   :target: https://github.com/AnnaChristina/ncem/actions?workflow=Tests
+.. |Tests| image:: https://github.com/theislab/ncem/workflows/Run%20ncem%20Tests/badge.svg
+   :target: https://github.com/theislab/ncem/actions?workflow=Tests
    :alt: Run Tests Status
-.. |Codecov| image:: https://codecov.io/gh/AnnaChristina/ncem/branch/master/graph/badge.svg
-   :target: https://codecov.io/gh/AnnaChristina/ncem
+.. |Codecov| image:: https://codecov.io/gh/theislab/ncem/branch/master/graph/badge.svg
+   :target: https://codecov.io/gh/theilab/ncem
    :alt: Codecov
 .. |pre-commit| image:: https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white
    :target: https://github.com/pre-commit/pre-commit
