@@ -64,6 +64,7 @@ class Estimator:
             merge_node_types_predefined: bool = False,
             remove_diagonal: bool = True
     ):
+        #ToDo
         if self.adj_type is None:
             raise ValueError("set adj_type by init_estim() first")
 
