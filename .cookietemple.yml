@@ -1,9 +1,9 @@
-cookietemple_version: '1.3.5 # <<COOKIETEMPLE_NO_BUMP>>'
+cookietemple_version: "1.3.5 # <<COOKIETEMPLE_NO_BUMP>>"
 domain: cli
 language: python
 project_slug: ncem
 project_slug_no_hyphen: ncem
-template_version: '2.0.0 # <<COOKIETEMPLE_NO_BUMP>>'
+template_version: "2.0.0 # <<COOKIETEMPLE_NO_BUMP>>"
 template_handle: cli-python
 github_username: theislab
 creator_github_username: AnnaChristina

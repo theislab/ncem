@@ -1,20 +1,22 @@
-import tensorflow as tf
 from typing import Union
 
-from ncem.models.layers import LinearOutput, LinearConstDispOutput, DenseInteractions
+import tensorflow as tf
+
+from ncem.models.layers import (DenseInteractions, LinearConstDispOutput,
+                                LinearOutput)
 
 
 class ModelLinear:
     def __init__(
-            self,
-            input_shapes,
-            l2_coef: Union[float, None] = 0.,
-            l1_coef: Union[float, None] = 0.,
-            use_source_type: bool = False,
-            use_domain: bool = False,
-            use_node_degree: bool = False,
-            scale_node_size: bool = False,
-            output_layer: str = 'linear',
+        self,
+        input_shapes,
+        l2_coef: Union[float, None] = 0.0,
+        l1_coef: Union[float, None] = 0.0,
+        use_source_type: bool = False,
+        use_domain: bool = False,
+        use_node_degree: bool = False,
+        scale_node_size: bool = False,
+        output_layer: str = "linear",
     ):
         super().__init__()
         self.args = {
@@ -25,7 +27,7 @@ class ModelLinear:
             "use_domain": use_domain,
             "use_node_degree": use_node_degree,
             "scale_node_size": scale_node_size,
-            'output_layer': output_layer
+            "output_layer": output_layer,
         }
         target_dim = input_shapes[0]
         out_node_feature_dim = input_shapes[1]
@@ -34,30 +36,23 @@ class ModelLinear:
         categ_condition_dim = input_shapes[4]
         domain_dim = input_shapes[5]
 
-        input_target = tf.keras.Input(
-            shape=(in_node_dim, target_dim),
-            name='target')
-        input_source = tf.keras.Input(
-            shape=(in_node_dim, source_dim),
-            name='source')
+        input_target = tf.keras.Input(shape=(in_node_dim, target_dim), name="target")
+        input_source = tf.keras.Input(shape=(in_node_dim, source_dim), name="source")
         # node size - reconstruction: Input Tensor - shape=(None, N, 1)
-        input_node_size = tf.keras.Input(
-            shape=(in_node_dim, 1),
-            name='node_size_reconstruct')
+        input_node_size = tf.keras.Input(shape=(in_node_dim, 1), name="node_size_reconstruct")
         # Categorical predictors: Input Tensor - shape=(None, N, P)
-        input_categ_condition = tf.keras.Input(
-            shape=(in_node_dim, categ_condition_dim),
-            name='categorical_predictor')
+        input_categ_condition = tf.keras.Input(shape=(in_node_dim, categ_condition_dim), name="categorical_predictor")
         # domain information of graph - shape=(None, 1)
-        input_g = tf.keras.layers.Input(
-            shape=(domain_dim,),
-            name='input_da_group', dtype="int32")
+        input_g = tf.keras.layers.Input(shape=(domain_dim,), name="input_da_group", dtype="int32")
 
         if use_domain:
-            categ_condition = tf.concat([
-                input_categ_condition,
-                tf.tile(tf.expand_dims(tf.cast(input_g, dtype="float32"), axis=-2), [1, in_node_dim, 1]),
-            ], axis=-1)
+            categ_condition = tf.concat(
+                [
+                    input_categ_condition,
+                    tf.tile(tf.expand_dims(tf.cast(input_g, dtype="float32"), axis=-2), [1, in_node_dim, 1]),
+                ],
+                axis=-1,
+            )
         else:
             categ_condition = input_categ_condition
 
@@ -77,31 +72,26 @@ class ModelLinear:
             kernel_regularizer = None
 
         output = tf.keras.layers.Dense(
-            units=out_node_feature_dim,
-            activation='linear',
-            kernel_regularizer=kernel_regularizer,
-            name='LinearLayer')(x)  # bs * n x genes
+            units=out_node_feature_dim, activation="linear", kernel_regularizer=kernel_regularizer, name="LinearLayer"
+        )(
+            x
+        )  # bs * n x genes
         output = tf.reshape(output, [-1, in_node_dim, out_node_feature_dim], name="output_reshape")  # bs x n x genes
 
-        if output_layer == 'linear':
-            output = LinearOutput(
-                use_node_scale=scale_node_size,
-                name="LinearOutput"
-            )((output, input_node_size))
-        elif output_layer == 'linear_const_disp':
-            output = LinearConstDispOutput(
-                use_node_scale=scale_node_size,
-                name="LinearOutput"
-            )((output, input_node_size))
+        if output_layer == "linear":
+            output = LinearOutput(use_node_scale=scale_node_size, name="LinearOutput")((output, input_node_size))
+        elif output_layer == "linear_const_disp":
+            output = LinearConstDispOutput(use_node_scale=scale_node_size, name="LinearOutput")(
+                (output, input_node_size)
+            )
         else:
             raise ValueError("tried to access a non-supported output layer %s" % output_layer)
 
-        output_concat = tf.keras.layers.Concatenate(axis=2, name='reconstruction')(output)
+        output_concat = tf.keras.layers.Concatenate(axis=2, name="reconstruction")(output)
 
         self.training_model = tf.keras.Model(
             inputs=[input_target, input_source, input_node_size, input_categ_condition, input_g],
             outputs=output_concat,
-            name="linear_model"
+            name="linear_model",
         )
         self.training_model.summary()
-

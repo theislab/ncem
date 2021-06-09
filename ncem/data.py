@@ -1,11 +1,11 @@
 import abc
+from typing import Dict, List, Tuple, Union
+
 import numpy as np
 import scanpy as sc
 import squidpy as sq
-
 from anndata import AnnData, read_h5ad
 from pandas import read_csv
-from typing import Dict, List, Union, Tuple
 
 # ToDo add graph covariates
 
@@ -19,24 +19,19 @@ class GraphTools:
         :return:
         """
         for k, adata in self.img_celldata.items():
-            sq.gr.spatial_neighbors(
-                adata=adata,
-                radius=radius,
-                transform=transform,
-                key_added='adjacency_matrix'
-            )
+            sq.gr.spatial_neighbors(adata=adata, radius=radius, transform=transform, key_added="adjacency_matrix")
             print(adata)
 
 
 class DataLoader(GraphTools):
     def __init__(
-            self,
-            data_path: str,
-            radius: int,
+        self,
+        data_path: str,
+        radius: int,
     ):
         self.data_path = data_path
 
-        print('Loading data from raw files')
+        print("Loading data from raw files")
         self.register_celldata()
         self.register_img_celldata()
         self.compute_adjacency_matrices(radius=radius)
@@ -44,25 +39,26 @@ class DataLoader(GraphTools):
 
         print(
             "Loaded %i images with complete data from %i patients "
-            "over %i cells with %i cell features and %i distinct celltypes." % (
+            "over %i cells with %i cell features and %i distinct celltypes."
+            % (
                 len(self.img_celldata),
                 len(self.patients),
                 self.celldata.shape[0],
                 self.celldata.shape[1],
-                len(self.celldata.uns['node_type_names'])
+                len(self.celldata.uns["node_type_names"]),
             )
         )
 
     @property
     def patients(self):
-        return np.unique(np.asarray(list(self.celldata.uns['img_to_patient_dict'].values())))
+        return np.unique(np.asarray(list(self.celldata.uns["img_to_patient_dict"].values())))
 
     def register_celldata(self):
         """
         Loads anndata object of complete dataset.
         :return:
         """
-        print('registering celldata')
+        print("registering celldata")
         self._register_celldata()
         assert self.celldata is not None, "celldata was not loaded"
 
@@ -71,7 +67,7 @@ class DataLoader(GraphTools):
         Loads dictionary of of image-wise celldata objects with {imgage key : anndata object of image}.
         :return:
         """
-        print('collecting image-wise celldata')
+        print("collecting image-wise celldata")
         self._register_img_celldata()
         assert self.img_celldata is not None, "image-wise celldata was not loaded"
 
@@ -85,7 +81,6 @@ class DataLoader(GraphTools):
 
 
 class DataLoaderZhang(DataLoader):
-
     def _register_celldata(self):
         """
         Registers an Anndata object over all images and collects all necessary information.
@@ -94,15 +89,15 @@ class DataLoaderZhang(DataLoader):
         """
         metadata = {
             "lateral_resolution": 0.105,
-            "fn": 'preprocessed_zhang.h5ad',
-            "image_col": 'slice_id',
+            "fn": "preprocessed_zhang.h5ad",
+            "image_col": "slice_id",
             "pos_cols": ["center_x", "center_y"],
             "cluster_col": "subclass",
-            "patient_col": "mouse"
+            "patient_col": "mouse",
         }
 
         celldata = read_h5ad(self.data_path + metadata["fn"])
-        celldata = celldata[celldata.obs[metadata["image_col"]] != 'Dirt']
+        celldata = celldata[celldata.obs[metadata["image_col"]] != "Dirt"]
         celldata.uns["metadata"] = metadata
         celldata.uns["img_keys"] = list(np.unique(celldata.obs[metadata["image_col"]]))
 
@@ -119,9 +114,9 @@ class DataLoaderZhang(DataLoader):
         node_type_names = list(np.unique(celldata.obs[metadata["cluster_col"]]))
         celldata.uns["node_type_names"] = {x: x for x in node_type_names}
         node_types = np.zeros((celldata.shape[0], len(node_type_names)))
-        node_type_idx = np.array([  # index in encoding vector
-            node_type_names.index(x) for x in celldata.obs[metadata["cluster_col"]].values
-        ])
+        node_type_idx = np.array(
+            [node_type_names.index(x) for x in celldata.obs[metadata["cluster_col"]].values]  # index in encoding vector
+        )
         node_types[np.arange(0, node_type_idx.shape[0]), node_type_idx] = 1
         celldata.obsm["node_types"] = node_types
         # ToDo merge nodes
@@ -148,15 +143,15 @@ class DataLoaderJarosch(DataLoader):
         """
         metadata = {
             "lateral_resolution": 0.5,
-            "fn": 'raw_inflamed_colon_1.h5ad',
-            "image_col": 'Annotation',
+            "fn": "raw_inflamed_colon_1.h5ad",
+            "image_col": "Annotation",
             "pos_cols": ["X", "Y"],
             "cluster_col": "celltype_Level_2",
-            "patient_col": None
+            "patient_col": None,
         }
 
         celldata = read_h5ad(self.data_path + metadata["fn"])
-        celldata = celldata[celldata.obs[metadata["image_col"]] != 'Dirt']
+        celldata = celldata[celldata.obs[metadata["image_col"]] != "Dirt"]
         celldata.uns["metadata"] = metadata
         img_keys = list(np.unique(celldata.obs[metadata["image_col"]]))
         celldata.uns["img_keys"] = img_keys
@@ -171,9 +166,9 @@ class DataLoaderJarosch(DataLoader):
         node_type_names = list(np.unique(celldata.obs[metadata["cluster_col"]]))
         celldata.uns["node_type_names"] = {x: x for x in node_type_names}
         node_types = np.zeros((celldata.shape[0], len(node_type_names)))
-        node_type_idx = np.array([  # index in encoding vector
-            node_type_names.index(x) for x in celldata.obs[metadata["cluster_col"]].values
-        ])
+        node_type_idx = np.array(
+            [node_type_names.index(x) for x in celldata.obs[metadata["cluster_col"]].values]  # index in encoding vector
+        )
         node_types[np.arange(0, node_type_idx.shape[0]), node_type_idx] = 1
         celldata.obsm["node_types"] = node_types
         # ToDo merge nodes
@@ -182,19 +177,19 @@ class DataLoaderJarosch(DataLoader):
 
     def merge_types_predefined(self, coarseness=None):
         cell_type_tumor_dict = {
-            'B cells': 'B cells',
-            'CD4 T cells': 'CD4 T cells',
-            'CD8 T cells': 'CD8 T cells',
-            'GATA3+ epithelial': 'GATA3+ epithelial',
-            'Ki67 high epithelial': 'Ki67 epithelial',
-            'Ki67 low epithelial': 'Ki67 epithelial',
-            'Lamina propria cells': 'Lamina propria cells',
-            'Macrophages': 'Macrophages',
-            'Monocytes': 'Monocytes',
-            'PD-L1+ cells': 'PD-L1+ cells',
-            'intraepithelial Lymphocytes': 'intraepithelial Lymphocytes',
-            'muscular cells': 'muscular cells',
-            'other Lymphocytes': 'other Lymphocytes',
+            "B cells": "B cells",
+            "CD4 T cells": "CD4 T cells",
+            "CD8 T cells": "CD8 T cells",
+            "GATA3+ epithelial": "GATA3+ epithelial",
+            "Ki67 high epithelial": "Ki67 epithelial",
+            "Ki67 low epithelial": "Ki67 epithelial",
+            "Lamina propria cells": "Lamina propria cells",
+            "Macrophages": "Macrophages",
+            "Monocytes": "Monocytes",
+            "PD-L1+ cells": "PD-L1+ cells",
+            "intraepithelial Lymphocytes": "intraepithelial Lymphocytes",
+            "muscular cells": "muscular cells",
+            "other Lymphocytes": "other Lymphocytes",
         }
 
         self.merge_types(cell_type_tumor_dict)
@@ -215,12 +210,12 @@ class DataLoaderHartmann(DataLoader):
         :return:
         """
         metadata = {
-            "lateral_resolution": 400/1024,
-            "fn": 'scMEP_MIBI_singlecell/scMEP_MIBI_singlecell.csv',
-            "image_col": 'point',
+            "lateral_resolution": 400 / 1024,
+            "fn": "scMEP_MIBI_singlecell/scMEP_MIBI_singlecell.csv",
+            "image_col": "point",
             "pos_cols": ["center_colcoord", "center_rowcoord"],
             "cluster_col": "Cluster",
-            "patient_col": "donor"
+            "patient_col": "donor",
         }
 
         celldata_df = read_csv(self.data_path + metadata["fn"])
@@ -269,10 +264,7 @@ class DataLoaderHartmann(DataLoader):
             # "Cluster",
         ]
 
-        celldata = AnnData(
-            X=celldata_df[feature_cols],
-            obs=celldata_df[['point', 'cell_id', 'donor', 'Cluster']]
-        )
+        celldata = AnnData(X=celldata_df[feature_cols], obs=celldata_df[["point", "cell_id", "donor", "Cluster"]])
 
         celldata.uns["metadata"] = metadata
         img_keys = list(np.unique(celldata_df[metadata["image_col"]]))
@@ -285,16 +277,16 @@ class DataLoaderHartmann(DataLoader):
             str(x): celldata_df[metadata["patient_col"]].values[i]
             for i, x in enumerate(celldata_df[metadata["image_col"]].values)
         }
-        #img_to_patient_dict = {k: "p_1" for k in img_keys}
+        # img_to_patient_dict = {k: "p_1" for k in img_keys}
         celldata.uns["img_to_patient_dict"] = img_to_patient_dict
 
         # register node type names
         node_type_names = list(np.unique(celldata_df[metadata["cluster_col"]]))
         celldata.uns["node_type_names"] = {x: x for x in node_type_names}
         node_types = np.zeros((celldata.shape[0], len(node_type_names)))
-        node_type_idx = np.array([  # index in encoding vector
-            node_type_names.index(x) for x in celldata_df[metadata["cluster_col"]].values
-        ])
+        node_type_idx = np.array(
+            [node_type_names.index(x) for x in celldata_df[metadata["cluster_col"]].values]  # index in encoding vector
+        )
         node_types[np.arange(0, node_type_idx.shape[0]), node_type_idx] = 1
         celldata.obsm["node_types"] = node_types
         # ToDo merge nodes

@@ -1,41 +1,41 @@
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
 
-from ncem.models.layers import CondEncoder, CondDecoder, \
-    MaxLayer, GCNLayer, GaussianOutput, GaussianConstDispOutput, NegBinOutput, NegBinSharedDispOutput, \
-    NegBinConstDispOutput, SamplingPrior, PreprocInput, NodeDegrees
+from ncem.models.layers import (CondDecoder, CondEncoder,
+                                GaussianConstDispOutput, GaussianOutput,
+                                GCNLayer, MaxLayer, NegBinConstDispOutput,
+                                NegBinOutput, NegBinSharedDispOutput,
+                                NodeDegrees, PreprocInput, SamplingPrior)
 
 
 class ModelCondVAE:
     def __init__(
-            self,
-            input_shapes,
-            latent_dim: int = 10,
-            intermediate_dim_enc: int = 128,
-            intermediate_dim_dec: int = 128,
-            depth_enc: int = 1,
-            depth_dec: int = 1,
-            dropout_rate: float = 0.1,
-            l2_coef: float = 0.,
-            l1_coef: float = 0.,
-
-            cond_type: str = 'gcn',
-            cond_depth: int = 1,
-            cond_dim: int = 8,
-            cond_dropout_rate: float = 0.1,
-            cond_activation: str = 'relu',
-            cond_l2_reg: float = 0.,
-            cond_use_bias: bool = True,
-            cond_number_heads: int = 8,
-            attention_dim: int = 8,
-
-            use_domain: bool = False,
-            scale_node_size: bool = False,
-            use_type_cond: bool = True,
-            use_node_degree: bool = False,
-            use_batch_norm: bool = False,
-            transform_input: bool = False,
-            output_layer: str = 'gaussian'
+        self,
+        input_shapes,
+        latent_dim: int = 10,
+        intermediate_dim_enc: int = 128,
+        intermediate_dim_dec: int = 128,
+        depth_enc: int = 1,
+        depth_dec: int = 1,
+        dropout_rate: float = 0.1,
+        l2_coef: float = 0.0,
+        l1_coef: float = 0.0,
+        cond_type: str = "gcn",
+        cond_depth: int = 1,
+        cond_dim: int = 8,
+        cond_dropout_rate: float = 0.1,
+        cond_activation: str = "relu",
+        cond_l2_reg: float = 0.0,
+        cond_use_bias: bool = True,
+        cond_number_heads: int = 8,
+        attention_dim: int = 8,
+        use_domain: bool = False,
+        scale_node_size: bool = False,
+        use_type_cond: bool = True,
+        use_node_degree: bool = False,
+        use_batch_norm: bool = False,
+        transform_input: bool = False,
+        output_layer: str = "gaussian",
     ):
         super().__init__()
         self.args = {
@@ -48,21 +48,21 @@ class ModelCondVAE:
             "dropout_rate": dropout_rate,
             "l2_coef": l2_coef,
             "l1_coef": l1_coef,
-
             "cond_type": cond_type,
             "cond_depth": cond_depth,
             "cond_dim": cond_dim,
             "cond_dropout_rate": cond_dropout_rate,
-            "cond_activation": cond_activation if not isinstance(cond_activation, tf.keras.layers.Layer) else cond_activation.name,
+            "cond_activation": cond_activation
+            if not isinstance(cond_activation, tf.keras.layers.Layer)
+            else cond_activation.name,
             "cond_l2_reg": cond_l2_reg,
             "cond_use_bias": cond_use_bias,
             "cond_number_heads": cond_number_heads,
-
             "use_domain": use_domain,
             "use_type_cond": use_type_cond,
             "use_node_degree": use_node_degree,
             "scale_node_size": scale_node_size,
-            "output_layer": output_layer
+            "output_layer": output_layer,
         }
         in_node_feature_dim = input_shapes[0]
         out_node_feature_dim = input_shapes[1]
@@ -77,69 +77,51 @@ class ModelCondVAE:
         # P - number of node covariate dimensions
         # node_features - reconstruction: Input Tensor - shape=(None, M, F)
         input_x_reconstruct = tf.keras.Input(
-            shape=(in_node_dim, out_node_feature_dim),
-            name='node_features_reconstruct')
-        # node size - reconstruction: Input Tensor - shape=(None, M, 1)
-        input_node_size = tf.keras.Input(
-            shape=(in_node_dim, 1),
-            name='node_size_reconstruct')
-        # node_features - conditions: Input Tensor - shape=(None, M, F)
-        input_x_cond = tf.keras.Input(
-            shape=(in_node_dim, in_node_feature_dim),
-            name='node_features_cond')
-        # node features - node representation of other nodes: Input Tensor - shape=(None, N, F)
-        input_x_cond_full = tf.keras.Input(
-            shape=(graph_dim, in_node_feature_dim),
-            name='node_features_cond_full')
-        # adj_matrices - A: Input Tensor - shape=(None, M, N)
-        input_a = tf.keras.Input(
-            shape=(in_node_dim, graph_dim),
-            name='adjacency_matrix', sparse=True)
-        # full adj_matrices - A: Input Tensor - shape=(None, N, N)
-        input_afull = tf.keras.Input(
-            shape=(graph_dim, graph_dim),
-            name='adjacency_matrix_full', sparse=True)
-        # Categorical predictors: Input Tensor - shape=(None, M, P)
-        input_categ_condition = tf.keras.Input(
-            shape=(in_node_dim, categ_condition_dim),
-            name='categorical_predictor')
-        # domain information of graph - shape=(None, 1)
-        input_g = tf.keras.layers.Input(
-            shape=(domain_dim,),
-            name='input_da_group', dtype="int32"
+            shape=(in_node_dim, out_node_feature_dim), name="node_features_reconstruct"
         )
+        # node size - reconstruction: Input Tensor - shape=(None, M, 1)
+        input_node_size = tf.keras.Input(shape=(in_node_dim, 1), name="node_size_reconstruct")
+        # node_features - conditions: Input Tensor - shape=(None, M, F)
+        input_x_cond = tf.keras.Input(shape=(in_node_dim, in_node_feature_dim), name="node_features_cond")
+        # node features - node representation of other nodes: Input Tensor - shape=(None, N, F)
+        input_x_cond_full = tf.keras.Input(shape=(graph_dim, in_node_feature_dim), name="node_features_cond_full")
+        # adj_matrices - A: Input Tensor - shape=(None, M, N)
+        input_a = tf.keras.Input(shape=(in_node_dim, graph_dim), name="adjacency_matrix", sparse=True)
+        # full adj_matrices - A: Input Tensor - shape=(None, N, N)
+        input_afull = tf.keras.Input(shape=(graph_dim, graph_dim), name="adjacency_matrix_full", sparse=True)
+        # Categorical predictors: Input Tensor - shape=(None, M, P)
+        input_categ_condition = tf.keras.Input(shape=(in_node_dim, categ_condition_dim), name="categorical_predictor")
+        # domain information of graph - shape=(None, 1)
+        input_g = tf.keras.layers.Input(shape=(domain_dim,), name="input_da_group", dtype="int32")
 
         # Decoder inputs:
         # 1) Sample in mode:
         latent_sampling1 = SamplingPrior(width=latent_dim)(input_x_reconstruct)
         latent_sampling_reshaped1 = tf.reshape(latent_sampling1, [-1, latent_dim])
         # 2) Sample in data intput:
-        input_latent_sampling2 = tf.keras.Input(
-            shape=(in_node_dim, latent_dim),
-            name='z_sampling'
-        )
+        input_latent_sampling2 = tf.keras.Input(shape=(in_node_dim, latent_dim), name="z_sampling")
         latent_sampling_reshaped2 = tf.reshape(input_latent_sampling2, [-1, latent_dim])
 
         if use_domain:
-            categ_condition = tf.concat([
-                input_categ_condition,
-                tf.tile(tf.expand_dims(tf.cast(input_g, dtype="float32"), axis=-2), [1, in_node_dim, 1]),
-            ], axis=-1)
+            categ_condition = tf.concat(
+                [
+                    input_categ_condition,
+                    tf.tile(tf.expand_dims(tf.cast(input_g, dtype="float32"), axis=-2), [1, in_node_dim, 1]),
+                ],
+                axis=-1,
+            )
         else:
             categ_condition = input_categ_condition
 
         if use_node_degree:
             node_degrees = NodeDegrees(in_node_dim)(input_a)
 
-            categ_condition = tf.concat([
-                categ_condition,
-                node_degrees
-            ], axis=-1)
+            categ_condition = tf.concat([categ_condition, node_degrees], axis=-1)
 
         if cond_depth > 1:
             print("using multi layer graph model")
         x_neighbour_embedding = input_x_cond_full
-        if cond_type == 'gcn':
+        if cond_type == "gcn":
             for i in range(cond_depth - 1):
                 cond_layer = GCNLayer(
                     output_dim=cond_dim,
@@ -148,7 +130,7 @@ class ModelCondVAE:
                     l2_reg=cond_l2_reg,
                     use_bias=cond_use_bias,
                     padded=False,
-                    name=f"conditional_layer_stack_{i}"
+                    name=f"conditional_layer_stack_{i}",
                 )
                 x_neighbour_embedding = cond_layer([x_neighbour_embedding, input_afull])
             # In last forward pass, only retain nodes that are to be decoded: not using the full adjacency matrix:
@@ -159,19 +141,15 @@ class ModelCondVAE:
                 l2_reg=cond_l2_reg,
                 use_bias=cond_use_bias,
                 padded=False,
-                name=f"conditional_layer_stack_{cond_depth}"
+                name=f"conditional_layer_stack_{cond_depth}",
             )
             x_neighbour_embedding = cond_layer([x_neighbour_embedding, input_a])
-        elif cond_type == 'max':
+        elif cond_type == "max":
             for i in range(cond_depth - 1):
-                cond_layer = MaxLayer(
-                    name=f"conditional_layer_stack_{i}"
-                )
+                cond_layer = MaxLayer(name=f"conditional_layer_stack_{i}")
                 x_neighbour_embedding = cond_layer([x_neighbour_embedding, input_afull])
             # In last forward pass, only retain nodes that are to be decoded: not using the full adjacency matrix:
-            cond_layer = MaxLayer(
-                name=f"conditional_layer_stack_{cond_depth}"
-            )
+            cond_layer = MaxLayer(name=f"conditional_layer_stack_{cond_depth}")
             x_neighbour_embedding = cond_layer([x_neighbour_embedding, input_a])
         else:
             raise ValueError("tried to access a non-supported conditional layer %s" % cond_type)
@@ -189,19 +167,21 @@ class ModelCondVAE:
             l2_coef=l2_coef,
             use_type_cond=use_type_cond,
             use_batch_norm=use_batch_norm,
-            probabilistic=True
+            probabilistic=True,
         )
         output_encoder = self.encoder_model((x, x_neighbour_embedding, categ_condition))
 
         # output_encoder
         z, z_mean, z_log_var = output_encoder
-        latent_space = tf.keras.layers.Concatenate(axis=1, name='bottleneck')([z, z_mean, z_log_var])
-        latent_space_sampling = tf.zeros_like(latent_space, name='bottleneck')
-        latent_space2 = tf.keras.layers.Concatenate(axis=1, name='bottleneck')([  # immitate latent_space tensor
-            tf.zeros_like(input_latent_sampling2),
-            tf.zeros_like(input_latent_sampling2),
-            tf.zeros_like(input_latent_sampling2)
-        ])
+        latent_space = tf.keras.layers.Concatenate(axis=1, name="bottleneck")([z, z_mean, z_log_var])
+        latent_space_sampling = tf.zeros_like(latent_space, name="bottleneck")
+        latent_space2 = tf.keras.layers.Concatenate(axis=1, name="bottleneck")(
+            [  # immitate latent_space tensor
+                tf.zeros_like(input_latent_sampling2),
+                tf.zeros_like(input_latent_sampling2),
+                tf.zeros_like(input_latent_sampling2),
+            ]
+        )
 
         self.decoder_model = CondDecoder(
             intermediate_dim=intermediate_dim_dec,
@@ -216,154 +196,188 @@ class ModelCondVAE:
         sampling_decoder1 = self.decoder_model((latent_sampling_reshaped1, x_neighbour_embedding, categ_condition))
         sampling_decoder2 = self.decoder_model((latent_sampling_reshaped2, x_neighbour_embedding, categ_condition))
 
-        if output_layer == 'gaussian':
+        if output_layer == "gaussian":
             output_decoder_layer = GaussianOutput(
                 original_dim=out_node_feature_dim,
                 ncells_selected=in_node_dim,
                 use_node_scale=scale_node_size,
-                name="GaussianOutput_decoder"
+                name="GaussianOutput_decoder",
             )((output_decoder, input_node_size))
             output_sampling_decoder1 = GaussianOutput(
                 original_dim=out_node_feature_dim,
                 ncells_selected=in_node_dim,
                 use_node_scale=scale_node_size,
-                name="GaussianOutput_sampling"
+                name="GaussianOutput_sampling",
             )((sampling_decoder1, input_node_size))
             output_sampling_decoder2 = GaussianOutput(
                 original_dim=out_node_feature_dim,
                 ncells_selected=in_node_dim,
                 use_node_scale=scale_node_size,
-                name="GaussianOutput_sampling"
+                name="GaussianOutput_sampling",
             )((sampling_decoder2, input_node_size))
-        elif output_layer == 'gaussian_const_disp':
+        elif output_layer == "gaussian_const_disp":
             output_decoder_layer = GaussianConstDispOutput(
                 original_dim=out_node_feature_dim,
                 ncells_selected=in_node_dim,
                 use_node_scale=scale_node_size,
-                name="GaussianConstDispOutput_decoder"
+                name="GaussianConstDispOutput_decoder",
             )((output_decoder, input_node_size))
             output_sampling_decoder1 = GaussianConstDispOutput(
                 original_dim=out_node_feature_dim,
                 ncells_selected=in_node_dim,
                 use_node_scale=scale_node_size,
-                name="GaussianConstDispOutput_sampling"
+                name="GaussianConstDispOutput_sampling",
             )((sampling_decoder1, input_node_size))
             output_sampling_decoder2 = GaussianConstDispOutput(
                 original_dim=out_node_feature_dim,
                 ncells_selected=in_node_dim,
                 use_node_scale=scale_node_size,
-                name="GaussianConstDispOutput_sampling"
+                name="GaussianConstDispOutput_sampling",
             )((sampling_decoder2, input_node_size))
-        elif output_layer == 'nb':
+        elif output_layer == "nb":
             output_decoder_layer = NegBinOutput(
                 original_dim=out_node_feature_dim,
                 ncells_selected=in_node_dim,
                 use_node_scale=scale_node_size,
-                name="NegBinOutput_decoder"
+                name="NegBinOutput_decoder",
             )((output_decoder, input_node_size))
             output_sampling_decoder1 = NegBinOutput(
                 original_dim=out_node_feature_dim,
                 ncells_selected=in_node_dim,
                 use_node_scale=scale_node_size,
-                name="NegBinOutput_sampling"
+                name="NegBinOutput_sampling",
             )((sampling_decoder1, input_node_size))
             output_sampling_decoder2 = NegBinOutput(
                 original_dim=out_node_feature_dim,
                 ncells_selected=in_node_dim,
                 use_node_scale=scale_node_size,
-                name="NegBinOutput_sampling"
+                name="NegBinOutput_sampling",
             )((sampling_decoder2, input_node_size))
-        elif output_layer == 'nb_shared_disp':
+        elif output_layer == "nb_shared_disp":
             output_decoder_layer = NegBinSharedDispOutput(
                 original_dim=out_node_feature_dim,
                 ncells_selected=in_node_dim,
                 use_node_scale=scale_node_size,
-                name="NegBinSharedDispOutput_decoder"
+                name="NegBinSharedDispOutput_decoder",
             )((output_decoder, input_node_size))
             output_sampling_decoder1 = NegBinSharedDispOutput(
                 original_dim=out_node_feature_dim,
                 ncells_selected=in_node_dim,
                 use_node_scale=scale_node_size,
-                name="NegBinSharedDispOutput_sampling"
+                name="NegBinSharedDispOutput_sampling",
             )((sampling_decoder1, input_node_size))
             output_sampling_decoder2 = NegBinSharedDispOutput(
                 original_dim=out_node_feature_dim,
                 ncells_selected=in_node_dim,
                 use_node_scale=scale_node_size,
-                name="NegBinSharedDispOutput_sampling"
+                name="NegBinSharedDispOutput_sampling",
             )((sampling_decoder2, input_node_size))
-        elif output_layer == 'nb_const_disp':
+        elif output_layer == "nb_const_disp":
             output_decoder_layer = NegBinConstDispOutput(
                 original_dim=out_node_feature_dim,
                 ncells_selected=in_node_dim,
                 use_node_scale=scale_node_size,
-                name="NegBinConstDispOutput_decoder"
+                name="NegBinConstDispOutput_decoder",
             )((output_decoder, input_node_size))
             output_sampling_decoder1 = NegBinConstDispOutput(
                 original_dim=out_node_feature_dim,
                 ncells_selected=in_node_dim,
                 use_node_scale=scale_node_size,
-                name="NegBinConstDispOutput_decoder"
+                name="NegBinConstDispOutput_decoder",
             )((sampling_decoder1, input_node_size))
             output_sampling_decoder2 = NegBinConstDispOutput(
                 original_dim=out_node_feature_dim,
                 ncells_selected=in_node_dim,
                 use_node_scale=scale_node_size,
-                name="NegBinConstDispOutput_decoder"
+                name="NegBinConstDispOutput_decoder",
             )((sampling_decoder2, input_node_size))
         else:
             raise ValueError("tried to access a non-supported output layer %s" % output_layer)
 
-        output_decoder_concat = tf.keras.layers.Concatenate(axis=2, name='reconstruction')(output_decoder_layer)
-        output_sampling_concat1 = tf.keras.layers.Concatenate(axis=2, name='reconstruction')(output_sampling_decoder1)
-        output_sampling_concat2 = tf.keras.layers.Concatenate(axis=2, name='reconstruction')(output_sampling_decoder2)
+        output_decoder_concat = tf.keras.layers.Concatenate(axis=2, name="reconstruction")(output_decoder_layer)
+        output_sampling_concat1 = tf.keras.layers.Concatenate(axis=2, name="reconstruction")(output_sampling_decoder1)
+        output_sampling_concat2 = tf.keras.layers.Concatenate(axis=2, name="reconstruction")(output_sampling_decoder2)
 
         self.graph_condition_model = tf.keras.Model(
-            inputs=[input_x_reconstruct, input_x_cond, input_x_cond_full, input_a, input_afull, input_categ_condition,
-                    input_g],
+            inputs=[
+                input_x_reconstruct,
+                input_x_cond,
+                input_x_cond_full,
+                input_a,
+                input_afull,
+                input_categ_condition,
+                input_g,
+            ],
             outputs=x_neighbour_embedding,
-            name="graph-condition-model"
+            name="graph-condition-model",
         )
         self.encoder = tf.keras.Model(
-            inputs=[input_x_reconstruct, input_x_cond, input_x_cond_full, input_a, input_afull, input_categ_condition,
-                    input_g],
+            inputs=[
+                input_x_reconstruct,
+                input_x_cond,
+                input_x_cond_full,
+                input_a,
+                input_afull,
+                input_categ_condition,
+                input_g,
+            ],
             outputs=output_encoder,
-            name="conditional-encoder"
+            name="conditional-encoder",
         )
         self.decoder_sampling = tf.keras.Model(
-            inputs=[input_x_reconstruct, input_node_size, input_x_cond, input_x_cond_full, input_a, input_afull,
-                    input_categ_condition, input_g],
+            inputs=[
+                input_x_reconstruct,
+                input_node_size,
+                input_x_cond,
+                input_x_cond_full,
+                input_a,
+                input_afull,
+                input_categ_condition,
+                input_g,
+            ],
             outputs=[output_sampling_concat1, latent_space_sampling],
-            name="conditional-decoder-sampling"
+            name="conditional-decoder-sampling",
         )
         self.decoder = tf.keras.Model(
-            inputs=[input_latent_sampling2, input_node_size, input_x_cond, input_x_cond_full, input_a, input_afull,
-                    input_categ_condition, input_g],
+            inputs=[
+                input_latent_sampling2,
+                input_node_size,
+                input_x_cond,
+                input_x_cond_full,
+                input_a,
+                input_afull,
+                input_categ_condition,
+                input_g,
+            ],
             outputs=[output_sampling_concat2, latent_space2],
-            name="conditional-decoder"
+            name="conditional-decoder",
         )
         self.training_model = tf.keras.Model(
-            inputs=[input_x_reconstruct, input_node_size, input_x_cond, input_x_cond_full, input_a, input_afull,
-                    input_categ_condition, input_g],
+            inputs=[
+                input_x_reconstruct,
+                input_node_size,
+                input_x_cond,
+                input_x_cond_full,
+                input_a,
+                input_afull,
+                input_categ_condition,
+                input_g,
+            ],
             outputs=[output_decoder_concat, latent_space],
-            name="conditional-autoencoder"
+            name="conditional-autoencoder",
         )
 
         # Add non-scaled ELBO to model as metric (ie no annealing or beta-VAE scaling):
-        log2pi = tf.math.log(2. * np.pi)
-        logqz_x = -0.5 * tf.reduce_mean(
-            tf.square(z - z_mean) * tf.exp(-z_log_var) +
-            z_log_var + log2pi
-        )
-        logpz = -0.5 * tf.reduce_mean(
-            tf.square(z) + log2pi
-        )
+        log2pi = tf.math.log(2.0 * np.pi)
+        logqz_x = -0.5 * tf.reduce_mean(tf.square(z - z_mean) * tf.exp(-z_log_var) + z_log_var + log2pi)
+        logpz = -0.5 * tf.reduce_mean(tf.square(z) + log2pi)
         d_kl = logqz_x - logpz
         loc, scale = output_decoder_layer
-        if output_layer == 'gaussian' or output_layer == 'gaussian_const_disp':
-            neg_ll = tf.math.log(tf.sqrt(2 * np.math.pi) * scale) + \
-                     0.5 * tf.math.square(loc - input_x_reconstruct) / tf.math.square(scale)
-        elif output_layer == 'nb' or output_layer == 'nb_const_disp' or output_layer == 'nb_shared_disp':
+        if output_layer == "gaussian" or output_layer == "gaussian_const_disp":
+            neg_ll = tf.math.log(tf.sqrt(2 * np.math.pi) * scale) + 0.5 * tf.math.square(
+                loc - input_x_reconstruct
+            ) / tf.math.square(scale)
+        elif output_layer == "nb" or output_layer == "nb_const_disp" or output_layer == "nb_shared_disp":
             eta_loc = tf.math.log(loc)
             eta_scale = tf.math.log(scale)
 
@@ -372,10 +386,14 @@ class ModelCondVAE:
             ll = tf.math.lgamma(scale + input_x_reconstruct)
             ll = ll - tf.math.lgamma(input_x_reconstruct + tf.ones_like(input_x_reconstruct))
             ll = ll - tf.math.lgamma(scale)
-            ll = ll + tf.multiply(input_x_reconstruct, eta_loc - log_r_plus_mu) + tf.multiply(scale, eta_scale - log_r_plus_mu)
+            ll = (
+                ll
+                + tf.multiply(input_x_reconstruct, eta_loc - log_r_plus_mu)
+                + tf.multiply(scale, eta_scale - log_r_plus_mu)
+            )
 
             neg_ll = -tf.clip_by_value(ll, -300, 300, "log_probs")
         neg_ll = tf.reduce_mean(tf.reduce_sum(neg_ll, axis=-1))
-        self.training_model.add_metric(neg_ll + d_kl, name="elbo", aggregation='mean')
+        self.training_model.add_metric(neg_ll + d_kl, name="elbo", aggregation="mean")
 
         self.training_model.summary()

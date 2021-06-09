@@ -1,15 +1,11 @@
 import math
-import tensorflow as tf
+
 import numpy as np
+import tensorflow as tf
 
 
 class NegBinLoss(tf.keras.losses.Loss):
-
-    def call(
-            self,
-            y_true,
-            y_pred
-    ):
+    def call(self, y_true, y_pred):
         """Implements the negative log likelihood loss as reconstruction loss"""
         x = y_true
         loc, scale = tf.split(y_pred, num_or_size_splits=2, axis=2)
@@ -25,17 +21,12 @@ class NegBinLoss(tf.keras.losses.Loss):
         ll = ll + tf.multiply(x, eta_loc - log_r_plus_mu) + tf.multiply(scale, eta_scale - log_r_plus_mu)
 
         ll = tf.clip_by_value(ll, -300, 300, "log_probs")
-        neg_ll = tf.reduce_sum(-ll, axis=-1),  # sum across output features
+        neg_ll = (tf.reduce_sum(-ll, axis=-1),)  # sum across output features
         return neg_ll
 
 
 class GaussianLoss(tf.keras.losses.Loss):
-
-    def call(
-            self,
-            y_true,
-            y_pred
-    ):
+    def call(self, y_true, y_pred):
         """Implements Gaussian loss as reconstruction loss"""
         y_pred, sd = tf.split(y_pred, num_or_size_splits=2, axis=2, name="gaussian_loss_split")
         # sd = 1.  # change also in metric if this is changed
@@ -52,21 +43,10 @@ class KLLoss(tf.keras.losses.Loss):
         self.max_beta = max_beta
         self.pre_warm_up = pre_warm_up
 
-    def call(
-            self,
-            y_true,
-            y_pred
-    ):
+    def call(self, y_true, y_pred):
         z, z_mean, z_log_var = tf.split(y_pred, num_or_size_splits=3, axis=1)
-        log2pi = tf.math.log(2. * np.pi)
-        logqz_x = -0.5 * tf.reduce_sum(
-            tf.square(z - z_mean) * tf.exp(-z_log_var) +
-            z_log_var + log2pi,
-            axis=-1
-        )
-        logpz = -0.5 * tf.reduce_sum(
-            tf.square(z) + log2pi,
-            axis=-1
-        )
+        log2pi = tf.math.log(2.0 * np.pi)
+        logqz_x = -0.5 * tf.reduce_sum(tf.square(z - z_mean) * tf.exp(-z_log_var) + z_log_var + log2pi, axis=-1)
+        logpz = -0.5 * tf.reduce_sum(tf.square(z) + log2pi, axis=-1)
         kl_loss = logqz_x - logpz
         return self.beta * kl_loss

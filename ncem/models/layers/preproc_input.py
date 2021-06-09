@@ -2,13 +2,7 @@ import tensorflow as tf
 
 
 class PreprocInput(tf.keras.layers.Layer):
-
-    def __init__(
-            self,
-            magnitude: float = 100.,
-            name='preproc_input',
-            **kwargs
-    ):
+    def __init__(self, magnitude: float = 100.0, name="preproc_input", **kwargs):
         """
         Transform last dimension.
 
@@ -26,13 +20,7 @@ class PreprocInput(tf.keras.layers.Layer):
 
 
 class NodeDegrees(tf.keras.layers.Layer):
-
-    def __init__(
-            self,
-            in_node_dim,
-            name='nodedegrees',
-            **kwargs
-    ):
+    def __init__(self, in_node_dim, name="nodedegrees", **kwargs):
         super().__init__(name=name, **kwargs)
         self.in_node_dim = in_node_dim
 
@@ -43,13 +31,7 @@ class NodeDegrees(tf.keras.layers.Layer):
 
 
 class DenseInteractions(tf.keras.layers.Layer):
-    def __init__(
-            self,
-            in_node_dim,
-            interaction_dim,
-            name='denseinteraction',
-            **kwargs
-    ):
+    def __init__(self, in_node_dim, interaction_dim, name="denseinteraction", **kwargs):
         super().__init__(name=name, **kwargs)
         self.in_node_dim = in_node_dim
         self.interaction_dim = interaction_dim
