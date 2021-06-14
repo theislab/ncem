@@ -46,16 +46,7 @@ class EstimatorInteractions(Estimator):
             for key in image_keys:
                 if nodes_idx[key].size == 0:  # needed for images where no nodes are selected
                     continue
-                number_nodes = self.a[key].shape[0]
-                if self.node_fraction < 1.:
-                    idx_nodes = np.random.choice(
-                        a=range(number_nodes),
-                        size=round(number_nodes * self.node_fraction),
-                        replace=False
-                    )
-                    raise NotImplementedError
-                else:
-                    idx_nodes = np.arange(0, number_nodes)
+                idx_nodes = np.arange(0, self.a[key].shape[0])
 
                 if train:
                     index_list = [
