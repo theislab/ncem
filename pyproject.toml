@@ -27,6 +27,7 @@ Jinja2 = "^2.11.3"
 scanpy = "^1.7.2"
 tensorflow = "^2.5.0"
 squidpy = "^1.0.0"
+patsy = "^0.5.1"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.3"

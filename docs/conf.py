@@ -44,8 +44,8 @@ master_doc = "index"
 
 # General information about the project.
 project = "ncem"
-copyright = "2021, Anna Schaar"
-author = "Anna Schaar"
+copyright = "2021, theislab"
+author = "Anna Schaar, David Fischer"
 
 # The version info for the project you're documenting, acts as replacement
 # for |version| and |release|, also used in various other places throughout
