@@ -1,6 +1,6 @@
 import abc
 import time
-from typing import Tuple, Union
+from typing import Tuple, List, Union
 
 import numpy as np
 import tensorflow as tf
@@ -29,6 +29,7 @@ class Estimator:
         data_path: str,
         feature_transformation: str,
         radius: int,
+        label_selection: Union[List[str], None] = None,
     ):
         """
         Initializes a DataLoader object.
@@ -45,7 +46,7 @@ class Estimator:
         else:
             raise ValueError(f"data_origin {data_origin} not recognized")
 
-        self.data = DataLoader(data_path, radius=radius)
+        self.data = DataLoader(data_path, radius=radius, label_selection=label_selection)
         # self.data.process_node_features(feature_transformation=feature_transformation)
 
     def get_data(
@@ -53,6 +54,7 @@ class Estimator:
         data_origin: str,
         data_path: str,
         radius: int,
+        graph_covar_selection: Union[List[str], Tuple[str], None] = None,
         node_label_space_id: str = "type",
         node_feature_space_id: str = "standard",
         feature_transformation: str = "none",
@@ -67,9 +69,12 @@ class Estimator:
         # ToDo
         if self.adj_type is None:
             raise ValueError("set adj_type by init_estim() first")
-
+        if graph_covar_selection is None:
+            graph_covar_selection = []
+        labels_to_load = graph_covar_selection
         self._load_data(
-            data_origin=data_origin, data_path=data_path, feature_transformation=feature_transformation, radius=radius
+            data_origin=data_origin, data_path=data_path, feature_transformation=feature_transformation, radius=radius,
+            label_selecetion=labels_to_load
         )
         if merge_node_types_predefined:
             self.data.merge_types_predefined()

@@ -1,5 +1,5 @@
 import abc
-from typing import Dict, Tuple, Union
+from typing import Dict, List, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -112,12 +112,14 @@ class DataLoader(GraphTools):
         self,
         data_path: str,
         radius: int,
+        label_selection: Union[List[str], None] = None,
     ):
         self.data_path = data_path
 
         print("Loading data from raw files")
         self.register_celldata()
         self.register_img_celldata()
+        self.register_graph_features(label_selection=label_selection)
         self.compute_adjacency_matrices(radius=radius)
         self.radius = radius
 
@@ -155,12 +157,25 @@ class DataLoader(GraphTools):
         self._register_img_celldata()
         assert self.img_celldata is not None, "image-wise celldata was not loaded"
 
+    def register_graph_features(
+        self,
+        label_selection
+    ):
+        print("adding graph-level covariates")
+        self._register_graph_features(
+            label_selection=label_selection
+        )
+
     @abc.abstractmethod
     def _register_celldata(self):
         pass
 
     @abc.abstractmethod
     def _register_img_celldata(self):
+        pass
+
+    @abc.abstractmethod
+    def _register_graph_features(self, label_selection):
         pass
 
     def plot_noise_structure(
@@ -326,7 +341,7 @@ class DataLoaderZhang(DataLoader):
         image_col = self.celldata.uns["metadata"]["image_col"]
         img_celldata = {}
         for k in self.celldata.uns["img_keys"]:
-            img_celldata[k] = self.celldata[self.celldata.obs[image_col] == k]
+            img_celldata[str(k)] = self.celldata[self.celldata.obs[image_col] == k]
         self.img_celldata = img_celldata
 
 
@@ -393,7 +408,7 @@ class DataLoaderJarosch(DataLoader):
         image_col = self.celldata.uns["metadata"]["image_col"]
         img_celldata = {}
         for k in self.celldata.uns["img_keys"]:
-            img_celldata[k] = self.celldata[self.celldata.obs[image_col] == k]
+            img_celldata[str(k)] = self.celldata[self.celldata.obs[image_col] == k]
         self.img_celldata = img_celldata
 
 
@@ -405,14 +420,13 @@ class DataLoaderHartmann(DataLoader):
         """
         metadata = {
             "lateral_resolution": 400 / 1024,
-            "fn": "scMEP_MIBI_singlecell/scMEP_MIBI_singlecell.csv",
+            "fn": ["scMEP_MIBI_singlecell/scMEP_MIBI_singlecell.csv", "scMEP_sample_description.xlsx"],
             "image_col": "point",
             "pos_cols": ["center_colcoord", "center_rowcoord"],
             "cluster_col": "Cluster",
             "patient_col": "donor",
         }
-
-        celldata_df = read_csv(self.data_path + metadata["fn"])
+        celldata_df = read_csv(self.data_path + metadata["fn"][0])
         celldata_df = celldata_df.dropna(inplace=False).reset_index()
         feature_cols = [
             "H3",
@@ -473,6 +487,7 @@ class DataLoaderHartmann(DataLoader):
         }
         # img_to_patient_dict = {k: "p_1" for k in img_keys}
         celldata.uns["img_to_patient_dict"] = img_to_patient_dict
+        self.img_to_patient_dict = img_to_patient_dict
 
         # register node type names
         node_type_names = list(np.unique(celldata_df[metadata["cluster_col"]]))
@@ -493,8 +508,123 @@ class DataLoaderHartmann(DataLoader):
         image_col = self.celldata.uns["metadata"]["image_col"]
         img_celldata = {}
         for k in self.celldata.uns["img_keys"]:
-            img_celldata[k] = self.celldata[self.celldata.obs[image_col] == k]
+            img_celldata[str(k)] = self.celldata[self.celldata.obs[image_col] == k]
         self.img_celldata = img_celldata
+
+    def _register_graph_features(
+        self,
+        label_selection: Union[List[str], None] = None
+    ):
+        # DEFINE COLUMN NAMES FOR TABULAR DATA.
+        # Define column names to extract from patient-wise tabular data:
+        patient_col = 'ID'
+        # These are required to assign the image to dieased and non-diseased:
+        disease_features = {
+            'Diagnosis': 'categorical'
+        }
+        patient_features = {
+            'ID': 'categorical',
+            'Age': 'continuous',
+            'Sex': 'categorical'
+        }
+        label_cols = {}
+        label_cols.update(disease_features)
+        label_cols.update(patient_features)
+
+        if label_selection is None:
+            label_selection = set(label_cols.keys())
+        else:
+            label_selection = set(label_selection)
+        label_cols_toread = list(label_selection.intersection(set(list(label_cols.keys()))))
+        usecols = label_cols_toread + [patient_col]
+
+        tissue_meta_data = read_excel(
+            self.data_path + "scMEP_sample_description.xlsx",
+            usecols=usecols
+        )
+        # BUILD LABEL VECTORS FROM LABEL COLUMNS
+        # The columns contain unprocessed numeric and categorical entries that are now processed to prediction-ready
+        # numeric tensors. Here we first generate a dictionary of tensors for each label (label_tensors). We then
+        # transform this to have as output of this section dictionary by image with a dictionary by labels as values
+        # which can be easily queried by image in a data generator.
+        # Subset labels and label types:
+        label_cols = {label: type for label, type in label_cols.items() if label in label_selection}
+        label_tensors = {}
+        label_names = {}  # Names of individual variables in each label vector (eg. categories in onehot-encoding).
+        # 1. Standardize continuous labels to z-scores:
+        continuous_mean = {
+            feature: tissue_meta_data[feature].mean(skipna=True)
+            for feature in list(label_cols.keys())
+            if label_cols[feature] == 'continuous'
+        }
+        continuous_std = {
+            feature: tissue_meta_data[feature].std(skipna=True)
+            for feature in list(label_cols.keys())
+            if label_cols[feature] == 'continuous'
+        }
+        for i, feature in enumerate(list(label_cols.keys())):
+            if label_cols[feature] == 'continuous':
+                label_tensors[feature] = (tissue_meta_data[feature].values - continuous_mean[feature]) \
+                                         / continuous_std[feature]
+                label_names[feature] = [feature]
+        # 2. One-hot encode categorical columns
+        # Force all entries in categorical columns to be string so that GLM-like formula processing can be performed.
+        for i, feature in enumerate(list(label_cols.keys())):
+            if label_cols[feature] == 'categorical':
+                tissue_meta_data[feature] = tissue_meta_data[feature].astype('str')
+        # One-hot encode each string label vector:
+        for i, feature in enumerate(list(label_cols.keys())):
+            if label_cols[feature] == 'categorical':
+                oh = pd.get_dummies(
+                    tissue_meta_data[feature],
+                    prefix=feature,
+                    prefix_sep='>',
+                    drop_first=False
+                )
+                # Change all entries of corresponding observation to np.nan instead.
+                idx_nan_col = np.array([i for i, x in enumerate(oh.columns) if x.endswith('>nan')])
+                if len(idx_nan_col) > 0:
+                    assert len(idx_nan_col) == 1, "fatal processing error"
+                    nan_rows = np.where(oh.iloc[:, idx_nan_col[0]].values == 1.)[0]
+                    oh.loc[nan_rows, :] = np.nan
+                # Drop nan element column.
+                oh = oh.loc[:, [x for x in oh.columns if not x.endswith('>nan')]]
+                label_tensors[feature] = oh.values
+                label_names[feature] = oh.columns
+        # Make sure all tensors are 2D for indexing:
+        for feature in list(label_tensors.keys()):
+            if len(label_tensors[feature].shape) == 1:
+                label_tensors[feature] = np.expand_dims(label_tensors[feature], axis=1)
+        # The dictionary of tensor is nested in slices in a dictionary by image which is easier to query with a
+        # generator.
+        tissue_meta_data_patients = tissue_meta_data[patient_col].values.tolist()
+        label_tensors = {
+            img: {
+                feature_name: np.array(features[tissue_meta_data_patients.index(patient), :], ndmin=1)
+                for feature_name, features in label_tensors.items()
+            } if patient in tissue_meta_data_patients else None
+            for img, patient in self.celldata.uns["img_to_patient_dict"].items()
+        }
+        # Reduce to observed patients:
+        label_tensors = dict([(k, v) for k, v in label_tensors.items() if v is not None])
+        print(label_tensors.keys())
+        print(self.img_celldata.keys())
+
+
+        # Save processed data to attributes.
+        for k, adata in self.img_celldata.items():
+            graph_covariates = {
+                'label_names': label_names,
+                'label_tensors': label_tensors[k],
+                'label_slection': list(label_cols.keys()),
+                'continuous_mean': continuous_mean,
+                'continuous_std': continuous_std,
+                'label_data_types': label_cols
+            }
+            adata.uns['graph_covariates'] = graph_covariates
+        print(self.img_celldata)
+
+        #self.ref_img_keys = {k: [] for k, v in self.nodes_by_image.items()}
 
 
 class DataLoaderPascualReguant(DataLoader):
@@ -600,7 +730,7 @@ class DataLoaderPascualReguant(DataLoader):
         image_col = self.celldata.uns["metadata"]["image_col"]
         img_celldata = {}
         for k in self.celldata.uns["img_keys"]:
-            img_celldata[k] = self.celldata[self.celldata.obs[image_col] == k]
+            img_celldata[str(k)] = self.celldata[self.celldata.obs[image_col] == k]
         self.img_celldata = img_celldata
         print(img_celldata)
 
@@ -750,6 +880,6 @@ class DataLoaderSchuerch(DataLoader):
         image_col = self.celldata.uns["metadata"]["image_col"]
         img_celldata = {}
         for k in self.celldata.uns["img_keys"]:
-            img_celldata[k] = self.celldata[self.celldata.obs[image_col] == k]
+            img_celldata[str(k)] = self.celldata[self.celldata.obs[image_col] == k]
         self.img_celldata = img_celldata
         print(img_celldata)

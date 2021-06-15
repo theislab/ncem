@@ -1,9 +1,9 @@
-from typing import Union
-
 import numpy as np
-import scipy
 import tensorflow as tf
+
 from patsy import dmatrix
+from scipy.sparse import coo_matrix
+from typing import Union
 
 from ncem.estimators import Estimator
 from ncem.models import ModelInteractions
@@ -88,7 +88,7 @@ class EstimatorInteractions(Estimator):
                     a = a[indices, :]
                     coo = a.tocoo()
                     a_shape = np.asarray((self.n_eval_nodes_per_graph, self.max_nodes), dtype="int64")
-                    a = scipy.sparse.coo_matrix((coo.data, (coo.row, coo.col)), a_shape)
+                    a = coo_matrix((coo.data, (coo.row, coo.col)), a_shape)
 
                     # Assemble design matrix components for interactions:
                     dmat_neighbours = (
@@ -104,7 +104,7 @@ class EstimatorInteractions(Estimator):
                     # interactions_shape = np.asarray(
                     #    (self.n_eval_nodes_per_graph, self.n_features_0 ** 2), dtype="int64"
                     # )
-                    interactions = scipy.sparse.coo_matrix(interactions)
+                    interactions = coo_matrix(interactions)
                     coo = interactions.tocoo()
                     interactions_ind = np.asarray(np.mat([coo.row, coo.col]).transpose(), dtype="int64")
                     interactions_val = np.asarray(coo.data, dtype="float32")
@@ -152,6 +152,16 @@ class EstimatorInteractions(Estimator):
         dataset = dataset.batch(batch_size)
         dataset = dataset.prefetch(prefetch)
         return dataset
+
+    def _get_resampled_dataset(
+        self,
+        image_keys: np.ndarray,
+        nodes_idx: dict,
+        batch_size: int,
+        seed: Union[int, None] = None,
+        prefetch: int = 100
+    ):
+        pass
 
     def init_model(
         self,

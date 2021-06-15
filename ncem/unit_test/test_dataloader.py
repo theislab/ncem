@@ -7,22 +7,31 @@ class TestDataLoader(unittest.TestCase):
             from ncem.data import DataLoaderZhang as DataLoader
 
             radius = 100
+            label_selection = []
         elif self.data_origin == "jarosch":
             from ncem.data import DataLoaderJarosch as DataLoader
 
             radius = 100
+            label_selection = []
         elif self.data_origin == "hartmann":
             from ncem.data import DataLoaderHartmann as DataLoader
 
             radius = 100
+            label_selection = [
+                'Diagnosis',
+                'Age',
+                'Sex'
+            ]
         elif self.data_origin == "pascualreguant":
             from ncem.data import DataLoaderPascualReguant as DataLoader
 
             radius = 100
+            label_selection = []
 
         self.data = DataLoader(
             data_path=self.data_path,
             radius=radius,
+            label_selection=label_selection
         )
         self.data.merge_types_predefined()
 
