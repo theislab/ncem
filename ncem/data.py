@@ -1,5 +1,5 @@
 import abc
-from typing import Dict, List, Tuple, Union
+from typing import Dict, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -219,7 +219,7 @@ class DataLoader(GraphTools):
         ct = np.unique(feature_mat["cell_type"].values)
         nrows = len(ct) // 12 + int(len(ct) % 12 > 0)
         fig, ax = plt.subplots(
-            ncols=12, nrows=nrows, figsize=(12 * panel_width, nrows * panel_height), sharex=True, sharey=True
+            ncols=12, nrows=nrows, figsize=(12 * panel_width, nrows * panel_height), sharex='all', sharey='all'
         )
         ax = ax.flat
         for axis in ax[len(ct):]:
