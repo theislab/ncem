@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import squidpy as sq
 from anndata import AnnData, read_h5ad
-from pandas import read_csv
+from pandas import read_csv, read_excel
 
 # ToDo add graph covariates
 
@@ -485,6 +485,9 @@ class DataLoaderHartmann(DataLoader):
 
         self.celldata = celldata
 
+    def merge_types_predefined(self, coarseness=None):
+        pass
+
     def _register_img_celldata(self):
         image_col = self.celldata.uns["metadata"]["image_col"]
         img_celldata = {}
@@ -494,7 +497,111 @@ class DataLoaderHartmann(DataLoader):
 
 
 class DataLoaderPascualReguant(DataLoader):
-    pass
+    def _register_celldata(self):
+        """
+        Registers an Anndata object over all images and collects all necessary information.
+        :return:
+        """
+        metadata = {
+            "lateral_resolution": 0.325,
+            "fn": ["TONSIL_MFI_nuclei_data_table.xlsx", "TONSIL_MFI_membranes_data_table.xlsx"],
+            "image_col": "img_keys",
+            "pos_cols": ["Location_Center_X", "Location_Center_Y"],
+            "cluster_col": "cell_class",
+            "patient_col": None,
+        }
+        nuclei_df = read_excel(self.data_path + metadata["fn"][0])
+        membranes_df = read_excel(self.data_path + metadata["fn"][1])
+
+        celldata_df = nuclei_df.join(membranes_df.set_index('ObjectNumber'), on='ObjectNumber')
+
+        feature_cols = [
+            "Bcl6",
+            "Foxp3",
+            "Helios",
+            "IRF4",
+            "Ki67",
+            "Pax5",
+            "CCR6",
+            "CD103",
+            "CD11c",
+            "CD123",
+            "CD127",
+            "CD138",
+            "CD14",
+            "CD141",
+            "CD16",
+            "CD161",
+            "CD19",
+            "CD20",
+            "CD21",
+            "CD23",
+            "CD3",
+            "CD31",
+            "CD34",
+            "CD38",
+            "CD4",
+            "CD45",
+            "CD45RA",
+            "CD45RO",
+            "CD49a",
+            "CD56",
+            "CD69",
+            "CD7",
+            "CD8",
+            "CD94",
+            "CXCR3",
+            "FcER1a",
+            "GranzymeA",
+            "HLADR",
+            "ICOS",
+            "IgA",
+            "IgG",
+            "IgM",
+            "Langerin",
+            "NKp44",
+            "RANKL",
+            "SMA",
+            "TCRVa72",
+            "TCRgd",
+            "VCAM",
+            "Vimentin",
+            "cKit",
+        ]
+        print(celldata_df.dtypes)
+        celldata = AnnData(X=celldata_df[feature_cols], obs=celldata_df[["ObjectNumber", "cell_class"]])
+
+        celldata.uns["metadata"] = metadata
+        celldata.obs["img_keys"] = np.repeat("tonsil_image", repeats=celldata.shape[0])
+        celldata.uns["img_keys"] = ["tonsil_image"]
+        print(celldata)
+        # register x and y coordinates into obsm
+        celldata.obsm["spatial"] = np.array(celldata_df[metadata["pos_cols"]])
+
+        celldata.uns["img_to_patient_dict"] = {"tonsil_image": "tonsil_patient"}
+
+        # register node type names
+        node_type_names = list(np.unique(celldata_df[metadata["cluster_col"]]))
+        celldata.uns["node_type_names"] = {x: x for x in node_type_names}
+        node_types = np.zeros((celldata.shape[0], len(node_type_names)))
+        node_type_idx = np.array(
+            [node_type_names.index(x) for x in celldata_df[metadata["cluster_col"]].values]  # index in encoding vector
+        )
+        node_types[np.arange(0, node_type_idx.shape[0]), node_type_idx] = 1
+        celldata.obsm["node_types"] = node_types
+
+        self.celldata = celldata
+
+    def merge_types_predefined(self, coarseness=None):
+        pass
+
+    def _register_img_celldata(self):
+        image_col = self.celldata.uns["metadata"]["image_col"]
+        img_celldata = {}
+        for k in self.celldata.uns["img_keys"]:
+            img_celldata[k] = self.celldata[self.celldata.obs[image_col] == k]
+        self.img_celldata = img_celldata
+        print(img_celldata)
 
 
 class DataLoaderSchuerch(DataLoader):
