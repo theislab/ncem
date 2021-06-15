@@ -46,7 +46,7 @@ class Estimator:
             raise ValueError(f"data_origin {data_origin} not recognized")
 
         self.data = DataLoader(data_path, radius=radius)
-        #self.data.process_node_features(feature_transformation=feature_transformation)
+        # self.data.process_node_features(feature_transformation=feature_transformation)
 
     def get_data(
         self,
@@ -74,7 +74,7 @@ class Estimator:
         if merge_node_types_predefined:
             self.data.merge_types_predefined()
 
-        self.img_to_patient_dict = self.data.celldata.uns['img_to_patient_dict']
+        self.img_to_patient_dict = self.data.celldata.uns["img_to_patient_dict"]
         self.a = {k: adata.obsp["adjacency_matrix_connectivities"] for k, adata in self.data.img_celldata.items()}
         if node_label_space_id == "standard":
             self.h_0 = {k: adata.X for k, adata in self.data.img_celldata.items()}
@@ -93,14 +93,14 @@ class Estimator:
         self.n_features_type = list(self.node_types.values())[0].shape[1]
         self.n_features_standard = self.data.celldata.shape[1]
         self.node_feature_names = self.data.celldata.var_names
-        #self.size_factors = self.data.size_factors()
+        # self.size_factors = self.data.size_factors()
 
         self.node_covar = {k: np.empty((adata.shape[0], 0)) for k, adata in self.data.img_celldata.items()}
 
         # Report summary statistics of loaded graph:
         print(
-            "Mean of mean node degree per images across images: %f" %
-            np.mean([np.mean(v.sum(axis=1)) for k, v in self.a.items()])
+            "Mean of mean node degree per images across images: %f"
+            % np.mean([np.mean(v.sum(axis=1)) for k, v in self.a.items()])
         )
 
     @abc.abstractmethod
@@ -113,7 +113,7 @@ class Estimator:
         train: bool,
         seed: Union[int, None],
         prefetch: int = 100,
-        reinit_n_eval: Union[int, None] = None
+        reinit_n_eval: Union[int, None] = None,
     ):
         pass
 
@@ -124,7 +124,7 @@ class Estimator:
         nodes_idx: dict,
         batch_size: int,
         seed: Union[int, None] = None,
-        prefetch: int = 100
+        prefetch: int = 100,
     ):
         pass
 
@@ -145,22 +145,27 @@ class Estimator:
 
     @property
     def img_keys_all(self):
-        return np.unique(np.concatenate([
-            self.img_keys_train,
-            self.img_keys_eval,
-            self.img_keys_test
-        ])).tolist()
+        return np.unique(np.concatenate([self.img_keys_train, self.img_keys_eval, self.img_keys_test])).tolist()
 
     @property
     def nodes_idx_all(self):
-        return dict([
-            (x, np.unique(np.concatenate([
-                self.nodes_idx_train[x] if x in self.nodes_idx_train.keys() else np.array([]),
-                self.nodes_idx_eval[x] if x in self.nodes_idx_eval.keys() else np.array([]),
-                self.nodes_idx_test[x] if x in self.nodes_idx_test.keys() else np.array([])
-            ])))
-            for x in self.img_keys_all
-        ])
+        return dict(
+            [
+                (
+                    x,
+                    np.unique(
+                        np.concatenate(
+                            [
+                                self.nodes_idx_train[x] if x in self.nodes_idx_train.keys() else np.array([]),
+                                self.nodes_idx_eval[x] if x in self.nodes_idx_eval.keys() else np.array([]),
+                                self.nodes_idx_test[x] if x in self.nodes_idx_test.keys() else np.array([]),
+                            ]
+                        )
+                    ),
+                )
+                for x in self.img_keys_all
+            ]
+        )
 
     def _prepare_sf(self, x):
         if len(x.shape) == 2:
@@ -172,11 +177,7 @@ class Estimator:
         sf = sf / np.mean(sf)
         return sf
 
-    def _compile_model(
-            self,
-            optimizer: tf.keras.optimizers.Optimizer,
-            output_layer: str
-    ):
+    def _compile_model(self, optimizer: tf.keras.optimizers.Optimizer, output_layer: str):
         """
         Compile all necessary models.
         ATTENTION: Decoder compiled with same optimizer instance as training model if an instance is passed!
@@ -191,20 +192,33 @@ class Estimator:
         elif self.model_type == "lvm" or self.model_type == "clvm":
             if self.model.args["probabilistic"]:
                 self.vi_model = True
-        enc_dec_model = self.model_type == "vae" or self.model_type == "cvae" or self.model_type == "lvm" or \
-                        self.model_type == "clvm"
+        enc_dec_model = (
+            self.model_type == "vae"
+            or self.model_type == "cvae"
+            or self.model_type == "lvm"
+            or self.model_type == "clvm"
+        )
 
-        if output_layer in ["gaussian", 'gaussian_const_disp', 'linear', 'linear_const_disp']:
+        if output_layer in ["gaussian", "gaussian_const_disp", "linear", "linear_const_disp"]:
             reconstruction_loss = GaussianLoss()
             reconstruction_metrics = [
-                custom_mae, custom_mean_sd, custom_mse, custom_mse_scaled, gaussian_reconstruction_loss,
-                r_squared, r_squared_linreg
+                custom_mae,
+                custom_mean_sd,
+                custom_mse,
+                custom_mse_scaled,
+                gaussian_reconstruction_loss,
+                r_squared,
+                r_squared_linreg,
             ]
         elif output_layer == "nb" or output_layer == "nb_shared_disp" or output_layer == "nb_const_disp":
             reconstruction_loss = NegBinLoss()
             reconstruction_metrics = [
-                custom_mae, custom_mean_sd, nb_reconstruction_loss, logp1_custom_mse, logp1_r_squared,
-                logp1_r_squared_linreg
+                custom_mae,
+                custom_mean_sd,
+                nb_reconstruction_loss,
+                logp1_custom_mse,
+                logp1_r_squared,
+                logp1_r_squared_linreg,
             ]
         else:
             raise ValueError("output_layer %s not recognized" % output_layer)
@@ -212,34 +226,19 @@ class Estimator:
         if self.vi_model:
             self.loss = [
                 reconstruction_loss,
-                KLLoss(beta=self.beta, max_beta=self.max_beta, pre_warm_up=self.pre_warm_up)
+                KLLoss(beta=self.beta, max_beta=self.max_beta, pre_warm_up=self.pre_warm_up),
             ]
-            self.metrics = [
-                reconstruction_metrics,
-                [custom_kl]
-            ]
+            self.metrics = [reconstruction_metrics, [custom_kl]]
         else:
             self.loss = [reconstruction_loss]
             self.metrics = reconstruction_metrics
 
-        self.model.training_model.compile(
-            optimizer=optimizer,
-            loss=self.loss,
-            metrics=self.metrics
-        )
+        self.model.training_model.compile(optimizer=optimizer, loss=self.loss, metrics=self.metrics)
         # Also compile sampling model / decoder if available:
         if enc_dec_model:
-            self.model.decoder.compile(
-                optimizer=optimizer,
-                loss=self.loss,
-                metrics=self.metrics
-            )
+            self.model.decoder.compile(optimizer=optimizer, loss=self.loss, metrics=self.metrics)
         if self.vi_model:
-            self.model.decoder_sampling.compile(
-                optimizer=optimizer,
-                loss=self.loss,
-                metrics=self.metrics
-            )
+            self.model.decoder_sampling.compile(optimizer=optimizer, loss=self.loss, metrics=self.metrics)
 
     def _remove_unidentified_nodes(self, node_idx) -> Tuple[int, dict]:
         """
@@ -254,26 +253,28 @@ class Estimator:
             # Identify cells with undefined cell_type in all target images
             undefined_label_idx = np.where([x in self.undefined_node_types for x in self.node_type_names.values()])[0]
             # Extract shape and number for print statement
-            n_undefined_nodes = np.sum([
-                np.sum(np.any(self.node_types[k][v, :][:, undefined_label_idx] == 1, axis=1))
-                for k, v in node_idx.items()
-            ])
-            node_idx.update({
-                k: v[np.where(np.logical_not(np.any(self.node_types[k][v, :][:, undefined_label_idx] == 1, axis=1)))[0]]
-                for k, v in node_idx.items()
-            })
+            n_undefined_nodes = np.sum(
+                [
+                    np.sum(np.any(self.node_types[k][v, :][:, undefined_label_idx] == 1, axis=1))
+                    for k, v in node_idx.items()
+                ]
+            )
+            node_idx.update(
+                {
+                    k: v[
+                        np.where(np.logical_not(np.any(self.node_types[k][v, :][:, undefined_label_idx] == 1, axis=1)))[
+                            0
+                        ]
+                    ]
+                    for k, v in node_idx.items()
+                }
+            )
         else:
             n_undefined_nodes = 0
         return n_undefined_nodes, node_idx
 
     def split_data_given(
-            self,
-            img_keys_test,
-            img_keys_train,
-            img_keys_eval,
-            nodes_idx_test,
-            nodes_idx_train,
-            nodes_idx_eval
+        self, img_keys_test, img_keys_train, img_keys_eval, nodes_idx_test, nodes_idx_train, nodes_idx_eval
     ):
         """
         Split data by given partition.
@@ -294,12 +295,7 @@ class Estimator:
         self.nodes_idx_train = nodes_idx_train
         self.nodes_idx_eval = nodes_idx_eval
 
-    def split_data_node(
-            self,
-            test_split: float,
-            validation_split: float,
-            seed: int = 1
-    ):
+    def split_data_node(self, test_split: float, validation_split: float, seed: int = 1):
         """
         Split nodes randomly into partitions.
 
@@ -309,8 +305,10 @@ class Estimator:
         :return:
         """
 
-        print("Using split method: node. \n Train-test-validation split is based on total number of nodes "
-              "per patients over all images.")
+        print(
+            "Using split method: node. \n Train-test-validation split is based on total number of nodes "
+            "per patients over all images."
+        )
 
         np.random.seed(seed)
 
@@ -333,25 +331,18 @@ class Estimator:
             h_test_dict = {i: round(b * test_split) for i, b in h_nodes_dict.items()}
 
         self.nodes_idx_test = {
-            k: np.random.choice(
-                a=nodes_all_idx[k],
-                size=h_test_dict[k],
-                replace=False
-            ) for k in self.h_0.keys()
+            k: np.random.choice(a=nodes_all_idx[k], size=h_test_dict[k], replace=False) for k in self.h_0.keys()
         }
         nodes_idx_test_shapes = {a: b.shape[0] for a, b in self.nodes_idx_test.items()}
         test_nodes = sum(nodes_idx_test_shapes.values())
 
         nodes_idx_train_eval = {
-            i: np.array([x for x in nodes_all_idx[i] if x not in self.nodes_idx_test[i]])
-            for i in self.h_0.keys()
+            i: np.array([x for x in nodes_all_idx[i] if x not in self.nodes_idx_test[i]]) for i in self.h_0.keys()
         }
 
         self.nodes_idx_eval = {
-            i: np.random.choice(
-                a=nodes_idx_train_eval[i],
-                size=round(len(nodes_idx_train_eval[i]) * validation_split)
-            ) for i in self.h_0.keys()
+            i: np.random.choice(a=nodes_idx_train_eval[i], size=round(len(nodes_idx_train_eval[i]) * validation_split))
+            for i in self.h_0.keys()
         }
         nodes_idx_eval_shapes = {a: b.shape[0] for a, b in self.nodes_idx_eval.items()}
         eval_nodes = sum(nodes_idx_eval_shapes.values())
@@ -365,41 +356,41 @@ class Estimator:
 
         print(
             "\nExcluded %i cells with the following unannotated cell type: [%s] \n"
-            "\nWhole dataset: %i cells out of %i images from %i patients. %i images had a reference image." %
-            (
+            "\nWhole dataset: %i cells out of %i images from %i patients. %i images had a reference image."
+            % (
                 n_undefined_nodes,
                 self.undefined_node_types,
                 all_nodes,
                 len(list(self.target_img_keys)),
                 len(self.patient_ids_unique),
-                int(np.sum([len(self.ref_img_keys[x]) > 0 for x in list(self.target_img_keys)]))
+                int(np.sum([len(self.ref_img_keys[x]) > 0 for x in list(self.target_img_keys)])),
             )
         )
         print(
-            "Test dataset: %i cells out of %i images from %i patients. %i images had a reference image." %
-            (
+            "Test dataset: %i cells out of %i images from %i patients. %i images had a reference image."
+            % (
                 test_nodes,
                 len(self.img_keys_test),
                 len(self.patient_ids_unique),
-                int(np.sum([len(self.ref_img_keys[x]) > 0 for x in self.img_keys_test]))
+                int(np.sum([len(self.ref_img_keys[x]) > 0 for x in self.img_keys_test])),
             )
         )
         print(
-            "Training dataset: %i cells out of %i images from %i patients. %i images had a reference image." %
-            (
+            "Training dataset: %i cells out of %i images from %i patients. %i images had a reference image."
+            % (
                 train_nodes,
                 len(self.img_keys_train),
                 len(self.patient_ids_unique),
-                int(np.sum([len(self.ref_img_keys[x]) > 0 for x in self.img_keys_train]))
+                int(np.sum([len(self.ref_img_keys[x]) > 0 for x in self.img_keys_train])),
             )
         )
         print(
-            "Validation dataset: %i cells out of %i images from %i patients. %i images had a reference image.\n" %
-            (
+            "Validation dataset: %i cells out of %i images from %i patients. %i images had a reference image.\n"
+            % (
                 eval_nodes,
                 len(self.img_keys_eval),
                 len(self.patient_ids_unique),
-                int(np.sum([len(self.ref_img_keys[x]) > 0 for x in self.img_keys_eval]))
+                int(np.sum([len(self.ref_img_keys[x]) > 0 for x in self.img_keys_eval])),
             )
         )
 
@@ -409,13 +400,7 @@ class Estimator:
         if not train_nodes:
             raise ValueError("The train dataset is empty.")
 
-    def split_data_target_cell(
-            self,
-            target_cell: str,
-            test_split: float,
-            validation_split: float,
-            seed: int = 1
-    ):
+    def split_data_target_cell(self, target_cell: str, test_split: float, validation_split: float, seed: int = 1):
         """
         Split nodes randomly into partitions.
 
@@ -426,8 +411,10 @@ class Estimator:
         :return:
         """
 
-        print("Using split method: node. \n Train-test-validation split is based on total number of nodes "
-              "per patients over all images.")
+        print(
+            "Using split method: node. \n Train-test-validation split is based on total number of nodes "
+            "per patients over all images."
+        )
 
         np.random.seed(seed)
 
@@ -445,9 +432,7 @@ class Estimator:
         n_undefined_nodes, nodes_all_idx = self._remove_unidentified_nodes(node_idx=nodes_all_idx)
 
         # Dictionary of all nodes within a target cell type
-        nodes_all_idx = {
-            k: np.where(self.node_types[k][:, target_cell_id] == 1)[0] for k in self.img_keys_train
-        }
+        nodes_all_idx = {k: np.where(self.node_types[k][:, target_cell_id] == 1)[0] for k in self.img_keys_train}
         # updating h_nodes_dict to only include the number of identified cells of specific target cell
         h_nodes_dict = {a: b.shape[0] for a, b in nodes_all_idx.items()}
 
@@ -463,26 +448,19 @@ class Estimator:
         # Assign nodes to partitions:
         # Test partition:
         self.nodes_idx_test = {
-            k: np.random.choice(
-                a=nodes_all_idx[k],
-                size=h_test_dict[k],
-                replace=False
-            ) for k in self.h_0.keys()
+            k: np.random.choice(a=nodes_all_idx[k], size=h_test_dict[k], replace=False) for k in self.h_0.keys()
         }
         nodes_idx_test_shapes = {a: b.shape[0] for a, b in self.nodes_idx_test.items()}
         test_nodes = sum(nodes_idx_test_shapes.values())
 
         # Define train-eval partition:
         nodes_idx_train_eval = {
-            i: np.array([x for x in nodes_all_idx[i] if x not in self.nodes_idx_test[i]])
-            for i in self.h_0.keys()
+            i: np.array([x for x in nodes_all_idx[i] if x not in self.nodes_idx_test[i]]) for i in self.h_0.keys()
         }
         # Randomly partition train-eval into train and eval:
         self.nodes_idx_eval = {
-            i: np.random.choice(
-                a=nodes_idx_train_eval[i],
-                size=round(len(nodes_idx_train_eval[i]) * validation_split)
-            ) for i in self.h_0.keys()
+            i: np.random.choice(a=nodes_idx_train_eval[i], size=round(len(nodes_idx_train_eval[i]) * validation_split))
+            for i in self.h_0.keys()
         }
         nodes_idx_eval_shapes = {a: b.shape[0] for a, b in self.nodes_idx_eval.items()}
         eval_nodes = sum(nodes_idx_eval_shapes.values())
@@ -497,52 +475,52 @@ class Estimator:
 
         print(
             "\nExcluded %i cells with the following unannotated cell type: [%s] \n"
-            "\nWhole dataset: %i cells out of %i images from %i patients. %i images had a reference image." %
-            (
+            "\nWhole dataset: %i cells out of %i images from %i patients. %i images had a reference image."
+            % (
                 n_undefined_nodes,
                 self.undefined_node_types,
                 all_nodes,
                 len(list(self.target_img_keys)),
                 len(self.patient_ids_unique),
-                int(np.sum([len(self.ref_img_keys[x]) > 0 for x in list(self.target_img_keys)]))
+                int(np.sum([len(self.ref_img_keys[x]) > 0 for x in list(self.target_img_keys)])),
             )
         )
         print(
             "\nCell type used for training %s: %i cells out of %i images from %i patients. "
-            "%i images had a reference image." %
-            (
+            "%i images had a reference image."
+            % (
                 target_cell,
                 target_cell_nodes,
                 len(list(self.target_img_keys)),
                 len(self.patient_ids_unique),
-                int(np.sum([len(self.ref_img_keys[x]) > 0 for x in list(self.target_img_keys)]))
+                int(np.sum([len(self.ref_img_keys[x]) > 0 for x in list(self.target_img_keys)])),
             )
         )
         print(
-            "Test dataset: %i cells out of %i images from %i patients. %i images had a reference image." %
-            (
+            "Test dataset: %i cells out of %i images from %i patients. %i images had a reference image."
+            % (
                 test_nodes,
                 len(self.img_keys_test),
                 len(self.patient_ids_unique),
-                int(np.sum([len(self.ref_img_keys[x]) > 0 for x in self.img_keys_test]))
+                int(np.sum([len(self.ref_img_keys[x]) > 0 for x in self.img_keys_test])),
             )
         )
         print(
-            "Training dataset: %i cells out of %i images from %i patients. %i images had a reference image." %
-            (
+            "Training dataset: %i cells out of %i images from %i patients. %i images had a reference image."
+            % (
                 train_nodes,
                 len(self.img_keys_train),
                 len(self.patient_ids_unique),
-                int(np.sum([len(self.ref_img_keys[x]) > 0 for x in self.img_keys_train]))
+                int(np.sum([len(self.ref_img_keys[x]) > 0 for x in self.img_keys_train])),
             )
         )
         print(
-            "Validation dataset: %i cells out of %i images from %i patients. %i images had a reference image.\n" %
-            (
+            "Validation dataset: %i cells out of %i images from %i patients. %i images had a reference image.\n"
+            % (
                 eval_nodes,
                 len(self.img_keys_eval),
                 len(self.patient_ids_unique),
-                int(np.sum([len(self.ref_img_keys[x]) > 0 for x in self.img_keys_eval]))
+                int(np.sum([len(self.ref_img_keys[x]) > 0 for x in self.img_keys_eval])),
             )
         )
 
@@ -553,37 +531,34 @@ class Estimator:
             raise ValueError("The train dataset is empty.")
 
     def train(
-            self,
-            epochs: int = 1000,
-            epochs_warmup: int = 0,
-            max_steps_per_epoch: Union[int, None] = 20,
-            batch_size: int = 16,
-            validation_batch_size: int = 16,
-            max_validation_steps: Union[int, None] = 10,
-            shuffle_buffer_size: int = int(1e4),
-
-            patience: int = 20,
-            lr_schedule_min_lr: float = 1e-5,
-            lr_schedule_factor: float = 0.2,
-            lr_schedule_patience: int = 5,
-            initial_epoch: int = 0,
-            monitor_partition: str = "val",
-            monitor_metric: str = "loss",
-            log_dir: Union[str, None] = None,
-            callbacks: Union[list, None] = None,
-            early_stopping: bool = True,
-            reduce_lr_plateau: bool = True,
-
-            pretrain_decoder: bool = False,
-            decoder_epochs: bool = 1000,
-            decoder_patience: bool = 20,
-            decoder_callbacks: Union[list, None] = None,
-
-            aggressive: bool = False,
-            aggressive_enc_patience: int = 10,
-            aggressive_epochs: int = 5,
-            seed: int = 1234,
-            **kwargs,
+        self,
+        epochs: int = 1000,
+        epochs_warmup: int = 0,
+        max_steps_per_epoch: Union[int, None] = 20,
+        batch_size: int = 16,
+        validation_batch_size: int = 16,
+        max_validation_steps: Union[int, None] = 10,
+        shuffle_buffer_size: int = int(1e4),
+        patience: int = 20,
+        lr_schedule_min_lr: float = 1e-5,
+        lr_schedule_factor: float = 0.2,
+        lr_schedule_patience: int = 5,
+        initial_epoch: int = 0,
+        monitor_partition: str = "val",
+        monitor_metric: str = "loss",
+        log_dir: Union[str, None] = None,
+        callbacks: Union[list, None] = None,
+        early_stopping: bool = True,
+        reduce_lr_plateau: bool = True,
+        pretrain_decoder: bool = False,
+        decoder_epochs: bool = 1000,
+        decoder_patience: bool = 20,
+        decoder_callbacks: Union[list, None] = None,
+        aggressive: bool = False,
+        aggressive_enc_patience: int = 10,
+        aggressive_epochs: int = 5,
+        seed: int = 1234,
+        **kwargs,
     ):
         # Save training settings to allow model restoring.
         self.train_hyperparam = {
@@ -594,21 +569,17 @@ class Estimator:
             "validation_batch_size": validation_batch_size,
             "max_validation_steps": max_validation_steps,
             "shuffle_buffer_size": shuffle_buffer_size,
-
             "patience": patience,
             "lr_schedule_min_lr": lr_schedule_min_lr,
             "lr_schedule_factor": lr_schedule_factor,
             "lr_schedule_patience": lr_schedule_patience,
             "log_dir": log_dir,
-
             "pretrain_decoder": pretrain_decoder,
             "decoder_epochs": decoder_epochs,
             "decoder_patience": decoder_patience,
-
             "aggressive": aggressive,
             "aggressive_enc_patience": aggressive_enc_patience,
-            "aggressive_epochs": aggressive_epochs
-
+            "aggressive_epochs": aggressive_epochs,
         }
         self.train_dataset = self._get_dataset(
             image_keys=self.img_keys_train,
@@ -617,7 +588,7 @@ class Estimator:
             shuffle_buffer_size=shuffle_buffer_size,
             train=True,
             seed=seed,
-            reinit_n_eval=None
+            reinit_n_eval=None,
         )
         self.eval_dataset = self._get_dataset(
             image_keys=self.img_keys_eval,
@@ -626,7 +597,7 @@ class Estimator:
             shuffle_buffer_size=shuffle_buffer_size,
             train=True,
             seed=seed,
-            reinit_n_eval=None
+            reinit_n_eval=None,
         )
 
         self.steps_per_epoch = min(max(len(self.img_keys_train) // batch_size, 1), max_steps_per_epoch)
@@ -645,13 +616,10 @@ class Estimator:
                 log_dir=log_dir,
                 callbacks=decoder_callbacks,
                 early_stopping=early_stopping,
-                reduce_lr_plateau=reduce_lr_plateau
+                reduce_lr_plateau=reduce_lr_plateau,
             )
         if aggressive:
-            self.train_aggressive(
-                aggressive_enc_patience=aggressive_enc_patience,
-                aggressive_epochs=aggressive_epochs
-            )
+            self.train_aggressive(aggressive_enc_patience=aggressive_enc_patience, aggressive_epochs=aggressive_epochs)
 
         if epochs_warmup > 0:
             self.train_normal(
@@ -666,7 +634,7 @@ class Estimator:
                 log_dir=log_dir,
                 callbacks=callbacks,
                 early_stopping=False,
-                reduce_lr_plateau=reduce_lr_plateau
+                reduce_lr_plateau=reduce_lr_plateau,
             )
             initial_epoch += epochs_warmup
 
@@ -682,23 +650,23 @@ class Estimator:
             log_dir=log_dir,
             callbacks=callbacks,
             early_stopping=early_stopping,
-            reduce_lr_plateau=reduce_lr_plateau
+            reduce_lr_plateau=reduce_lr_plateau,
         )
 
     def train_normal(
-            self,
-            epochs: int = 1000,
-            patience: int = 20,
-            lr_schedule_min_lr: float = 1e-5,
-            lr_schedule_factor: float = 0.2,
-            lr_schedule_patience: int = 5,
-            initial_epoch: int = 0,
-            monitor_partition: str = "val",
-            monitor_metric: str = "loss",
-            log_dir: Union[str, None] = None,
-            callbacks: Union[list, None] = None,
-            early_stopping: bool = True,
-            reduce_lr_plateau: bool = True,
+        self,
+        epochs: int = 1000,
+        patience: int = 20,
+        lr_schedule_min_lr: float = 1e-5,
+        lr_schedule_factor: float = 0.2,
+        lr_schedule_patience: int = 5,
+        initial_epoch: int = 0,
+        monitor_partition: str = "val",
+        monitor_metric: str = "loss",
+        log_dir: Union[str, None] = None,
+        callbacks: Union[list, None] = None,
+        early_stopping: bool = True,
+        reduce_lr_plateau: bool = True,
     ):
 
         """
@@ -725,33 +693,33 @@ class Estimator:
         if reduce_lr_plateau:
             cbs.append(
                 tf.keras.callbacks.ReduceLROnPlateau(
-                    monitor=monitor_partition + '_' + monitor_metric,
+                    monitor=monitor_partition + "_" + monitor_metric,
                     factor=lr_schedule_factor,
                     patience=lr_schedule_patience,
-                    min_lr=lr_schedule_min_lr
+                    min_lr=lr_schedule_min_lr,
                 )
             )
         if early_stopping:
             cbs.append(
                 tf.keras.callbacks.EarlyStopping(
-                    monitor=monitor_partition + '_' + monitor_metric,
-                    patience=patience,
-                    restore_best_weights=True
+                    monitor=monitor_partition + "_" + monitor_metric, patience=patience, restore_best_weights=True
                 )
             )
         if log_dir is not None:
-            cbs.append(tf.keras.callbacks.TensorBoard(
-                log_dir=log_dir,
-                histogram_freq=1,
-                write_graph=False,
-                write_grads=False,
-                write_images=False,
-                embeddings_freq=0,
-                embeddings_layer_names=None,
-                embeddings_metadata=None,
-                embeddings_data=None,
-                update_freq='epoch'
-            ))
+            cbs.append(
+                tf.keras.callbacks.TensorBoard(
+                    log_dir=log_dir,
+                    histogram_freq=1,
+                    write_graph=False,
+                    write_grads=False,
+                    write_images=False,
+                    embeddings_freq=0,
+                    embeddings_layer_names=None,
+                    embeddings_metadata=None,
+                    embeddings_data=None,
+                    update_freq="epoch",
+                )
+            )
         if callbacks is not None:
             # callbacks needs to be a list
             cbs += callbacks
@@ -764,7 +732,7 @@ class Estimator:
             callbacks=cbs,
             validation_data=self.eval_dataset,
             validation_steps=self.validation_steps,
-            verbose=2
+            verbose=2,
         ).history
         for k, v in history.items():  # append to history if train() has been called before.
             if k in self.history.keys():
@@ -773,52 +741,52 @@ class Estimator:
                 self.history[k] = v
 
     def pretrain_decoder(
-            self,
-            decoder_epochs: int = 1000,
-            patience: int = 20,
-            lr_schedule_min_lr: float = 1e-5,
-            lr_schedule_factor: float = 0.2,
-            lr_schedule_patience: int = 5,
-            initial_epoch: int = 0,
-            monitor_partition: str = "val",
-            monitor_metric: str = "loss",
-            log_dir: Union[str, None] = None,
-            callbacks: Union[list, None] = None,
-            early_stopping: bool = True,
-            reduce_lr_plateau: bool = True,
+        self,
+        decoder_epochs: int = 1000,
+        patience: int = 20,
+        lr_schedule_min_lr: float = 1e-5,
+        lr_schedule_factor: float = 0.2,
+        lr_schedule_patience: int = 5,
+        initial_epoch: int = 0,
+        monitor_partition: str = "val",
+        monitor_metric: str = "loss",
+        log_dir: Union[str, None] = None,
+        callbacks: Union[list, None] = None,
+        early_stopping: bool = True,
+        reduce_lr_plateau: bool = True,
     ):
         # Set callbacks.
         cbs = []
         if reduce_lr_plateau:
             cbs.append(
                 tf.keras.callbacks.ReduceLROnPlateau(
-                    monitor=monitor_partition + '_' + monitor_metric,
+                    monitor=monitor_partition + "_" + monitor_metric,
                     factor=lr_schedule_factor,
                     patience=lr_schedule_patience,
-                    min_lr=lr_schedule_min_lr
+                    min_lr=lr_schedule_min_lr,
                 )
             )
         if early_stopping:
             cbs.append(
                 tf.keras.callbacks.EarlyStopping(
-                    monitor=monitor_partition + '_' + monitor_metric,
-                    patience=patience,
-                    restore_best_weights=True
+                    monitor=monitor_partition + "_" + monitor_metric, patience=patience, restore_best_weights=True
                 )
             )
         if log_dir is not None:
-            cbs.append(tf.keras.callbacks.TensorBoard(
-                log_dir=log_dir,
-                histogram_freq=1,
-                write_graph=False,
-                write_grads=False,
-                write_images=False,
-                embeddings_freq=0,
-                embeddings_layer_names=None,
-                embeddings_metadata=None,
-                embeddings_data=None,
-                update_freq='epoch'
-            ))
+            cbs.append(
+                tf.keras.callbacks.TensorBoard(
+                    log_dir=log_dir,
+                    histogram_freq=1,
+                    write_graph=False,
+                    write_grads=False,
+                    write_images=False,
+                    embeddings_freq=0,
+                    embeddings_layer_names=None,
+                    embeddings_metadata=None,
+                    embeddings_data=None,
+                    update_freq="epoch",
+                )
+            )
         if callbacks is not None:
             # callbacks needs to be a list
             cbs += callbacks
@@ -831,7 +799,7 @@ class Estimator:
             callbacks=cbs,
             validation_data=self.eval_dataset,
             validation_steps=self.validation_steps,
-            verbose=2
+            verbose=2,
         ).history
         for k, v in history.items():  # append to history if train() has been called before.
             if k in self.history.keys():
@@ -857,9 +825,9 @@ class Estimator:
         print(f"updated layers: {layers_updated}")
 
     def train_aggressive(
-            self,
-            aggressive_enc_patience: int = 10,
-            aggressive_epochs: int = 5,
+        self,
+        aggressive_enc_patience: int = 10,
+        aggressive_epochs: int = 5,
     ):
         """
         :param aggressive_enc_patience:
@@ -868,65 +836,53 @@ class Estimator:
         """
         # @tf.function
         def train_iter(
-                x_batch,
-                y_batch,
-                train_dec,
-                train_enc,
+            x_batch,
+            y_batch,
+            train_dec,
+            train_enc,
         ):
             with tf.GradientTape() as g:
                 output_decoder_concat, latent_space = self.model.training_model(x_batch)
                 losses = {
                     "reconstruction_loss": self.loss[0](y_batch[0], output_decoder_concat),
-                    "bottleneck_loss": self.loss[1](y_batch[1], latent_space)
+                    "bottleneck_loss": self.loss[1](y_batch[1], latent_space),
                 }
                 losses["loss"] = losses["reconstruction_loss"] + losses["bottleneck_loss"]
 
             if train_enc:
-                grad_enc = g.gradient(
-                    target=losses["loss"],
-                    sources=self.model.encoder_model.trainable_variables
-                )
-                self.optimizer.apply_gradients(
-                    zip(grad_enc, self.model.encoder_model.trainable_variables)
-                )
+                grad_enc = g.gradient(target=losses["loss"], sources=self.model.encoder_model.trainable_variables)
+                self.optimizer.apply_gradients(zip(grad_enc, self.model.encoder_model.trainable_variables))
             if train_dec:
-                grad_dec = g.gradient(
-                    target=losses["loss"],
-                    sources=self.model.decoder_model.trainable_variables
-                )
-                self.optimizer.apply_gradients(
-                    zip(grad_dec, self.model.decoder_model.trainable_variables)
-                )
+                grad_dec = g.gradient(target=losses["loss"], sources=self.model.decoder_model.trainable_variables)
+                self.optimizer.apply_gradients(zip(grad_dec, self.model.decoder_model.trainable_variables))
 
             metrics_values_output = {
-                'reconstruction_' + metric.__name__: metric(y_batch[0], output_decoder_concat)
+                "reconstruction_" + metric.__name__: metric(y_batch[0], output_decoder_concat)
                 for metric in self.metrics[0]
             }
             metrics_values_latent = {
-                'bottleneck_' + metric.__name__: metric(y_batch[1], latent_space)
-                for metric in self.metrics[1]
+                "bottleneck_" + metric.__name__: metric(y_batch[1], latent_space) for metric in self.metrics[1]
             }
             losses.update(metrics_values_output)
             losses.update(metrics_values_latent)
 
             # Add non-scaled ELBO to model as metric (ie no annealing or beta-VAE scaling):
-            log2pi = tf.math.log(2. * np.pi)
+            log2pi = tf.math.log(2.0 * np.pi)
             z, z_mean, z_log_var = tf.split(latent_space, num_or_size_splits=3, axis=1)
-            logqz_x = -0.5 * tf.reduce_mean(
-                tf.square(z - z_mean) * tf.exp(-z_log_var) +
-                z_log_var + log2pi
-            )
-            logpz = -0.5 * tf.reduce_mean(
-                tf.square(z) + log2pi
-            )
+            logqz_x = -0.5 * tf.reduce_mean(tf.square(z - z_mean) * tf.exp(-z_log_var) + z_log_var + log2pi)
+            logpz = -0.5 * tf.reduce_mean(tf.square(z) + log2pi)
             d_kl = logqz_x - logpz
             loc, scale = tf.split(output_decoder_concat, num_or_size_splits=2, axis=2)
             input_x = x_batch[0]
-            if self.output_layer == 'gaussian' or self.output_layer == 'gaussian_const_disp':
-                neg_ll = tf.math.log(tf.sqrt(2 * np.math.pi) * scale) + \
-                         0.5 * tf.math.square(loc - input_x) / tf.math.square(scale)
-            elif self.output_layer == 'nb' or self.output_layer == 'nb_const_disp' or \
-                    self.output_layer == 'nb_shared_disp':
+            if self.output_layer == "gaussian" or self.output_layer == "gaussian_const_disp":
+                neg_ll = tf.math.log(tf.sqrt(2 * np.math.pi) * scale) + 0.5 * tf.math.square(
+                    loc - input_x
+                ) / tf.math.square(scale)
+            elif (
+                self.output_layer == "nb"
+                or self.output_layer == "nb_const_disp"
+                or self.output_layer == "nb_shared_disp"
+            ):
                 eta_loc = tf.math.log(loc)
                 eta_scale = tf.math.log(scale)
 
@@ -948,7 +904,7 @@ class Estimator:
         ep = 0
         while aggressive:
             ep += 1
-            print('Epoch (aggressive) {}/{} - '.format(ep, aggressive_epochs), end='')
+            print("Epoch (aggressive) {}/{} - ".format(ep, aggressive_epochs), end="")
             start = time.time()
             no_improvement = 0
             best_result = None
@@ -1035,17 +991,17 @@ class Estimator:
                     history[k].append(v)
                 else:
                     history[k] = [v]
-            if 'lr' in history.keys():
-                history['lr'].append(self.optimizer.lr.numpy())
+            if "lr" in history.keys():
+                history["lr"].append(self.optimizer.lr.numpy())
             else:
-                history['lr'] = [self.optimizer.lr.numpy()]
+                history["lr"] = [self.optimizer.lr.numpy()]
 
-            if len(history['loss']) >= aggressive_epochs:
+            if len(history["loss"]) >= aggressive_epochs:
                 aggressive = False
 
-            print("%d/%d - %ds" % (self.steps_per_epoch, self.steps_per_epoch, time.time() - start), end='')
+            print("%d/%d - %ds" % (self.steps_per_epoch, self.steps_per_epoch, time.time() - start), end="")
             for key, loss in history.items():
-                print(" - %s: %f" % (key, loss[-1]), end='')
+                print(" - %s: %f" % (key, loss[-1]), end="")
             print()
 
         for k, v in history.items():  # append to history if train() has been called before.
@@ -1054,12 +1010,7 @@ class Estimator:
             else:
                 self.history[k] = v
 
-    def evaluate_any(
-            self,
-            img_keys,
-            node_idx,
-            batch_size: int = 1
-    ):
+    def evaluate_any(self, img_keys, node_idx, batch_size: int = 1):
         """
         Evaluates model on any given data set.
 
@@ -1075,7 +1026,7 @@ class Estimator:
             shuffle_buffer_size=1,
             train=False,
             seed=None,
-            reinit_n_eval=None
+            reinit_n_eval=None,
         )
         results = self.model.training_model.evaluate(ds, verbose=2)
         eval = dict(zip(self.model.training_model.metrics_names, results))
@@ -1084,10 +1035,7 @@ class Estimator:
             eval.update(additional_metrics)
         return eval
 
-    def evaluate_per_node_type(
-            self,
-            batch_size: int = 1
-    ):
+    def evaluate_per_node_type(self, batch_size: int = 1):
         """
         Evaluates model for each node type seperately.
 
@@ -1099,19 +1047,10 @@ class Estimator:
         node_types = list(self.node_type_names.keys())
         for nt in node_types:
             img_keys = list(self.target_img_keys)
-            nodes_idx = {
-                k: np.where(self.node_types[k][:, node_types.index(nt)] == 1)[0] for k in img_keys
-            }
-            split_per_node_type.update({
-                nt: {
-                    'img_keys': img_keys,
-                    'nodes_idx': nodes_idx
-                }
-            })
-            test = {
-                k: len(np.where(self.node_types[k][:, node_types.index(nt)] == 1)[0]) for k in img_keys
-            }
-            print('Evaluation for %s with %i cells' % (nt, sum(test.values())))
+            nodes_idx = {k: np.where(self.node_types[k][:, node_types.index(nt)] == 1)[0] for k in img_keys}
+            split_per_node_type.update({nt: {"img_keys": img_keys, "nodes_idx": nodes_idx}})
+            test = {k: len(np.where(self.node_types[k][:, node_types.index(nt)] == 1)[0]) for k in img_keys}
+            print("Evaluation for %s with %i cells" % (nt, sum(test.values())))
             ds = self._get_dataset(
                 image_keys=img_keys,
                 nodes_idx=nodes_idx,
@@ -1119,7 +1058,7 @@ class Estimator:
                 shuffle_buffer_size=1,
                 train=False,
                 seed=None,
-                reinit_n_eval=None
+                reinit_n_eval=None,
             )
             results = self.model.training_model.evaluate(ds, verbose=False)
             eval = dict(zip(self.model.training_model.metrics_names, results))
@@ -1127,60 +1066,57 @@ class Estimator:
             if self.node_supervised_model is not None:
                 additional_metrics = self.eval_additional_metrics(ds=ds)
                 eval.update(additional_metrics)
-            evaluation_per_node_type.update({
-                nt: eval
-            })
+            evaluation_per_node_type.update({nt: eval})
         return split_per_node_type, evaluation_per_node_type
 
 
 class EstimatorNoGraph(Estimator):
-
-    def _get_output_signature(
-            self,
-            resampled: bool = False
-    ):
-        h_1 = tf.TensorSpec(shape=(self.n_eval_nodes_per_graph, self.n_features_1),
-                            dtype=tf.float32)  # input node features
+    def _get_output_signature(self, resampled: bool = False):
+        h_1 = tf.TensorSpec(
+            shape=(self.n_eval_nodes_per_graph, self.n_features_1), dtype=tf.float32
+        )  # input node features
         sf = tf.TensorSpec(shape=(self.n_eval_nodes_per_graph, 1), dtype=tf.float32)  # input node size factors
-        node_covar = tf.TensorSpec(shape=(self.n_eval_nodes_per_graph, self.n_node_covariates),
-                                   dtype=tf.float32)  # node-level covariates
+        node_covar = tf.TensorSpec(
+            shape=(self.n_eval_nodes_per_graph, self.n_node_covariates), dtype=tf.float32
+        )  # node-level covariates
         domain = tf.TensorSpec(shape=(self.n_domains,), dtype=tf.int32)  # domain
-        reconstruction = tf.TensorSpec(shape=(self.n_eval_nodes_per_graph, self.n_features_1),
-                                       dtype=tf.float32)  # node features to reconstruct
+        reconstruction = tf.TensorSpec(
+            shape=(self.n_eval_nodes_per_graph, self.n_features_1), dtype=tf.float32
+        )  # node features to reconstruct
         kl_dummy = tf.TensorSpec(shape=(self.n_eval_nodes_per_graph,), dtype=tf.float32)  # dummy for kl loss
 
         if self.vi_model:
             if resampled:
                 output_signature = (
-                    (h_1, sf, node_covar, domain), (reconstruction, kl_dummy),
-                    (h_1, sf, node_covar, domain), (reconstruction, kl_dummy)  # shapes for resampled output
+                    (h_1, sf, node_covar, domain),
+                    (reconstruction, kl_dummy),
+                    (h_1, sf, node_covar, domain),
+                    (reconstruction, kl_dummy),  # shapes for resampled output
                 )
             else:
-                output_signature = (
-                    (h_1, sf, node_covar, domain), (reconstruction, kl_dummy)
-                )
+                output_signature = ((h_1, sf, node_covar, domain), (reconstruction, kl_dummy))
         else:
             if resampled:
                 output_signature = (
-                    (h_1, sf, node_covar, domain), reconstruction,
-                    (h_1, sf, node_covar, domain), reconstruction  # shapes for resampled output
+                    (h_1, sf, node_covar, domain),
+                    reconstruction,
+                    (h_1, sf, node_covar, domain),
+                    reconstruction,  # shapes for resampled output
                 )
             else:
-                output_signature = (
-                    (h_1, sf, node_covar, domain), reconstruction
-                )
+                output_signature = ((h_1, sf, node_covar, domain), reconstruction)
         return output_signature
 
     def _get_dataset(
-            self,
-            image_keys: np.ndarray,
-            nodes_idx: dict,
-            batch_size: int,
-            shuffle_buffer_size: int,
-            train: bool = True,
-            seed: Union[int, None] = None,
-            prefetch: int = 100,
-            reinit_n_eval: Union[int, None] = None
+        self,
+        image_keys: np.ndarray,
+        nodes_idx: dict,
+        batch_size: int,
+        shuffle_buffer_size: int,
+        train: bool = True,
+        seed: Union[int, None] = None,
+        prefetch: int = 100,
+        reinit_n_eval: Union[int, None] = None,
     ):
         """
         Prepares a dataset.
@@ -1198,8 +1134,7 @@ class EstimatorNoGraph(Estimator):
         if reinit_n_eval is not None and reinit_n_eval != self.n_eval_nodes_per_graph:
             print(
                 "ATTENTION: specifying reinit_n_eval will change class argument n_eval_nodes_per_graph "
-                "from %i to %i"
-                % (self.n_eval_nodes_per_graph, reinit_n_eval)
+                "from %i to %i" % (self.n_eval_nodes_per_graph, reinit_n_eval)
             )
             self.n_eval_nodes_per_graph = reinit_n_eval
 
@@ -1211,21 +1146,21 @@ class EstimatorNoGraph(Estimator):
 
                 if train:
                     index_list = [
-                        np.asarray(np.random.choice(
-                            a=nodes_idx[key],
-                            size=self.n_eval_nodes_per_graph,
-                            replace=True,
-                        ), dtype=np.int32)
+                        np.asarray(
+                            np.random.choice(
+                                a=nodes_idx[key],
+                                size=self.n_eval_nodes_per_graph,
+                                replace=True,
+                            ),
+                            dtype=np.int32,
+                        )
                     ]
                 else:
                     # dropping
                     index_list = [
                         np.asarray(
-                            nodes_idx[key][
-                              self.n_eval_nodes_per_graph * i:
-                              self.n_eval_nodes_per_graph * (i + 1)
-                              ],
-                            dtype=np.int32
+                            nodes_idx[key][self.n_eval_nodes_per_graph * i : self.n_eval_nodes_per_graph * (i + 1)],
+                            dtype=np.int32,
                         )
                         for i in range(len(nodes_idx[key]) // self.n_eval_nodes_per_graph)
                     ]
@@ -1238,7 +1173,7 @@ class EstimatorNoGraph(Estimator):
                     h_1 = np.asarray(np.concatenate((h_1, zeros), axis=0), dtype="float32")
                     h_1 = h_1[indices]
                     if self.log_transform:
-                        h_1 = np.log(h_1 + 1.)
+                        h_1 = np.log(h_1 + 1.0)
 
                     node_covar = self.node_covar[key][idx_nodes]
                     diff = self.max_nodes - node_covar.shape[0]
@@ -1263,30 +1198,23 @@ class EstimatorNoGraph(Estimator):
 
         output_signature = self._get_output_signature(resampled=False)
 
-        dataset = tf.data.Dataset.from_generator(
-            generator=generator,
-            output_signature=output_signature
-        )
+        dataset = tf.data.Dataset.from_generator(generator=generator, output_signature=output_signature)
         if train:
             if shuffle_buffer_size is not None:
-                dataset = dataset.shuffle(
-                    buffer_size=shuffle_buffer_size,
-                    seed=None,
-                    reshuffle_each_iteration=True
-                )
+                dataset = dataset.shuffle(buffer_size=shuffle_buffer_size, seed=None, reshuffle_each_iteration=True)
             dataset = dataset.repeat()
         dataset = dataset.batch(batch_size)
         dataset = dataset.prefetch(prefetch)
         return dataset
 
     def _get_resampled_dataset(
-            self,
-            image_keys: np.ndarray,
-            nodes_idx: dict,
-            batch_size: int,
-            seed: Union[int, None] = None,
-            prefetch: int = 100,
-            reinit_n_eval: Union[int, None] = None
+        self,
+        image_keys: np.ndarray,
+        nodes_idx: dict,
+        batch_size: int,
+        seed: Union[int, None] = None,
+        prefetch: int = 100,
+        reinit_n_eval: Union[int, None] = None,
     ):
         """
 
@@ -1301,8 +1229,7 @@ class EstimatorNoGraph(Estimator):
         if reinit_n_eval is not None:
             print(
                 "ATTENTION: specifying reinit_n_eval will change class argument n_eval_nodes_per_graph "
-                "from %i to %i"
-                % (self.n_eval_nodes_per_graph, reinit_n_eval)
+                "from %i to %i" % (self.n_eval_nodes_per_graph, reinit_n_eval)
             )
             self.n_eval_nodes_per_graph = reinit_n_eval
 
@@ -1314,20 +1241,19 @@ class EstimatorNoGraph(Estimator):
 
                 index_list = [
                     np.asarray(
-                        nodes_idx[key][
-                        self.n_eval_nodes_per_graph * i:
-                        self.n_eval_nodes_per_graph * (i + 1)
-                        ],
-                        dtype=np.int32
+                        nodes_idx[key][self.n_eval_nodes_per_graph * i : self.n_eval_nodes_per_graph * (i + 1)],
+                        dtype=np.int32,
                     )
                     for i in range(len(nodes_idx[key]) // self.n_eval_nodes_per_graph)
                 ]
                 resampled_index_list = [
-                    np.asarray(np.random.choice(
-                        a=nodes_idx[key],
-                        size=self.n_eval_nodes_per_graph,
-                        replace=True,
-                    ), dtype=np.int32
+                    np.asarray(
+                        np.random.choice(
+                            a=nodes_idx[key],
+                            size=self.n_eval_nodes_per_graph,
+                            replace=True,
+                        ),
+                        dtype=np.int32,
                     )
                     for i in range(len(nodes_idx[key]) // self.n_eval_nodes_per_graph)
                 ]
@@ -1342,8 +1268,8 @@ class EstimatorNoGraph(Estimator):
                     re_h_1 = h_1[re_indices]
                     h_1 = h_1[indices]
                     if self.log_transform:
-                        h_1 = np.log(h_1 + 1.)
-                        re_h_1 = np.log(re_h_1 + 1.)
+                        h_1 = np.log(h_1 + 1.0)
+                        re_h_1 = np.log(re_h_1 + 1.0)
 
                     node_covar = self.node_covar[key][idx_nodes]
                     diff = self.max_nodes - node_covar.shape[0]
@@ -1364,77 +1290,76 @@ class EstimatorNoGraph(Estimator):
 
                     if self.vi_model:
                         kl_dummy = np.zeros((self.n_eval_nodes_per_graph,), dtype="float32")
-                        yield (h_1, sf, node_covar, g), (h_1, kl_dummy), \
-                              (re_h_1, re_sf, re_node_covar, g), (re_h_1, kl_dummy)
+                        yield (h_1, sf, node_covar, g), (h_1, kl_dummy), (re_h_1, re_sf, re_node_covar, g), (
+                            re_h_1,
+                            kl_dummy,
+                        )
                     else:
-                        yield (h_1, sf, node_covar, g), h_1, \
-                              (re_h_1, re_sf, re_node_covar, g), re_h_1
+                        yield (h_1, sf, node_covar, g), h_1, (re_h_1, re_sf, re_node_covar, g), re_h_1
 
         output_signature = self._get_output_signature(resampled=True)
 
-        dataset = tf.data.Dataset.from_generator(
-            generator=generator,
-            output_signature=output_signature
-        )
+        dataset = tf.data.Dataset.from_generator(generator=generator, output_signature=output_signature)
         dataset = dataset.batch(batch_size)
         dataset = dataset.prefetch(prefetch)
         return dataset
 
 
 class EstimatorGraph(Estimator):
-
-    def _get_output_signature(
-            self,
-            resampled: bool = False
-    ):
-        h_1 = tf.TensorSpec(shape=(self.n_eval_nodes_per_graph, self.n_features_1),
-                            dtype=tf.float32)  # input node features
+    def _get_output_signature(self, resampled: bool = False):
+        h_1 = tf.TensorSpec(
+            shape=(self.n_eval_nodes_per_graph, self.n_features_1), dtype=tf.float32
+        )  # input node features
         sf = tf.TensorSpec(shape=(self.n_eval_nodes_per_graph, 1), dtype=tf.float32)  # input node size factors
-        h_0 = tf.TensorSpec(shape=(self.n_eval_nodes_per_graph, self.n_features_0),
-                            dtype=tf.float32)  # input node features conditional
-        h_0_full = tf.TensorSpec(shape=(self.max_nodes, self.n_features_0),
-                                 dtype=tf.float32)  # input node features conditional
+        h_0 = tf.TensorSpec(
+            shape=(self.n_eval_nodes_per_graph, self.n_features_0), dtype=tf.float32
+        )  # input node features conditional
+        h_0_full = tf.TensorSpec(
+            shape=(self.max_nodes, self.n_features_0), dtype=tf.float32
+        )  # input node features conditional
         a = tf.SparseTensorSpec(shape=None, dtype=tf.float32)  # adjacency matrix
         a_full = tf.SparseTensorSpec(shape=None, dtype=tf.float32)  # adjacency matrix
-        node_covar = tf.TensorSpec(shape=(self.n_eval_nodes_per_graph, self.n_node_covariates),
-                                   dtype=tf.float32)  # node-level covariates
+        node_covar = tf.TensorSpec(
+            shape=(self.n_eval_nodes_per_graph, self.n_node_covariates), dtype=tf.float32
+        )  # node-level covariates
         domain = tf.TensorSpec(shape=(self.n_domains,), dtype=tf.int32)  # domain
-        reconstruction = tf.TensorSpec(shape=(self.n_eval_nodes_per_graph, self.n_features_1),
-                                       dtype=tf.float32)  # node features to reconstruct
+        reconstruction = tf.TensorSpec(
+            shape=(self.n_eval_nodes_per_graph, self.n_features_1), dtype=tf.float32
+        )  # node features to reconstruct
         kl_dummy = tf.TensorSpec(shape=(self.n_eval_nodes_per_graph,), dtype=tf.float32)  # dummy for kl loss
 
         if self.vi_model:
             if resampled:
                 output_signature = (
-                    (h_1, sf, h_0, h_0_full, a, a_full, node_covar, domain), (reconstruction, kl_dummy),
-                    (h_1, sf, h_0, h_0_full, a, a_full, node_covar, domain), (reconstruction, kl_dummy)
+                    (h_1, sf, h_0, h_0_full, a, a_full, node_covar, domain),
+                    (reconstruction, kl_dummy),
+                    (h_1, sf, h_0, h_0_full, a, a_full, node_covar, domain),
+                    (reconstruction, kl_dummy),
                 )
             else:
-                output_signature = (
-                    (h_1, sf, h_0, h_0_full, a, a_full, node_covar, domain), (reconstruction, kl_dummy)
-                )
+                output_signature = ((h_1, sf, h_0, h_0_full, a, a_full, node_covar, domain), (reconstruction, kl_dummy))
         else:
             if resampled:
                 output_signature = (
-                    (h_1, sf, h_0, h_0_full, a, a_full, node_covar, domain), reconstruction,
-                    (h_1, sf, h_0, h_0_full, a, a_full, node_covar, domain), reconstruction
+                    (h_1, sf, h_0, h_0_full, a, a_full, node_covar, domain),
+                    reconstruction,
+                    (h_1, sf, h_0, h_0_full, a, a_full, node_covar, domain),
+                    reconstruction,
                 )
             else:
-                output_signature = (
-                    (h_1, sf, h_0, h_0_full, a, a_full, node_covar, domain), reconstruction
-                )
+                output_signature = ((h_1, sf, h_0, h_0_full, a, a_full, node_covar, domain), reconstruction)
         return output_signature
 
     def _get_dataset(
-            self,
-            image_keys: np.ndarray,
-            nodes_idx: dict,
-            batch_size: int,
-            shuffle_buffer_size: Union[int, None],
-            train: bool = True,
-            seed: Union[int, None] = None,
-            prefetch: int = 100,
-            reinit_n_eval: Union[int, None] = None
+        self,
+        image_keys: np.ndarray,
+        nodes_idx: dict,
+        batch_size: int,
+        shuffle_buffer_size: Union[int, None],
+        train: bool = True,
+        seed: Union[int, None] = None,
+        prefetch: int = 100,
+        reinit_n_eval: Union[int, None] = None,
     ):
         """
 
@@ -1451,8 +1376,7 @@ class EstimatorGraph(Estimator):
         if reinit_n_eval is not None and reinit_n_eval != self.n_eval_nodes_per_graph:
             print(
                 "ATTENTION: specifying reinit_n_eval will change class argument n_eval_nodes_per_graph "
-                "from %i to %i"
-                % (self.n_eval_nodes_per_graph, reinit_n_eval)
+                "from %i to %i" % (self.n_eval_nodes_per_graph, reinit_n_eval)
             )
             self.n_eval_nodes_per_graph = reinit_n_eval
 
@@ -1464,21 +1388,21 @@ class EstimatorGraph(Estimator):
 
                 if train:
                     index_list = [
-                        np.asarray(np.random.choice(
-                            a=nodes_idx[key],
-                            size=self.n_eval_nodes_per_graph,
-                            replace=True,
-                        ), dtype=np.int32)
+                        np.asarray(
+                            np.random.choice(
+                                a=nodes_idx[key],
+                                size=self.n_eval_nodes_per_graph,
+                                replace=True,
+                            ),
+                            dtype=np.int32,
+                        )
                     ]
                 else:
                     # dropping
                     index_list = [
                         np.asarray(
-                            nodes_idx[key][
-                            self.n_eval_nodes_per_graph * i:
-                            self.n_eval_nodes_per_graph * (i + 1)
-                            ],
-                            dtype=np.int32
+                            nodes_idx[key][self.n_eval_nodes_per_graph * i : self.n_eval_nodes_per_graph * (i + 1)],
+                            dtype=np.int32,
                         )
                         for i in range(len(nodes_idx[key]) // self.n_eval_nodes_per_graph)
                     ]
@@ -1496,7 +1420,7 @@ class EstimatorGraph(Estimator):
                     h_1 = np.asarray(np.concatenate((h_1, zeros), axis=0), dtype="float32")
                     h_1 = h_1[indices]
                     if self.log_transform:
-                        h_1 = np.log(h_1 + 1.)
+                        h_1 = np.log(h_1 + 1.0)
 
                     # indexing adjacency matrix that yield only selected cells (final graph layer)
                     a = self.a[key][idx_nodes, :][:, idx_nodes]
@@ -1541,30 +1465,23 @@ class EstimatorGraph(Estimator):
 
         output_signature = self._get_output_signature(resampled=False)
 
-        dataset = tf.data.Dataset.from_generator(
-            generator=generator,
-            output_signature=output_signature
-        )
+        dataset = tf.data.Dataset.from_generator(generator=generator, output_signature=output_signature)
         if train:
             if shuffle_buffer_size is not None:
-                dataset = dataset.shuffle(
-                    buffer_size=shuffle_buffer_size,
-                    seed=None,
-                    reshuffle_each_iteration=True
-                )
+                dataset = dataset.shuffle(buffer_size=shuffle_buffer_size, seed=None, reshuffle_each_iteration=True)
             dataset = dataset.repeat()
         dataset = dataset.batch(batch_size)
         dataset = dataset.prefetch(prefetch)
         return dataset
 
     def _get_resampled_dataset(
-            self,
-            image_keys: np.ndarray,
-            nodes_idx: dict,
-            batch_size: int,
-            seed: Union[int, None] = None,
-            prefetch: int = 100,
-            reinit_n_eval: Union[int, None] = None
+        self,
+        image_keys: np.ndarray,
+        nodes_idx: dict,
+        batch_size: int,
+        seed: Union[int, None] = None,
+        prefetch: int = 100,
+        reinit_n_eval: Union[int, None] = None,
     ):
         """
 
@@ -1579,8 +1496,7 @@ class EstimatorGraph(Estimator):
         if reinit_n_eval is not None:
             print(
                 "ATTENTION: specifying reinit_n_eval will change class argument n_eval_nodes_per_graph "
-                "from %i to %i"
-                % (self.n_eval_nodes_per_graph, reinit_n_eval)
+                "from %i to %i" % (self.n_eval_nodes_per_graph, reinit_n_eval)
             )
             self.n_eval_nodes_per_graph = reinit_n_eval
 
@@ -1592,20 +1508,19 @@ class EstimatorGraph(Estimator):
 
                 index_list = [
                     np.asarray(
-                        nodes_idx[key][
-                            self.n_eval_nodes_per_graph * i:
-                            self.n_eval_nodes_per_graph * (i + 1)
-                        ],
-                        dtype=np.int32
+                        nodes_idx[key][self.n_eval_nodes_per_graph * i : self.n_eval_nodes_per_graph * (i + 1)],
+                        dtype=np.int32,
                     )
                     for i in range(len(nodes_idx[key]) // self.n_eval_nodes_per_graph)
                 ]
                 resampled_index_list = [
-                    np.asarray(np.random.choice(
-                        a=nodes_idx[key],
-                        size=self.n_eval_nodes_per_graph,
-                        replace=True,
-                    ), dtype=np.int32
+                    np.asarray(
+                        np.random.choice(
+                            a=nodes_idx[key],
+                            size=self.n_eval_nodes_per_graph,
+                            replace=True,
+                        ),
+                        dtype=np.int32,
                     )
                     for i in range(len(nodes_idx[key]) // self.n_eval_nodes_per_graph)
                 ]
@@ -1627,8 +1542,8 @@ class EstimatorGraph(Estimator):
                     re_h_1 = h_1[re_indices]
                     h_1 = h_1[indices]
                     if self.log_transform:
-                        h_1 = np.log(h_1 + 1.)
-                        re_h_1 = np.log(re_h_1 + 1.)
+                        h_1 = np.log(h_1 + 1.0)
+                        re_h_1 = np.log(re_h_1 + 1.0)
 
                     # indexing adjacency matrix that yield only selected cells (final graph layer)
                     a = self.a[key][idx_nodes, :][:, idx_nodes]
@@ -1677,18 +1592,31 @@ class EstimatorGraph(Estimator):
 
                     if self.vi_model:
                         kl_dummy = np.zeros((self.n_eval_nodes_per_graph,), dtype="float32")
-                        yield (h_1, sf, h_0, h_0_full, a, a_full, node_covar, g), (h_1, kl_dummy), \
-                              (re_h_1, re_sf, re_h_0, h_0_full, re_a, a_full, re_node_covar, g), (re_h_1, kl_dummy)
+                        yield (h_1, sf, h_0, h_0_full, a, a_full, node_covar, g), (h_1, kl_dummy), (
+                            re_h_1,
+                            re_sf,
+                            re_h_0,
+                            h_0_full,
+                            re_a,
+                            a_full,
+                            re_node_covar,
+                            g,
+                        ), (re_h_1, kl_dummy)
                     else:
-                        yield (h_1, sf, h_0, h_0_full, a, a_full, node_covar, g), h_1, \
-                              (re_h_1, re_sf, re_h_0, h_0_full, re_a, a_full, re_node_covar, g), re_h_1
+                        yield (h_1, sf, h_0, h_0_full, a, a_full, node_covar, g), h_1, (
+                            re_h_1,
+                            re_sf,
+                            re_h_0,
+                            h_0_full,
+                            re_a,
+                            a_full,
+                            re_node_covar,
+                            g,
+                        ), re_h_1
 
         output_signature = self._get_output_signature(resampled=True)
 
-        dataset = tf.data.Dataset.from_generator(
-            generator=generator,
-            output_signature=output_signature
-        )
+        dataset = tf.data.Dataset.from_generator(generator=generator, output_signature=output_signature)
         dataset = dataset.batch(batch_size)
         dataset = dataset.prefetch(prefetch)
         return dataset

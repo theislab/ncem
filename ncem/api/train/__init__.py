@@ -1,2 +1,2 @@
-from ncem.estimators import Estimator, EstimatorLinear, EstimatorInteractions
+from ncem.estimators import Estimator, EstimatorInteractions, EstimatorLinear
 from ncem.models import BetaScheduler
