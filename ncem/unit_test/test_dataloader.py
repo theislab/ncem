@@ -20,6 +20,7 @@ class TestDataLoader(unittest.TestCase):
             data_path=self.data_path,
             radius=radius,
         )
+        self.data.merge_types_predefined()
 
 
 class TestDataLoaderZang(TestDataLoader, unittest.TestCase):

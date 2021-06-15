@@ -2,7 +2,7 @@ import abc
 from typing import Dict, List, Tuple, Union
 
 import numpy as np
-import scanpy as sc
+import pandas as pd
 import squidpy as sq
 from anndata import AnnData, read_h5ad
 from pandas import read_csv
@@ -20,7 +20,93 @@ class GraphTools:
         """
         for k, adata in self.img_celldata.items():
             sq.gr.spatial_neighbors(adata=adata, radius=radius, transform=transform, key_added="adjacency_matrix")
-            print(adata)
+
+    def _get_degrees(
+        self,
+        max_distances: list
+    ):
+        degs = {}
+        degrees = {}
+        for k, adata in self.img_celldata.items():
+            dist_matrix = adata.obsp['adjacency_matrix_distances']
+            degs[k] = {dist: np.sum(dist_matrix < dist * dist, axis=0) for dist in max_distances}
+        for dist in max_distances:
+            degrees[dist] = [deg[dist] for deg in degs.values()]
+        return degrees
+
+    def plot_degree_vs_dist(
+            self,
+            degree_matrices = None,
+            max_distances = None,
+            lateral_resolution: float = 1.,
+            save: Union[str, None] = None,
+            suffix: str = "_degree_vs_dist.pdf",
+            show: bool = True,
+            return_axs: bool = False
+    ):
+        """
+
+        :param save: Whether (if not None) and where (path as string given as save) to save plot.
+        :param suffix: Suffix of file name to save to.
+        :param show: Whether to display plot.
+        :param return_axs: Whether to return axis objects.
+        :return:
+        """
+        if degree_matrices is None:
+            if max_distances is None:
+                raise ValueError('Provide either distance matrices or distance values!')
+            else:
+                degree_matrices = self._get_degrees(
+                    max_distances
+                )
+
+        import seaborn as sns
+        import matplotlib.pyplot as plt
+
+        plt.ioff()
+        fig = plt.figure(figsize=(4, 3))
+
+        mean_degree = []
+        distances = []
+
+        for dist, degrees in degree_matrices.items():
+            mean_d = [np.mean(degree) for degree in degrees]
+            print(np.mean(mean_d))
+            mean_degree += mean_d
+            distances += [np.int(dist*lateral_resolution)] * len(mean_d)
+
+        sns_data = pd.DataFrame({
+            "dist": distances,
+            "mean_degree": mean_degree,
+        })
+        ax = fig.add_subplot(111)
+        sns.boxplot(
+            data=sns_data,
+            x="dist",
+            color='steelblue',
+            y="mean_degree",
+            ax=ax
+        )
+        ax.set_yscale('log', basey=10)
+        plt.ylabel('')
+        plt.xlabel('')
+        plt.xticks(rotation=90)
+
+        # Save, show and return figure.
+        plt.tight_layout()
+        if save is not None:
+            plt.savefig(save + suffix)
+
+        if show:
+            plt.show()
+
+        plt.close(fig)
+        plt.ion()
+
+        if return_axs:
+            return ax
+        else:
+            return None
 
 
 class DataLoader(GraphTools):
@@ -79,6 +165,126 @@ class DataLoader(GraphTools):
     def _register_img_celldata(self):
         pass
 
+    def plot_noise_structure(
+            self,
+            undefined_type: Union[str, None] = None,
+            merge_types: Union[None, Tuple[list, list]] = None,
+            min_x: Union[None, float] = None,
+            max_x: Union[None, float] = None,
+            panel_width: float = 2.,
+            panel_height: float = 2.7,
+            save: Union[str, None] = None,
+            suffix: str = "_noise_structure.pdf",
+            show: bool = True,
+            return_axs: bool = False
+    ):
+        import matplotlib.pyplot as plt
+        from matplotlib.ticker import FormatStrFormatter
+        import seaborn as sns
+
+        feature_mat = pd.concat([
+            pd.concat([
+                pd.DataFrame({
+                    "image": [k for i in range(adata.shape[0])],
+                }),
+                pd.DataFrame(
+                    adata.X,
+                    columns=list(self.img_celldata.var_names)
+                ),
+                pd.DataFrame(
+                    np.asarray(list(self.img_celldata.uns["node_type_names"].values()))[
+                        np.argmax(self.img_celldata.obsm["node_types"][k], axis=1)
+                    ],
+                    columns=["cell_type"]
+                )
+            ], axis=1).melt(value_name="expression", var_name="gene", id_vars=["cell_type", "image"])
+            for k, adata in self.img_celldata.items()
+        ])
+        feature_mat["log_expression"] = np.log(feature_mat["expression"].values + 1)
+        if undefined_type is not None:
+            feature_mat = feature_mat[feature_mat['cell_type'] != undefined_type]
+
+        if merge_types is not None:
+            for mt in merge_types[0]:
+                feature_mat = feature_mat.replace(mt, merge_types[-1])
+
+        plt.ioff()
+        ct = np.unique(feature_mat["cell_type"].values)
+        nrows = len(ct) // 12 + int(len(ct) % 12 > 0)
+        fig, ax = plt.subplots(
+            ncols=12, nrows=nrows, figsize=(12 * panel_width, nrows * panel_height), sharex=True, sharey=True
+        )
+        ax = ax.flat
+        for axis in ax[len(ct):]:
+            axis.remove()
+        for i, ci in enumerate(ct):
+            tab = feature_mat.loc[feature_mat["cell_type"].values == ci, :]
+            x = np.log(tab.groupby(["gene"])["expression"].mean() + 1)
+            y = np.log(tab.groupby(["gene"])["expression"].var() + 1)
+            sns.scatterplot(
+                x=x,
+                y=y,
+                ax=ax[i]
+            )
+            min_x = np.min(x) if min_x is None else min_x
+            max_x = np.max(x) if max_x is None else max_x
+            sns.lineplot(
+                x=[min_x, max_x],
+                y=[2 * min_x, 2 * max_x],
+                color="black",
+                ax=ax[i]
+            )
+            ax[i].grid(False)
+            ax[i].set_title(ci.replace('_', '\n').replace(' ', '\n').replace('/', '\n'), fontsize=14)
+            ax[i].set_xlabel("")
+            ax[i].set_ylabel("")
+            ax[i].yaxis.set_major_formatter(FormatStrFormatter('%0.1f'))
+        # ax[0].set_ylabel("log var")
+        # Save, show and return figure.
+        plt.tight_layout()
+        if save is not None:
+            plt.savefig(save + suffix)
+
+        if show:
+            plt.show()
+
+        plt.close(fig)
+        plt.ion()
+
+        if return_axs:
+            return ax
+        else:
+            return None
+
+    def merge_types(self, cell_type_mapping_dict: Dict[str, str]):
+        """
+
+        :param cell_type_mapping_dict: dictionary specifying cell type merge logic
+        :return:
+        """
+        key_to_pos = {key: pos for pos, key in enumerate(np.sort(list(self.celldata.uns["node_type_names"].keys())))}
+        new_types = np.sort(np.unique(list(cell_type_mapping_dict.values())))
+        positions = {}
+        for type in new_types:
+            keys = [idx for idx, name in self.celldata.uns["node_type_names"].items() if cell_type_mapping_dict[idx] == type]
+            positions[type] = [key_to_pos[key] for key in keys]
+        new_node_types = np.concatenate(
+            [np.sum(
+                self.celldata.obsm["node_types"][:, positions[type]], axis=1, keepdims=True
+            ) for type in new_types],
+            axis=1
+        )
+        self.celldata.obsm["node_types"] = new_node_types
+        self.celldata.uns["node_type_names"] = {name: name for i, name in enumerate(new_types)}
+
+        for key, adata in self.img_celldata.items():
+            new_node_types = np.concatenate([
+                np.sum(adata.obsm["node_types"][:, positions[type]], axis=1, keepdims=True) for type in new_types
+            ], axis=1)
+
+            adata.obsm["node_types"] = new_node_types
+            adata.uns["node_type_names"] = {name: name for i, name in enumerate(new_types)}
+
 
 class DataLoaderZhang(DataLoader):
     def _register_celldata(self):
@@ -119,7 +325,6 @@ class DataLoaderZhang(DataLoader):
         )
         node_types[np.arange(0, node_type_idx.shape[0]), node_type_idx] = 1
         celldata.obsm["node_types"] = node_types
-        # ToDo merge nodes
 
         self.celldata = celldata
 
@@ -171,7 +376,6 @@ class DataLoaderJarosch(DataLoader):
         )
         node_types[np.arange(0, node_type_idx.shape[0]), node_type_idx] = 1
         celldata.obsm["node_types"] = node_types
-        # ToDo merge nodes
 
         self.celldata = celldata
 
