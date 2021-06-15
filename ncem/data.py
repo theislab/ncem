@@ -331,6 +331,7 @@ class DataLoaderZhang(DataLoader):
 
 
 class DataLoaderJarosch(DataLoader):
+
     def _register_celldata(self):
         """
         Registers an Anndata object over all images and collects all necessary information.
@@ -744,7 +745,7 @@ class DataLoaderSchuerch(DataLoader):
             'vasculature': 'vasculature'
         }
         self.merge_types(cell_type_tumor_dict)
-        
+
     def _register_img_celldata(self):
         image_col = self.celldata.uns["metadata"]["image_col"]
         img_celldata = {}
