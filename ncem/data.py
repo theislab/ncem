@@ -246,7 +246,6 @@ class DataLoader(GraphTools):
             ax[i].set_xlabel("")
             ax[i].set_ylabel("")
             ax[i].yaxis.set_major_formatter(FormatStrFormatter('%0.1f'))
-        # ax[0].set_ylabel("log var")
         # Save, show and return figure.
         plt.tight_layout()
         if save is not None:

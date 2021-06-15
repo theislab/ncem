@@ -46,7 +46,7 @@ class Estimator:
             raise ValueError(f"data_origin {data_origin} not recognized")
 
         self.data = DataLoader(data_path, radius=radius)
-        self.data.process_node_features(feature_transformation=feature_transformation)
+        #self.data.process_node_features(feature_transformation=feature_transformation)
 
     def get_data(
         self,
@@ -74,7 +74,7 @@ class Estimator:
         if merge_node_types_predefined:
             self.data.merge_types_predefined()
 
-        self.img_to_patient_dict = self.data.celldata.uns.img_to_patient_dict
+        self.img_to_patient_dict = self.data.celldata.uns['img_to_patient_dict']
         self.a = {k: adata.obsp["adjacency_matrix_connectivities"] for k, adata in self.data.img_celldata.items()}
         if node_label_space_id == "standard":
             self.h_0 = {k: adata.X for k, adata in self.data.img_celldata.items()}
@@ -93,7 +93,7 @@ class Estimator:
         self.n_features_type = list(self.node_types.values())[0].shape[1]
         self.n_features_standard = self.data.celldata.shape[1]
         self.node_feature_names = self.data.celldata.var_names
-        self.size_factors = self.data.size_factors()
+        #self.size_factors = self.data.size_factors()
 
         self.node_covar = {k: np.empty((adata.shape[0], 0)) for k, adata in self.data.img_celldata.items()}
 

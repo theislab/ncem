@@ -1,1 +1,3 @@
 from ncem.estimators.base_estimator import Estimator
+from ncem.estimators.estimator_interactions import EstimatorInteractions
+from ncem.estimators.estimator_linear import EstimatorLinear
