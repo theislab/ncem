@@ -11,10 +11,13 @@ from pandas import read_csv
 
 
 class GraphTools:
+    celldata: AnnData
+    img_celldata: Dict[str, AnnData]
+
     def compute_adjacency_matrices(self, radius: int, transform: str = None):
         """
 
-        :param max_dist:
+        :param radius:
         :param transform:
         :return:
         """
@@ -36,8 +39,8 @@ class GraphTools:
 
     def plot_degree_vs_dist(
             self,
-            degree_matrices = None,
-            max_distances = None,
+            degree_matrices=None,
+            max_distances=None,
             lateral_resolution: float = 1.,
             save: Union[str, None] = None,
             suffix: str = "_degree_vs_dist.pdf",
@@ -46,11 +49,15 @@ class GraphTools:
     ):
         """
 
+        :param degree_matrices:
+        :param max_distances:
+        :param lateral_resolution:
         :param save: Whether (if not None) and where (path as string given as save) to save plot.
         :param suffix: Suffix of file name to save to.
         :param show: Whether to display plot.
         :param return_axs: Whether to return axis objects.
         :return:
+
         """
         if degree_matrices is None:
             if max_distances is None:
@@ -189,11 +196,11 @@ class DataLoader(GraphTools):
                 }),
                 pd.DataFrame(
                     adata.X,
-                    columns=list(self.img_celldata.var_names)
+                    columns=list(adata.var_names)
                 ),
                 pd.DataFrame(
-                    np.asarray(list(self.img_celldata.uns["node_type_names"].values()))[
-                        np.argmax(self.img_celldata.obsm["node_types"][k], axis=1)
+                    np.asarray(list(adata.uns["node_type_names"].values()))[
+                        np.argmax(adata.obsm["node_types"][k], axis=1)
                     ],
                     columns=["cell_type"]
                 )
@@ -265,13 +272,15 @@ class DataLoader(GraphTools):
         key_to_pos = {key: pos for pos, key in enumerate(np.sort(list(self.celldata.uns["node_type_names"].keys())))}
         new_types = np.sort(np.unique(list(cell_type_mapping_dict.values())))
         positions = {}
-        for type in new_types:
-            keys = [idx for idx, name in self.celldata.uns["node_type_names"].items() if cell_type_mapping_dict[idx] == type]
-            positions[type] = [key_to_pos[key] for key in keys]
+        for t in new_types:
+            keys = [
+                idx for idx, name in self.celldata.uns["node_type_names"].items() if cell_type_mapping_dict[idx] == t
+            ]
+            positions[t] = [key_to_pos[key] for key in keys]
         new_node_types = np.concatenate(
             [np.sum(
-                self.celldata.obsm["node_types"][:, positions[type]], axis=1, keepdims=True
-            ) for type in new_types],
+                self.celldata.obsm["node_types"][:, positions[t]], axis=1, keepdims=True
+            ) for t in new_types],
             axis=1
         )
         self.celldata.obsm["node_types"] = new_node_types
@@ -279,7 +288,7 @@ class DataLoader(GraphTools):
 
         for key, adata in self.img_celldata.items():
             new_node_types = np.concatenate([
-                np.sum(adata.obsm["node_types"][:, positions[type]], axis=1, keepdims=True) for type in new_types
+                np.sum(adata.obsm["node_types"][:, positions[t]], axis=1, keepdims=True) for t in new_types
             ], axis=1)
 
             adata.obsm["node_types"] = new_node_types
@@ -290,7 +299,6 @@ class DataLoaderZhang(DataLoader):
     def _register_celldata(self):
         """
         Registers an Anndata object over all images and collects all necessary information.
-        :param data_path:
         :return:
         """
         metadata = {
@@ -343,7 +351,6 @@ class DataLoaderJarosch(DataLoader):
     def _register_celldata(self):
         """
         Registers an Anndata object over all images and collects all necessary information.
-        :param data_path:
         :return:
         """
         metadata = {
@@ -379,7 +386,7 @@ class DataLoaderJarosch(DataLoader):
 
         self.celldata = celldata
 
-    def merge_types_predefined(self, coarseness=None):
+    def merge_types_predefined(self):
         cell_type_tumor_dict = {
             "B cells": "B cells",
             "CD4 T cells": "CD4 T cells",
@@ -410,7 +417,6 @@ class DataLoaderHartmann(DataLoader):
     def _register_celldata(self):
         """
         Registers an Anndata object over all images and collects all necessary information.
-        :param data_path:
         :return:
         """
         metadata = {
@@ -493,7 +499,6 @@ class DataLoaderHartmann(DataLoader):
         )
         node_types[np.arange(0, node_type_idx.shape[0]), node_type_idx] = 1
         celldata.obsm["node_types"] = node_types
-        # ToDo merge nodes
 
         self.celldata = celldata
 
