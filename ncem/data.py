@@ -263,37 +263,6 @@ class DataLoader(GraphTools):
         else:
             return None
 
-    def _standardize_features_per_image(self):
-        for k, adata in self.img_celldata.items():
-            adata.X = (adata.X - adata.X.mean(axis=0)) / (adata.X.std(axis=0) + 1e-8)
-
-    def _standardize_overall(self):
-        for k, adata in self.img_celldata.items():
-            adata.X = (adata.X - adata.X.mean(axis=0)) / (adata.X.std(axis=0) + 1e-8)
-
-    def process_node_features(
-            self,
-            feature_transformation: str,
-            train_keys=None,
-    ):
-        # Process node-wise features:
-        if feature_transformation == 'standardize_per_image':
-            self._standardize_features_per_image()
-        elif feature_transformation == 'standardize_globally':
-            self._standardize_overall(
-                train_keys=train_keys,
-            )
-        elif feature_transformation == 'rank_per_image':
-            self._rank_features_per_image()
-        elif feature_transformation == 'scale_observations':
-            self._scale_observations()
-        elif feature_transformation == 'logxp1':
-            self._logxp1()
-        elif feature_transformation is None or feature_transformation == "none":
-            pass
-        else:
-            raise ValueError('Feature transformation %s not recognized!' % feature_transformation)
-
     def merge_types(self, cell_type_mapping_dict: Dict[str, str]):
         """
 
@@ -647,13 +616,22 @@ class DataLoaderHartmann(DataLoader):
             graph_covariates = {
                 'label_names': label_names,
                 'label_tensors': label_tensors[k],
-                'label_slection': list(label_cols.keys()),
+                'label_selection': list(label_cols.keys()),
                 'continuous_mean': continuous_mean,
                 'continuous_std': continuous_std,
                 'label_data_types': label_cols
             }
             adata.uns['graph_covariates'] = graph_covariates
         print(self.img_celldata)
+
+        graph_covariates = {
+            'label_names': label_names,
+            'label_selection': list(label_cols.keys()),
+            'continuous_mean': continuous_mean,
+            'continuous_std': continuous_std,
+            'label_data_types': label_cols
+        }
+        self.celldata.uns['graph_covariates'] = graph_covariates
 
         #self.ref_img_keys = {k: [] for k, v in self.nodes_by_image.items()}
 

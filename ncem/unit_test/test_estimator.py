@@ -30,6 +30,9 @@ class TestEstimator(unittest.TestCase):
         if data_origin == "zhang":
             radius = 100
             data_path = self.data_path_zhang
+        elif data_origin == "hartmann":
+            radius = 100
+            data_path = self.data_path_hartmann
         else:
             assert False
 
@@ -46,4 +49,4 @@ class TestEstimator(unittest.TestCase):
         self.get_estimator(model=model, data_origin=data_origin)
 
     def test_linear(self):
-        self._test_train(model="linear", data_origin="zhang")
+        self._test_train(model="linear", data_origin="hartmann")
