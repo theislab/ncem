@@ -319,7 +319,7 @@ class DataLoaderZhang(DataLoader):
 
         self.celldata = celldata
 
-    def merge_types_predefined(self, coarseness=None):
+    def merge_types_predefined(self):
         pass
 
     def _register_img_celldata(self):
@@ -485,7 +485,7 @@ class DataLoaderHartmann(DataLoader):
 
         self.celldata = celldata
 
-    def merge_types_predefined(self, coarseness=None):
+    def merge_types_predefined(self):
         pass
 
     def _register_img_celldata(self):
@@ -592,7 +592,7 @@ class DataLoaderPascualReguant(DataLoader):
 
         self.celldata = celldata
 
-    def merge_types_predefined(self, coarseness=None):
+    def merge_types_predefined(self):
         pass
 
     def _register_img_celldata(self):
@@ -605,4 +605,150 @@ class DataLoaderPascualReguant(DataLoader):
 
 
 class DataLoaderSchuerch(DataLoader):
-    pass
+    def _register_celldata(self):
+        """
+        Registers an Anndata object over all images and collects all necessary information.
+        :return:
+        """
+        metadata = {
+            "lateral_resolution": 0.377442,
+            "fn": 'CRC_clusters_neighborhoods_markers_NEW.csv',
+            "image_col": 'File Name',
+            "pos_cols": ['X:X', 'Y:Y'],
+            "cluster_col": 'ClusterName',
+            "patient_col": 'patients',
+        }
+        celldata_df = read_csv(self.data_path + metadata["fn"])
+
+        feature_cols = [
+            'CD44 - stroma:Cyc_2_ch_2',
+            'FOXP3 - regulatory T cells:Cyc_2_ch_3',
+            'CD8 - cytotoxic T cells:Cyc_3_ch_2',
+            'p53 - tumor suppressor:Cyc_3_ch_3',
+            'GATA3 - Th2 helper T cells:Cyc_3_ch_4',
+            'CD45 - hematopoietic cells:Cyc_4_ch_2',
+            'T-bet - Th1 cells:Cyc_4_ch_3',
+            'beta-catenin - Wnt signaling:Cyc_4_ch_4',
+            'HLA-DR - MHC-II:Cyc_5_ch_2',
+            'PD-L1 - checkpoint:Cyc_5_ch_3',
+            'Ki67 - proliferation:Cyc_5_ch_4',
+            'CD45RA - naive T cells:Cyc_6_ch_2',
+            'CD4 - T helper cells:Cyc_6_ch_3',
+            'CD21 - DCs:Cyc_6_ch_4',
+            'MUC-1 - epithelia:Cyc_7_ch_2',
+            'CD30 - costimulator:Cyc_7_ch_3',
+            'CD2 - T cells:Cyc_7_ch_4',
+            'Vimentin - cytoplasm:Cyc_8_ch_2',
+            'CD20 - B cells:Cyc_8_ch_3',
+            'LAG-3 - checkpoint:Cyc_8_ch_4',
+            'Na-K-ATPase - membranes:Cyc_9_ch_2',
+            'CD5 - T cells:Cyc_9_ch_3',
+            'IDO-1 - metabolism:Cyc_9_ch_4',
+            'Cytokeratin - epithelia:Cyc_10_ch_2',
+            'CD11b - macrophages:Cyc_10_ch_3',
+            'CD56 - NK cells:Cyc_10_ch_4',
+            'aSMA - smooth muscle:Cyc_11_ch_2',
+            'BCL-2 - apoptosis:Cyc_11_ch_3',
+            'CD25 - IL-2 Ra:Cyc_11_ch_4',
+            'CD11c - DCs:Cyc_12_ch_3',
+            'PD-1 - checkpoint:Cyc_12_ch_4',
+            'Granzyme B - cytotoxicity:Cyc_13_ch_2',
+            'EGFR - signaling:Cyc_13_ch_3',
+            'VISTA - costimulator:Cyc_13_ch_4',
+            'CD15 - granulocytes:Cyc_14_ch_2',
+            'ICOS - costimulator:Cyc_14_ch_4',
+            'Synaptophysin - neuroendocrine:Cyc_15_ch_3',
+            'GFAP - nerves:Cyc_16_ch_2',
+            'CD7 - T cells:Cyc_16_ch_3',
+            'CD3 - T cells:Cyc_16_ch_4',
+            'Chromogranin A - neuroendocrine:Cyc_17_ch_2',
+            'CD163 - macrophages:Cyc_17_ch_3',
+            'CD45RO - memory cells:Cyc_18_ch_3',
+            'CD68 - macrophages:Cyc_18_ch_4',
+            'CD31 - vasculature:Cyc_19_ch_3',
+            'Podoplanin - lymphatics:Cyc_19_ch_4',
+            'CD34 - vasculature:Cyc_20_ch_3',
+            'CD38 - multifunctional:Cyc_20_ch_4',
+            'CD138 - plasma cells:Cyc_21_ch_3',
+            'HOECHST1:Cyc_1_ch_1',
+            'CDX2 - intestinal epithelia:Cyc_2_ch_4',
+            'Collagen IV - bas. memb.:Cyc_12_ch_2',
+            'CD194 - CCR4 chemokine R:Cyc_14_ch_3',
+            'MMP9 - matrix metalloproteinase:Cyc_15_ch_2',
+            'CD71 - transferrin R:Cyc_15_ch_4',
+            'CD57 - NK cells:Cyc_17_ch_4',
+            'MMP12 - matrix metalloproteinase:Cyc_21_ch_4',
+        ]
+
+        celldata = AnnData(X=celldata_df[feature_cols], obs=celldata_df[["patients", "ClusterName"]])
+
+        celldata.uns["metadata"] = metadata
+        img_keys = list(np.unique(celldata_df[metadata["image_col"]]))
+        celldata.uns["img_keys"] = img_keys
+
+        celldata.obsm["spatial"] = np.array(celldata_df[metadata["pos_cols"]])
+
+        img_to_patient_dict = {
+            str(x): celldata_df[metadata["patient_col"]].values[i]
+            for i, x in enumerate(celldata_df[metadata["image_col"]].values)
+        }
+        # img_to_patient_dict = {k: "p_1" for k in img_keys}
+        celldata.uns["img_to_patient_dict"] = img_to_patient_dict
+
+        # register node type names
+        node_type_names = list(np.unique(celldata_df[metadata["cluster_col"]]))
+        celldata.uns["node_type_names"] = {x: x for x in node_type_names}
+        node_types = np.zeros((celldata.shape[0], len(node_type_names)))
+        node_type_idx = np.array(
+            [node_type_names.index(x) for x in celldata_df[metadata["cluster_col"]].values]  # index in encoding vector
+        )
+        node_types[np.arange(0, node_type_idx.shape[0]), node_type_idx] = 1
+        celldata.obsm["node_types"] = node_types
+
+        self.celldata = celldata
+
+    def merge_types_predefined(self):
+        """
+        Merges loaded cell types based on defined dictionary.
+        :return:
+        """
+        cell_type_tumor_dict = {
+            'B cells': 'B cells',
+            'CD11b+ monocytes': 'monocytes',
+            'CD11b+CD68+ macrophages': 'macrophages',
+            'CD11c+ DCs': 'dendritic cells',
+            'CD163+ macrophages': 'macrophages',
+            'CD3+ T cells': 'CD3+ T cells',
+            'CD4+ T cells': 'CD4+ T cells',
+            'CD4+ T cells CD45RO+': 'CD4+ T cells',
+            'CD4+ T cells GATA3+': 'CD4+ T cells',
+            'CD68+ macrophages': 'macrophages',
+            'CD68+ macrophages GzmB+': 'macrophages',
+            'CD68+CD163+ macrophages': 'macrophages',
+            'CD8+ T cells': 'CD8+ T cells',
+            'NK cells': 'NK cells',
+            'Tregs': 'Tregs',
+            'adipocytes': 'adipocytes',
+            'dirt': 'dirt',
+            'granulocytes': 'granulocytes',
+            'immune cells': 'immune cells',
+            'immune cells / vasculature': 'immune cells',
+            'lymphatics': 'lymphatics',
+            'nerves': 'nerves',
+            'plasma cells': 'plasma cells',
+            'smooth muscle': 'smooth muscle',
+            'stroma': 'stroma',
+            'tumor cells': 'tumor cells',
+            'tumor cells / immune cells': 'immune cells',
+            'undefined': 'undefined',
+            'vasculature': 'vasculature'
+        }
+        self.merge_types(cell_type_tumor_dict)
+        
+    def _register_img_celldata(self):
+        image_col = self.celldata.uns["metadata"]["image_col"]
+        img_celldata = {}
+        for k in self.celldata.uns["img_keys"]:
+            img_celldata[k] = self.celldata[self.celldata.obs[image_col] == k]
+        self.img_celldata = img_celldata
+        print(img_celldata)
