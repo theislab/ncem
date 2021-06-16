@@ -30,19 +30,23 @@ class EstimatorCVAEncem(EstimatorGraph):
         optimizer: str = "adam",
         learning_rate: float = 0.0001,
         latent_dim: int = 8,
+
         intermediate_dim_enc: int = 128,
         intermediate_dim_dec: int = 128,
         depth_enc: int = 1,
         depth_dec: int = 1,
+
         dropout_rate: float = 0.1,
         l2_coef: float = 0.0,
         l1_coef: float = 0.0,
+
         cond_depth: int = 1,
         cond_dim: int = 8,
         cond_dropout_rate: float = 0.1,
         cond_activation: str = "relu",
         cond_l2_reg: float = 0.0,
         cond_use_bias: bool = False,
+
         n_eval_nodes_per_graph: int = 32,
         use_domain: bool = False,
         use_batch_norm: bool = False,

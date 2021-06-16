@@ -15,7 +15,6 @@ class ModelED:
         l1_coef: float = 0.0,
         enc_intermediate_dim: int = 128,
         enc_depth: int = 2,
-        bottleneck_activation: str = "linear",
         dec_intermediate_dim: int = 128,
         dec_depth: int = 2,
         use_domain: bool = False,
@@ -76,7 +75,6 @@ class ModelED:
             n_hidden=enc_depth,
             l1_coef=l1_coef,
             l2_coef=l2_coef,
-            bottleneck_activation=bottleneck_activation,
             probabilistic=False,
             use_type_cond=False,  # type condition is in direct input to encoder, see above
         )

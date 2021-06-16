@@ -118,14 +118,13 @@ class Estimator:
         graph_covar_selection: Union[List[str], Tuple[str], None] = None,
         node_label_space_id: str = "type",
         node_feature_space_id: str = "standard",
-        feature_transformation: str = "none",
+        # feature_transformation: str = "none",
         use_covar_node_position: bool = False,
         use_covar_node_label: bool = False,
         use_covar_graph_covar: bool = False,
         # hold_out_covariate: Union[str, None] = None,
         domain_type: str = "image",
         merge_node_types_predefined: bool = False,
-        # remove_diagonal: bool = True,
     ):
         if self.adj_type is None:
             raise ValueError("set adj_type by init_estim() first")
@@ -181,7 +180,6 @@ class Estimator:
         self.n_features_type = list(self.node_types.values())[0].shape[1]
         self.n_features_standard = self.data.celldata.shape[1]
         self.node_feature_names = list(self.data.celldata.var_names)
-        # ToDo
         self.size_factors = self.data.size_factors()
 
         # Add covariates:

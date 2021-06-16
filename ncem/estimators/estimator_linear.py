@@ -153,8 +153,12 @@ class EstimatorLinear(Estimator):
         optimizer: str = "adam",
         learning_rate: float = 0.0001,
         n_eval_nodes_per_graph: int = 32,
+
+        l2_coef: Union[float, None] = 0.0,
+        l1_coef: Union[float, None] = 0.0,
         use_source_type: bool = True,
         use_domain: bool = False,
+        scale_node_size: bool = False,
         output_layer: str = "linear",
         **kwargs
     ):
@@ -168,9 +172,12 @@ class EstimatorLinear(Estimator):
                 self.n_node_covariates,  # categ_condition_dim
                 self.n_domains,  # domain_dim
             ),
+            l1_coef=l1_coef,
+            l2_coef=l2_coef,
             use_source_type=use_source_type,
             use_domain=use_domain,
-            output_layer=output_layer,
+            scale_node_size=scale_node_size,
+            output_layer=output_layer
         )
         optimizer = tf.keras.optimizers.get(optimizer)
         tf.keras.backend.set_value(optimizer.lr, learning_rate)

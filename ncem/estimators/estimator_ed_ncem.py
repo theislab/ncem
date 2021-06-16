@@ -32,19 +32,23 @@ class EstimatorEDncem(EstimatorGraph):
         learning_rate: float = 0.0001,
         latent_dim: int = 10,
         dropout_rate: float = 0.1,
+
         l2_coef: float = 0.0,
         l1_coef: float = 0.0,
         enc_intermediate_dim: int = 128,
         enc_depth: int = 2,
         dec_intermediate_dim: int = 128,
         dec_depth: int = 2,
+
         cond_depth: int = 1,
         cond_dim: int = 8,
         cond_dropout_rate: float = 0.1,
         cond_activation: str = "relu",
         cond_l2_reg: float = 0.0,
         cond_use_bias: bool = False,
+
         n_eval_nodes_per_graph: int = 32,
+
         use_domain: bool = False,
         scale_node_size: bool = True,
         beta: float = 0.01,
