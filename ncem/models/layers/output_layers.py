@@ -72,9 +72,7 @@ class LinearConstDispOutput(tf.keras.layers.Layer):
 class GaussianOutput(tf.keras.layers.Layer):
     """Log normal likelihood output layer"""
 
-    def __init__(
-        self, original_dim=None, use_node_scale: bool = False, name="gaussian_output", **kwargs
-    ):
+    def __init__(self, original_dim=None, use_node_scale: bool = False, name="gaussian_output", **kwargs):
 
         super().__init__(name=name, **kwargs)
 
@@ -126,9 +124,7 @@ class GaussianOutput(tf.keras.layers.Layer):
 class GaussianConstDispOutput(tf.keras.layers.Layer):
     """Log normal likelihood output layer"""
 
-    def __init__(
-        self, original_dim=None, use_node_scale: bool = False, name="gaussian_output", **kwargs
-    ):
+    def __init__(self, original_dim=None, use_node_scale: bool = False, name="gaussian_output", **kwargs):
 
         super().__init__(name=name, **kwargs)
 
@@ -175,9 +171,7 @@ class GaussianConstDispOutput(tf.keras.layers.Layer):
 class NegBinOutput(tf.keras.layers.Layer):
     """Negative binomial output layer"""
 
-    def __init__(
-        self, original_dim=None, use_node_scale: bool = False, name="neg_bin_output", **kwargs
-    ):
+    def __init__(self, original_dim=None, use_node_scale: bool = False, name="neg_bin_output", **kwargs):
 
         super().__init__(name=name, **kwargs)
 
@@ -223,13 +217,7 @@ class NegBinOutput(tf.keras.layers.Layer):
 class NegBinSharedDispOutput(tf.keras.layers.Layer):
     """Negative binomial output layer with dispersion shared over features"""
 
-    def __init__(
-        self,
-        original_dim=None,
-        use_node_scale: bool = False,
-        name="neg_bin_shared_disp_output",
-        **kwargs
-    ):
+    def __init__(self, original_dim=None, use_node_scale: bool = False, name="neg_bin_shared_disp_output", **kwargs):
 
         super().__init__(name=name, **kwargs)
 
@@ -280,13 +268,7 @@ class NegBinSharedDispOutput(tf.keras.layers.Layer):
 class NegBinConstDispOutput(tf.keras.layers.Layer):
     """Negative binomial output layer with constant dispersion"""
 
-    def __init__(
-        self,
-        original_dim=None,
-        use_node_scale: bool = False,
-        name="neg_bin_const_disp_output",
-        **kwargs
-    ):
+    def __init__(self, original_dim=None, use_node_scale: bool = False, name="neg_bin_const_disp_output", **kwargs):
 
         super().__init__(name=name, **kwargs)
 

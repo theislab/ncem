@@ -1,7 +1,7 @@
+from typing import Union
+
 import numpy as np
 import tensorflow as tf
-
-from typing import Union
 
 from ncem.models.layers import (CondDecoder, CondEncoder,
                                 GaussianConstDispOutput, GaussianOutput,
@@ -22,7 +22,6 @@ class ModelCVAEncem:
         dropout_rate: float = 0.1,
         l2_coef: float = 0.0,
         l1_coef: float = 0.0,
-
         cond_type: str = "gcn",
         cond_depth: int = 1,
         cond_dim: int = 8,
@@ -30,7 +29,6 @@ class ModelCVAEncem:
         cond_activation: Union[str, tf.keras.layers.Layer] = "relu",
         cond_l2_reg: float = 0.0,
         cond_use_bias: bool = True,
-
         use_domain: bool = False,
         scale_node_size: bool = False,
         use_type_cond: bool = True,

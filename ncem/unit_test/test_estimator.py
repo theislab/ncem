@@ -20,18 +20,18 @@ class TestEstimator(unittest.TestCase):
             self.est = ncem.train.EstimatorLinear()
         elif model in ["interactions_baseline", "interactions"]:
             self.est = ncem.train.EstimatorInteractions()
-        elif model == 'ed':
+        elif model == "ed":
             self.est = ncem.train.EstimatorED()
-        elif model == 'ed_ncem_max':
-            self.est = ncem.train.EstimatorEDncem(cond_type='max')
-        elif model == 'ed_ncem_gcn':
-            self.est = ncem.train.EstimatorEDncem(cond_type='gcn')
-        elif model == 'cvae':
+        elif model == "ed_ncem_max":
+            self.est = ncem.train.EstimatorEDncem(cond_type="max")
+        elif model == "ed_ncem_gcn":
+            self.est = ncem.train.EstimatorEDncem(cond_type="gcn")
+        elif model == "cvae":
             self.est = ncem.train.EstimatorCVAE()
-        elif model == 'cvae_ncem_max':
-            self.est = ncem.train.EstimatorCVAEncem(cond_type='max')
-        elif model == 'cvae_ncem_gcn':
-            self.est = ncem.train.EstimatorCVAEncem(cond_type='gcn')
+        elif model == "cvae_ncem_max":
+            self.est = ncem.train.EstimatorCVAEncem(cond_type="max")
+        elif model == "cvae_ncem_gcn":
+            self.est = ncem.train.EstimatorCVAEncem(cond_type="gcn")
         else:
             assert False
 
@@ -56,50 +56,32 @@ class TestEstimator(unittest.TestCase):
     def _test_train(self, model: str, data_origin: str = "zhang"):
         self.get_estimator(model=model, data_origin=data_origin)
 
-        if model == 'linear':
-            kwargs = {
-                "use_source_type": True,
-                "use_domain": True,
-                "learning_rate": 1e-2
-            }
+        if model == "linear":
+            kwargs = {"use_source_type": True, "use_domain": True, "learning_rate": 1e-2}
             train_kwargs = {}
-        elif model == 'linear_baseline':
-            kwargs = {
-                "use_source_type": False,
-                "use_domain": True,
-                "learning_rate": 1e-2
-            }
+        elif model == "linear_baseline":
+            kwargs = {"use_source_type": False, "use_domain": True, "learning_rate": 1e-2}
             train_kwargs = {}
-        elif model == 'interactions':
-            kwargs = {
-                "use_interactions": True,
-                "use_domain": True,
-                "learning_rate": 1e-2
-            }
+        elif model == "interactions":
+            kwargs = {"use_interactions": True, "use_domain": True, "learning_rate": 1e-2}
             train_kwargs = {}
-        elif model == 'interactions_baseline':
-            kwargs = {
-                "use_interactions": False,
-                "use_domain": True,
-                "learning_rate": 1e-2
-            }
+        elif model == "interactions_baseline":
+            kwargs = {"use_interactions": False, "use_domain": True, "learning_rate": 1e-2}
             train_kwargs = {}
-        elif model == 'ed':
+        elif model == "ed":
             kwargs = {
                 "depth_enc": 1,
                 "depth_dec": 0,
-
                 "use_domain": True,
                 "use_bias": True,
                 "learning_rate": 1e-2,
-                "beta": 0.1
+                "beta": 0.1,
             }
             train_kwargs = {}
-        elif model in ['ed_ncem_max', 'ed_ncem_gcn']:
+        elif model in ["ed_ncem_max", "ed_ncem_gcn"]:
             kwargs = {
                 "depth_enc": 1,
                 "depth_dec": 0,
-
                 "cond_depth": 1,
                 "use_domain": True,
                 "use_bias": True,
@@ -107,22 +89,20 @@ class TestEstimator(unittest.TestCase):
                 "beta": 0.1,
             }
             train_kwargs = {}
-        elif model == 'cvae':
+        elif model == "cvae":
             kwargs = {
                 "depth_enc": 1,
                 "depth_dec": 1,
-
                 "use_domain": True,
                 "use_bias": True,
                 "learning_rate": 1e-2,
-                "beta": 0.1
+                "beta": 0.1,
             }
             train_kwargs = {}
-        elif model in ['cvae_ncem_max', 'cvae_ncem_gcn']:
+        elif model in ["cvae_ncem_max", "cvae_ncem_gcn"]:
             kwargs = {
                 "depth_enc": 1,
                 "depth_dec": 1,
-
                 "cond_depth": 1,
                 "use_domain": True,
                 "use_bias": True,
@@ -134,12 +114,9 @@ class TestEstimator(unittest.TestCase):
             assert False
         self._model_kwargs = kwargs
         self.est.init_model(**kwargs)
-        self.est.split_data_node(
-            validation_split=0.5,
-            test_split=0.5
-        )
+        self.est.split_data_node(validation_split=0.5, test_split=0.5)
 
-        if data_origin == 'hartmann':
+        if data_origin == "hartmann":
             batch_size = None
         else:
             batch_size = 16

@@ -1,9 +1,9 @@
 import abc
+import time
+from typing import List, Tuple, Union
+
 import numpy as np
 import tensorflow as tf
-import time
-
-from typing import Tuple, List, Union
 
 from ncem.utils.losses import GaussianLoss, KLLoss, NegBinLoss
 from ncem.utils.metrics import (custom_kl, custom_mae, custom_mean_sd,
@@ -36,7 +36,7 @@ class Estimator:
         self,
         data_origin: str,
         data_path: str,
-        #feature_transformation: str,
+        # feature_transformation: str,
         radius: int,
         label_selection: Union[List[str], None] = None,
     ):
@@ -54,6 +54,7 @@ class Estimator:
             self.undefined_node_types = ["other"]
         elif data_origin == "hartmann":
             from ncem.data import DataLoaderHartmann as DataLoader
+
             self.undefined_node_types = None
         else:
             raise ValueError(f"data_origin {data_origin} not recognized")
@@ -87,30 +88,33 @@ class Estimator:
         self._load_data(
             data_origin=data_origin,
             data_path=data_path,
-            #feature_transformation=feature_transformation,
+            # feature_transformation=feature_transformation,
             radius=radius,
-            label_selection=labels_to_load
+            label_selection=labels_to_load,
         )
         if merge_node_types_predefined:
             self.data.merge_types_predefined()
         # Validate graph-wise covariate selection:
         if len(graph_covar_selection) > 0:
-            if np.sum(
-                [x not in self.data.celldata.uns['graph_covariates']['label_selection'] for x in graph_covar_selection]
-            ) > 0:
+            if (
+                np.sum(
+                    [
+                        x not in self.data.celldata.uns["graph_covariates"]["label_selection"]
+                        for x in graph_covar_selection
+                    ]
+                )
+                > 0
+            ):
                 raise ValueError(
-                    "could not find some sub-selected covar_selection %s in %s" %
-                    (
-                        str(graph_covar_selection),
-                        str(self.data.celldata.uns['graph_covariates']['label_selection'])
-                    )
+                    "could not find some sub-selected covar_selection %s in %s"
+                    % (str(graph_covar_selection), str(self.data.celldata.uns["graph_covariates"]["label_selection"]))
                 )
         self.img_to_patient_dict = self.data.celldata.uns["img_to_patient_dict"]
         # ToDo
-        #self.nodes_by_image = self.data.nodes_by_image
+        # self.nodes_by_image = self.data.nodes_by_image
         self.complete_img_keys = self.data.img_celldata.keys()
-        #self.target_img_keys = self.data.target_img_keys
-        #self.ref_img_keys = self.data.ref_img_keys
+        # self.target_img_keys = self.data.target_img_keys
+        # self.ref_img_keys = self.data.ref_img_keys
 
         self.a = {k: adata.obsp["adjacency_matrix_connectivities"] for k, adata in self.data.img_celldata.items()}
         if node_label_space_id == "standard":
@@ -135,8 +139,8 @@ class Estimator:
 
         # Add covariates:
         # Add graph-level hold-out covariate information
-        #self.holdout_covariate = hold_out_covariate
-        #if hold_out_covariate is not None:
+        # self.holdout_covariate = hold_out_covariate
+        # if hold_out_covariate is not None:
         #    if hold_out_covariate == 'images':
         #        self.holdout_covar = self.node_types
         #    else:
@@ -146,18 +150,20 @@ class Estimator:
         #        }
         # Add graph-level covariate information
         self.covar_selection = graph_covar_selection
-        self.graph_covar_names = self.data.celldata.uns['graph_covariates']['label_names']
+        self.graph_covar_names = self.data.celldata.uns["graph_covariates"]["label_names"]
 
         # Split loaded graph-wise covariates into labels (output, Y) and covariates / features (input, C)
         if len(graph_covar_selection) > 0:
             self.graph_covar = {  # Single 1D array per observation: concatenate all covariates!
-                k: np.concatenate([adata.uns['graph_covariates']['label_tensors'][kk] for kk in self.covar_selection], axis=0)
+                k: np.concatenate(
+                    [adata.uns["graph_covariates"]["label_tensors"][kk] for kk in self.covar_selection], axis=0
+                )
                 for k, adata in self.data.img_celldata.items()
             }
             # Replace masked entries (np.nan) by zeros: (masking can be handled properly in output but not here):
             for k, v in self.graph_covar.items():
                 if np.any(np.isnan(v)):
-                    self.graph_covar[k][np.isnan(v)] = 0.
+                    self.graph_covar[k][np.isnan(v)] = 0.0
         else:
             # Create empty covariate arrays:
             self.graph_covar = {k: np.array([], ndmin=1) for k, adata in self.data.img_celldata.items()}
@@ -166,44 +172,28 @@ class Estimator:
         # Cell position in image:
         if use_covar_node_position:
             for k in self.complete_img_keys:
-                self.node_covar[k] = np.append(
-                    self.node_covar[k],
-                    self.data.img_celldata[k].obsm["spatial"],
-                    axis=1
-                )
-            print('Position_matrix added to categorical predictor matrix')
+                self.node_covar[k] = np.append(self.node_covar[k], self.data.img_celldata[k].obsm["spatial"], axis=1)
+            print("Position_matrix added to categorical predictor matrix")
         # Add graph-level covariates to node covariates:
         if use_covar_graph_covar:
             for k in self.complete_img_keys:
                 # Broadcast graph-level covariate to nodes:
-                c = np.repeat(
-                    self.graph_covar[k][np.newaxis, :],
-                    self.data.img_celldata[k].shape[0],
-                    axis=0
-                )
-                self.node_covar[k] = np.append(
-                    self.node_covar[k],
-                    c,
-                    axis=1
-                )
-            print('Node_covar_selection broadcasted to categorical predictor matrix')
+                c = np.repeat(self.graph_covar[k][np.newaxis, :], self.data.img_celldata[k].shape[0], axis=0)
+                self.node_covar[k] = np.append(self.node_covar[k], c, axis=1)
+            print("Node_covar_selection broadcasted to categorical predictor matrix")
         # Add node
         if use_covar_node_label:
             for k in self.complete_img_keys:
                 node_types = self.data.img_celldata[k].obsm["node_types"]
-                self.node_covar[k] = np.append(
-                    self.node_covar[k],
-                    node_types,
-                    axis=1
-                )
-            print('Node_type added to categorical predictor matrix')
+                self.node_covar[k] = np.append(self.node_covar[k], node_types, axis=1)
+            print("Node_type added to categorical predictor matrix")
 
         # Set selection-specific tensor dimensions:
         self.n_features_0 = list(self.h_0.values())[0].shape[1]
         self.n_features_1 = list(self.h_1.values())[0].shape[1]
         self.n_graph_covariates = list(self.graph_covar.values())[0].shape[0]
         self.n_node_covariates = list(self.node_covar.values())[0].shape[1]
-        #if hold_out_covariate is not None:
+        # if hold_out_covariate is not None:
         #    self.n_holdout_covar = list(self.holdout_covar.values())[0].shape[0]
         self.max_nodes = max([self.a[i].shape[0] for i in self.complete_img_keys])
 
@@ -311,10 +301,7 @@ class Estimator:
         self.vi_model = False  # variational inference
         if self.model_type in ["cvae", "cvae_ncem"]:
             self.vi_model = True
-        enc_dec_model = (
-            self.model_type == "cvae"
-            or self.model_type == "cvae_ncem"
-        )
+        enc_dec_model = self.model_type == "cvae" or self.model_type == "cvae_ncem"
 
         if output_layer in ["gaussian", "gaussian_const_disp", "linear", "linear_const_disp"]:
             reconstruction_loss = GaussianLoss()

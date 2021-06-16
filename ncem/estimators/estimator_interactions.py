@@ -1,9 +1,9 @@
+from typing import Union
+
 import numpy as np
 import tensorflow as tf
-
 from patsy import dmatrix
 from scipy.sparse import coo_matrix
-from typing import Union
 
 from ncem.estimators import Estimator
 from ncem.models import ModelInteractions
@@ -160,7 +160,7 @@ class EstimatorInteractions(Estimator):
         nodes_idx: dict,
         batch_size: int,
         seed: Union[int, None] = None,
-        prefetch: int = 100
+        prefetch: int = 100,
     ):
         pass
 

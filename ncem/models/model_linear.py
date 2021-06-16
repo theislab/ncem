@@ -1,8 +1,8 @@
-import tensorflow as tf
-
 from typing import Union
 
-from ncem.models.layers import (LinearConstDispOutput, LinearOutput)
+import tensorflow as tf
+
+from ncem.models.layers import LinearConstDispOutput, LinearOutput
 
 
 class ModelLinear:

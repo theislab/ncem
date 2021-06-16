@@ -15,7 +15,6 @@ class ModelED:
         l1_coef: float = 0.0,
         enc_intermediate_dim: int = 128,
         enc_depth: int = 2,
-
         bottleneck_activation: str = "linear",
         dec_intermediate_dim: int = 128,
         dec_depth: int = 2,

@@ -1,15 +1,14 @@
 import abc
+from typing import Dict, List, Tuple, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
 import squidpy as sq
-
 from anndata import AnnData, read_h5ad
 from matplotlib.ticker import FormatStrFormatter
 from pandas import read_csv, read_excel
-from typing import Dict, List, Tuple, Union
 
 # ToDo add graph covariates
 
@@ -158,14 +157,9 @@ class DataLoader(GraphTools):
         self._register_img_celldata()
         assert self.img_celldata is not None, "image-wise celldata was not loaded"
 
-    def register_graph_features(
-        self,
-        label_selection
-    ):
+    def register_graph_features(self, label_selection):
         print("adding graph-level covariates")
-        self._register_graph_features(
-            label_selection=label_selection
-        )
+        self._register_graph_features(label_selection=label_selection)
 
     @abc.abstractmethod
     def _register_celldata(self):
@@ -229,7 +223,7 @@ class DataLoader(GraphTools):
             ncols=12, nrows=nrows, figsize=(12 * panel_width, nrows * panel_height), sharex="all", sharey="all"
         )
         ax = ax.flat
-        for axis in ax[len(ct):]:
+        for axis in ax[len(ct) :]:
             axis.remove()
         for i, ci in enumerate(ct):
             tab = feature_mat.loc[feature_mat["cell_type"].values == ci, :]
@@ -301,14 +295,10 @@ class DataLoader(GraphTools):
                 print("WARNING: found irregular node sizes in image %s" % str(i))
         # Get global mean of feature intensity across all features:
         global_mean_per_node = self.celldata.X.sum(axis=1).mean(axis=0)
-        return {
-            i: global_mean_per_node / np.sum(adata.X, axis=1)
-            for i, adata in self.img_celldata.items()
-        }
+        return {i: global_mean_per_node / np.sum(adata.X, axis=1) for i, adata in self.img_celldata.items()}
 
 
 class DataLoaderZhang(DataLoader):
-
     def _register_celldata(self):
         """
         Registers an Anndata object over all images and collects all necessary information.
@@ -365,7 +355,6 @@ class DataLoaderZhang(DataLoader):
 
 
 class DataLoaderJarosch(DataLoader):
-
     def _register_celldata(self):
         """
         Registers an Anndata object over all images and collects all necessary information.
@@ -534,22 +523,13 @@ class DataLoaderHartmann(DataLoader):
             img_celldata[str(k)] = self.celldata[self.celldata.obs[image_col] == k].copy()
         self.img_celldata = img_celldata
 
-    def _register_graph_features(
-        self,
-        label_selection: Union[List[str], None] = None
-    ):
+    def _register_graph_features(self, label_selection: Union[List[str], None] = None):
         # DEFINE COLUMN NAMES FOR TABULAR DATA.
         # Define column names to extract from patient-wise tabular data:
-        patient_col = 'ID'
+        patient_col = "ID"
         # These are required to assign the image to dieased and non-diseased:
-        disease_features = {
-            'Diagnosis': 'categorical'
-        }
-        patient_features = {
-            'ID': 'categorical',
-            'Age': 'continuous',
-            'Sex': 'categorical'
-        }
+        disease_features = {"Diagnosis": "categorical"}
+        patient_features = {"ID": "categorical", "Age": "continuous", "Sex": "categorical"}
         label_cols = {}
         label_cols.update(disease_features)
         label_cols.update(patient_features)
@@ -561,10 +541,7 @@ class DataLoaderHartmann(DataLoader):
         label_cols_toread = list(label_selection.intersection(set(list(label_cols.keys()))))
         usecols = label_cols_toread + [patient_col]
 
-        tissue_meta_data = read_excel(
-            self.data_path + "scMEP_sample_description.xlsx",
-            usecols=usecols
-        )
+        tissue_meta_data = read_excel(self.data_path + "scMEP_sample_description.xlsx", usecols=usecols)
         # BUILD LABEL VECTORS FROM LABEL COLUMNS
         # The columns contain unprocessed numeric and categorical entries that are now processed to prediction-ready
         # numeric tensors. Here we first generate a dictionary of tensors for each label (label_tensors). We then
@@ -578,40 +555,36 @@ class DataLoaderHartmann(DataLoader):
         continuous_mean = {
             feature: tissue_meta_data[feature].mean(skipna=True)
             for feature in list(label_cols.keys())
-            if label_cols[feature] == 'continuous'
+            if label_cols[feature] == "continuous"
         }
         continuous_std = {
             feature: tissue_meta_data[feature].std(skipna=True)
             for feature in list(label_cols.keys())
-            if label_cols[feature] == 'continuous'
+            if label_cols[feature] == "continuous"
         }
         for i, feature in enumerate(list(label_cols.keys())):
-            if label_cols[feature] == 'continuous':
-                label_tensors[feature] = (tissue_meta_data[feature].values - continuous_mean[feature]) \
-                                         / continuous_std[feature]
+            if label_cols[feature] == "continuous":
+                label_tensors[feature] = (tissue_meta_data[feature].values - continuous_mean[feature]) / continuous_std[
+                    feature
+                ]
                 label_names[feature] = [feature]
         # 2. One-hot encode categorical columns
         # Force all entries in categorical columns to be string so that GLM-like formula processing can be performed.
         for i, feature in enumerate(list(label_cols.keys())):
-            if label_cols[feature] == 'categorical':
-                tissue_meta_data[feature] = tissue_meta_data[feature].astype('str')
+            if label_cols[feature] == "categorical":
+                tissue_meta_data[feature] = tissue_meta_data[feature].astype("str")
         # One-hot encode each string label vector:
         for i, feature in enumerate(list(label_cols.keys())):
-            if label_cols[feature] == 'categorical':
-                oh = pd.get_dummies(
-                    tissue_meta_data[feature],
-                    prefix=feature,
-                    prefix_sep='>',
-                    drop_first=False
-                )
+            if label_cols[feature] == "categorical":
+                oh = pd.get_dummies(tissue_meta_data[feature], prefix=feature, prefix_sep=">", drop_first=False)
                 # Change all entries of corresponding observation to np.nan instead.
-                idx_nan_col = np.array([i for i, x in enumerate(oh.columns) if x.endswith('>nan')])
+                idx_nan_col = np.array([i for i, x in enumerate(oh.columns) if x.endswith(">nan")])
                 if len(idx_nan_col) > 0:
                     assert len(idx_nan_col) == 1, "fatal processing error"
-                    nan_rows = np.where(oh.iloc[:, idx_nan_col[0]].values == 1.)[0]
+                    nan_rows = np.where(oh.iloc[:, idx_nan_col[0]].values == 1.0)[0]
                     oh.loc[nan_rows, :] = np.nan
                 # Drop nan element column.
-                oh = oh.loc[:, [x for x in oh.columns if not x.endswith('>nan')]]
+                oh = oh.loc[:, [x for x in oh.columns if not x.endswith(">nan")]]
                 label_tensors[feature] = oh.values
                 label_names[feature] = oh.columns
         # Make sure all tensors are 2D for indexing:
@@ -625,7 +598,9 @@ class DataLoaderHartmann(DataLoader):
             img: {
                 feature_name: np.array(features[tissue_meta_data_patients.index(patient), :], ndmin=1)
                 for feature_name, features in label_tensors.items()
-            } if patient in tissue_meta_data_patients else None
+            }
+            if patient in tissue_meta_data_patients
+            else None
             for img, patient in self.celldata.uns["img_to_patient_dict"].items()
         }
         # Reduce to observed patients:
@@ -634,23 +609,23 @@ class DataLoaderHartmann(DataLoader):
         # Save processed data to attributes.
         for k, adata in self.img_celldata.items():
             graph_covariates = {
-                'label_names': label_names,
-                'label_tensors': label_tensors[k],
-                'label_selection': list(label_cols.keys()),
-                'continuous_mean': continuous_mean,
-                'continuous_std': continuous_std,
-                'label_data_types': label_cols
+                "label_names": label_names,
+                "label_tensors": label_tensors[k],
+                "label_selection": list(label_cols.keys()),
+                "continuous_mean": continuous_mean,
+                "continuous_std": continuous_std,
+                "label_data_types": label_cols,
             }
-            adata.uns['graph_covariates'] = graph_covariates
+            adata.uns["graph_covariates"] = graph_covariates
 
         graph_covariates = {
-            'label_names': label_names,
-            'label_selection': list(label_cols.keys()),
-            'continuous_mean': continuous_mean,
-            'continuous_std': continuous_std,
-            'label_data_types': label_cols
+            "label_names": label_names,
+            "label_selection": list(label_cols.keys()),
+            "continuous_mean": continuous_mean,
+            "continuous_std": continuous_std,
+            "label_data_types": label_cols,
         }
-        self.celldata.uns['graph_covariates'] = graph_covariates
+        self.celldata.uns["graph_covariates"] = graph_covariates
 
         # self.ref_img_keys = {k: [] for k, v in self.nodes_by_image.items()}
 
@@ -672,7 +647,7 @@ class DataLoaderPascualReguant(DataLoader):
         nuclei_df = read_excel(self.data_path + metadata["fn"][0])
         membranes_df = read_excel(self.data_path + metadata["fn"][1])
 
-        celldata_df = nuclei_df.join(membranes_df.set_index('ObjectNumber'), on='ObjectNumber')
+        celldata_df = nuclei_df.join(membranes_df.set_index("ObjectNumber"), on="ObjectNumber")
 
         feature_cols = [
             "Bcl6",
@@ -774,72 +749,72 @@ class DataLoaderSchuerch(DataLoader):
         """
         metadata = {
             "lateral_resolution": 0.377442,
-            "fn": 'CRC_clusters_neighborhoods_markers_NEW.csv',
-            "image_col": 'File Name',
-            "pos_cols": ['X:X', 'Y:Y'],
-            "cluster_col": 'ClusterName',
-            "patient_col": 'patients',
+            "fn": "CRC_clusters_neighborhoods_markers_NEW.csv",
+            "image_col": "File Name",
+            "pos_cols": ["X:X", "Y:Y"],
+            "cluster_col": "ClusterName",
+            "patient_col": "patients",
         }
         celldata_df = read_csv(self.data_path + metadata["fn"])
 
         feature_cols = [
-            'CD44 - stroma:Cyc_2_ch_2',
-            'FOXP3 - regulatory T cells:Cyc_2_ch_3',
-            'CD8 - cytotoxic T cells:Cyc_3_ch_2',
-            'p53 - tumor suppressor:Cyc_3_ch_3',
-            'GATA3 - Th2 helper T cells:Cyc_3_ch_4',
-            'CD45 - hematopoietic cells:Cyc_4_ch_2',
-            'T-bet - Th1 cells:Cyc_4_ch_3',
-            'beta-catenin - Wnt signaling:Cyc_4_ch_4',
-            'HLA-DR - MHC-II:Cyc_5_ch_2',
-            'PD-L1 - checkpoint:Cyc_5_ch_3',
-            'Ki67 - proliferation:Cyc_5_ch_4',
-            'CD45RA - naive T cells:Cyc_6_ch_2',
-            'CD4 - T helper cells:Cyc_6_ch_3',
-            'CD21 - DCs:Cyc_6_ch_4',
-            'MUC-1 - epithelia:Cyc_7_ch_2',
-            'CD30 - costimulator:Cyc_7_ch_3',
-            'CD2 - T cells:Cyc_7_ch_4',
-            'Vimentin - cytoplasm:Cyc_8_ch_2',
-            'CD20 - B cells:Cyc_8_ch_3',
-            'LAG-3 - checkpoint:Cyc_8_ch_4',
-            'Na-K-ATPase - membranes:Cyc_9_ch_2',
-            'CD5 - T cells:Cyc_9_ch_3',
-            'IDO-1 - metabolism:Cyc_9_ch_4',
-            'Cytokeratin - epithelia:Cyc_10_ch_2',
-            'CD11b - macrophages:Cyc_10_ch_3',
-            'CD56 - NK cells:Cyc_10_ch_4',
-            'aSMA - smooth muscle:Cyc_11_ch_2',
-            'BCL-2 - apoptosis:Cyc_11_ch_3',
-            'CD25 - IL-2 Ra:Cyc_11_ch_4',
-            'CD11c - DCs:Cyc_12_ch_3',
-            'PD-1 - checkpoint:Cyc_12_ch_4',
-            'Granzyme B - cytotoxicity:Cyc_13_ch_2',
-            'EGFR - signaling:Cyc_13_ch_3',
-            'VISTA - costimulator:Cyc_13_ch_4',
-            'CD15 - granulocytes:Cyc_14_ch_2',
-            'ICOS - costimulator:Cyc_14_ch_4',
-            'Synaptophysin - neuroendocrine:Cyc_15_ch_3',
-            'GFAP - nerves:Cyc_16_ch_2',
-            'CD7 - T cells:Cyc_16_ch_3',
-            'CD3 - T cells:Cyc_16_ch_4',
-            'Chromogranin A - neuroendocrine:Cyc_17_ch_2',
-            'CD163 - macrophages:Cyc_17_ch_3',
-            'CD45RO - memory cells:Cyc_18_ch_3',
-            'CD68 - macrophages:Cyc_18_ch_4',
-            'CD31 - vasculature:Cyc_19_ch_3',
-            'Podoplanin - lymphatics:Cyc_19_ch_4',
-            'CD34 - vasculature:Cyc_20_ch_3',
-            'CD38 - multifunctional:Cyc_20_ch_4',
-            'CD138 - plasma cells:Cyc_21_ch_3',
-            'HOECHST1:Cyc_1_ch_1',
-            'CDX2 - intestinal epithelia:Cyc_2_ch_4',
-            'Collagen IV - bas. memb.:Cyc_12_ch_2',
-            'CD194 - CCR4 chemokine R:Cyc_14_ch_3',
-            'MMP9 - matrix metalloproteinase:Cyc_15_ch_2',
-            'CD71 - transferrin R:Cyc_15_ch_4',
-            'CD57 - NK cells:Cyc_17_ch_4',
-            'MMP12 - matrix metalloproteinase:Cyc_21_ch_4',
+            "CD44 - stroma:Cyc_2_ch_2",
+            "FOXP3 - regulatory T cells:Cyc_2_ch_3",
+            "CD8 - cytotoxic T cells:Cyc_3_ch_2",
+            "p53 - tumor suppressor:Cyc_3_ch_3",
+            "GATA3 - Th2 helper T cells:Cyc_3_ch_4",
+            "CD45 - hematopoietic cells:Cyc_4_ch_2",
+            "T-bet - Th1 cells:Cyc_4_ch_3",
+            "beta-catenin - Wnt signaling:Cyc_4_ch_4",
+            "HLA-DR - MHC-II:Cyc_5_ch_2",
+            "PD-L1 - checkpoint:Cyc_5_ch_3",
+            "Ki67 - proliferation:Cyc_5_ch_4",
+            "CD45RA - naive T cells:Cyc_6_ch_2",
+            "CD4 - T helper cells:Cyc_6_ch_3",
+            "CD21 - DCs:Cyc_6_ch_4",
+            "MUC-1 - epithelia:Cyc_7_ch_2",
+            "CD30 - costimulator:Cyc_7_ch_3",
+            "CD2 - T cells:Cyc_7_ch_4",
+            "Vimentin - cytoplasm:Cyc_8_ch_2",
+            "CD20 - B cells:Cyc_8_ch_3",
+            "LAG-3 - checkpoint:Cyc_8_ch_4",
+            "Na-K-ATPase - membranes:Cyc_9_ch_2",
+            "CD5 - T cells:Cyc_9_ch_3",
+            "IDO-1 - metabolism:Cyc_9_ch_4",
+            "Cytokeratin - epithelia:Cyc_10_ch_2",
+            "CD11b - macrophages:Cyc_10_ch_3",
+            "CD56 - NK cells:Cyc_10_ch_4",
+            "aSMA - smooth muscle:Cyc_11_ch_2",
+            "BCL-2 - apoptosis:Cyc_11_ch_3",
+            "CD25 - IL-2 Ra:Cyc_11_ch_4",
+            "CD11c - DCs:Cyc_12_ch_3",
+            "PD-1 - checkpoint:Cyc_12_ch_4",
+            "Granzyme B - cytotoxicity:Cyc_13_ch_2",
+            "EGFR - signaling:Cyc_13_ch_3",
+            "VISTA - costimulator:Cyc_13_ch_4",
+            "CD15 - granulocytes:Cyc_14_ch_2",
+            "ICOS - costimulator:Cyc_14_ch_4",
+            "Synaptophysin - neuroendocrine:Cyc_15_ch_3",
+            "GFAP - nerves:Cyc_16_ch_2",
+            "CD7 - T cells:Cyc_16_ch_3",
+            "CD3 - T cells:Cyc_16_ch_4",
+            "Chromogranin A - neuroendocrine:Cyc_17_ch_2",
+            "CD163 - macrophages:Cyc_17_ch_3",
+            "CD45RO - memory cells:Cyc_18_ch_3",
+            "CD68 - macrophages:Cyc_18_ch_4",
+            "CD31 - vasculature:Cyc_19_ch_3",
+            "Podoplanin - lymphatics:Cyc_19_ch_4",
+            "CD34 - vasculature:Cyc_20_ch_3",
+            "CD38 - multifunctional:Cyc_20_ch_4",
+            "CD138 - plasma cells:Cyc_21_ch_3",
+            "HOECHST1:Cyc_1_ch_1",
+            "CDX2 - intestinal epithelia:Cyc_2_ch_4",
+            "Collagen IV - bas. memb.:Cyc_12_ch_2",
+            "CD194 - CCR4 chemokine R:Cyc_14_ch_3",
+            "MMP9 - matrix metalloproteinase:Cyc_15_ch_2",
+            "CD71 - transferrin R:Cyc_15_ch_4",
+            "CD57 - NK cells:Cyc_17_ch_4",
+            "MMP12 - matrix metalloproteinase:Cyc_21_ch_4",
         ]
 
         celldata = AnnData(X=celldata_df[feature_cols], obs=celldata_df[["patients", "ClusterName"]])
@@ -875,35 +850,35 @@ class DataLoaderSchuerch(DataLoader):
         :return:
         """
         cell_type_tumor_dict = {
-            'B cells': 'B cells',
-            'CD11b+ monocytes': 'monocytes',
-            'CD11b+CD68+ macrophages': 'macrophages',
-            'CD11c+ DCs': 'dendritic cells',
-            'CD163+ macrophages': 'macrophages',
-            'CD3+ T cells': 'CD3+ T cells',
-            'CD4+ T cells': 'CD4+ T cells',
-            'CD4+ T cells CD45RO+': 'CD4+ T cells',
-            'CD4+ T cells GATA3+': 'CD4+ T cells',
-            'CD68+ macrophages': 'macrophages',
-            'CD68+ macrophages GzmB+': 'macrophages',
-            'CD68+CD163+ macrophages': 'macrophages',
-            'CD8+ T cells': 'CD8+ T cells',
-            'NK cells': 'NK cells',
-            'Tregs': 'Tregs',
-            'adipocytes': 'adipocytes',
-            'dirt': 'dirt',
-            'granulocytes': 'granulocytes',
-            'immune cells': 'immune cells',
-            'immune cells / vasculature': 'immune cells',
-            'lymphatics': 'lymphatics',
-            'nerves': 'nerves',
-            'plasma cells': 'plasma cells',
-            'smooth muscle': 'smooth muscle',
-            'stroma': 'stroma',
-            'tumor cells': 'tumor cells',
-            'tumor cells / immune cells': 'immune cells',
-            'undefined': 'undefined',
-            'vasculature': 'vasculature'
+            "B cells": "B cells",
+            "CD11b+ monocytes": "monocytes",
+            "CD11b+CD68+ macrophages": "macrophages",
+            "CD11c+ DCs": "dendritic cells",
+            "CD163+ macrophages": "macrophages",
+            "CD3+ T cells": "CD3+ T cells",
+            "CD4+ T cells": "CD4+ T cells",
+            "CD4+ T cells CD45RO+": "CD4+ T cells",
+            "CD4+ T cells GATA3+": "CD4+ T cells",
+            "CD68+ macrophages": "macrophages",
+            "CD68+ macrophages GzmB+": "macrophages",
+            "CD68+CD163+ macrophages": "macrophages",
+            "CD8+ T cells": "CD8+ T cells",
+            "NK cells": "NK cells",
+            "Tregs": "Tregs",
+            "adipocytes": "adipocytes",
+            "dirt": "dirt",
+            "granulocytes": "granulocytes",
+            "immune cells": "immune cells",
+            "immune cells / vasculature": "immune cells",
+            "lymphatics": "lymphatics",
+            "nerves": "nerves",
+            "plasma cells": "plasma cells",
+            "smooth muscle": "smooth muscle",
+            "stroma": "stroma",
+            "tumor cells": "tumor cells",
+            "tumor cells / immune cells": "immune cells",
+            "undefined": "undefined",
+            "vasculature": "vasculature",
         }
         self.merge_types(cell_type_tumor_dict)
 

@@ -1,9 +1,9 @@
+from typing import Union
+
 import numpy as np
 import tensorflow as tf
-
 from patsy import dmatrix
 from scipy.sparse import coo_matrix
-from typing import Union
 
 from ncem.estimators import Estimator
 from ncem.models import ModelLinear
@@ -64,7 +64,7 @@ class EstimatorLinear(Estimator):
                     # dropping
                     index_list = [
                         np.asarray(
-                            nodes_idx[key][self.n_eval_nodes_per_graph * i: self.n_eval_nodes_per_graph * (i + 1)],
+                            nodes_idx[key][self.n_eval_nodes_per_graph * i : self.n_eval_nodes_per_graph * (i + 1)],
                             dtype=np.int32,
                         )
                         for i in range(len(nodes_idx[key]) // self.n_eval_nodes_per_graph)
@@ -144,7 +144,7 @@ class EstimatorLinear(Estimator):
         nodes_idx: dict,
         batch_size: int,
         seed: Union[int, None] = None,
-        prefetch: int = 100
+        prefetch: int = 100,
     ):
         pass
 
