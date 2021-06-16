@@ -73,13 +73,12 @@ class GaussianOutput(tf.keras.layers.Layer):
     """Log normal likelihood output layer"""
 
     def __init__(
-        self, ncells_selected=None, original_dim=None, use_node_scale: bool = False, name="gaussian_output", **kwargs
+        self, original_dim=None, use_node_scale: bool = False, name="gaussian_output", **kwargs
     ):
 
         super().__init__(name=name, **kwargs)
 
         self.original_dim = original_dim
-        self.ncells_selected = ncells_selected
         self.intermediate_dim = None
         self.use_node_scale = use_node_scale
         self.means = None
@@ -101,12 +100,14 @@ class GaussianOutput(tf.keras.layers.Layer):
         bound = 60.0
 
         activation, sf = inputs
+        in_node_dim = activation.shape[1]
+
         activation = tf.reshape(activation, [-1, self.intermediate_dim], name="output_layer_reshape_activation_fwdpass")
 
         mean = self.means(activation)
         var = self.var_bias
 
-        mean = tf.reshape(mean, [-1, self.ncells_selected, self.original_dim], name="output_layer_reshape_mean")
+        mean = tf.reshape(mean, [-1, in_node_dim, self.original_dim], name="output_layer_reshape_mean")
         var = tf.zeros_like(mean) + var  # broadcast
         if self.use_node_scale:
             mean = mean * tf.clip_by_value(sf, tf.exp(-bound), tf.exp(bound), "decoder_sf_clip")
@@ -126,13 +127,12 @@ class GaussianConstDispOutput(tf.keras.layers.Layer):
     """Log normal likelihood output layer"""
 
     def __init__(
-        self, ncells_selected=None, original_dim=None, use_node_scale: bool = False, name="gaussian_output", **kwargs
+        self, original_dim=None, use_node_scale: bool = False, name="gaussian_output", **kwargs
     ):
 
         super().__init__(name=name, **kwargs)
 
         self.original_dim = original_dim
-        self.ncells_selected = ncells_selected
         self.intermediate_dim = None
         self.use_node_scale = use_node_scale
         self.means = None
@@ -152,10 +152,11 @@ class GaussianConstDispOutput(tf.keras.layers.Layer):
         bound = 60.0
 
         activation, sf = inputs
+        in_node_dim = activation.shape[1]
         activation = tf.reshape(activation, [-1, self.intermediate_dim], name="output_layer_reshape_activation_fwdpass")
 
         mean = self.means(activation)
-        mean = tf.reshape(mean, [-1, self.ncells_selected, self.original_dim], name="output_layer_reshape_mean")
+        mean = tf.reshape(mean, [-1, in_node_dim, self.original_dim], name="output_layer_reshape_mean")
         var = tf.zeros_like(mean)
         if self.use_node_scale:
             mean = mean * tf.clip_by_value(sf, tf.exp(-bound), tf.exp(bound), "decoder_sf_clip")
@@ -175,13 +176,12 @@ class NegBinOutput(tf.keras.layers.Layer):
     """Negative binomial output layer"""
 
     def __init__(
-        self, ncells_selected=None, original_dim=None, use_node_scale: bool = False, name="neg_bin_output", **kwargs
+        self, original_dim=None, use_node_scale: bool = False, name="neg_bin_output", **kwargs
     ):
 
         super().__init__(name=name, **kwargs)
 
         self.original_dim = original_dim
-        self.ncells_selected = ncells_selected
         self.intermediate_dim = None
         self.use_node_scale = use_node_scale
         self.means = None
@@ -225,7 +225,6 @@ class NegBinSharedDispOutput(tf.keras.layers.Layer):
 
     def __init__(
         self,
-        ncells_selected=None,
         original_dim=None,
         use_node_scale: bool = False,
         name="neg_bin_shared_disp_output",
@@ -235,11 +234,11 @@ class NegBinSharedDispOutput(tf.keras.layers.Layer):
         super().__init__(name=name, **kwargs)
 
         self.original_dim = original_dim
-        self.ncells_selected = ncells_selected
         self.intermediate_dim = None
         self.use_node_scale = use_node_scale
         self.means = None
         self.var = None
+        self.var_bias = None
 
     def get_config(self):
         config = super().get_config().copy()
@@ -257,12 +256,13 @@ class NegBinSharedDispOutput(tf.keras.layers.Layer):
         bound = 60.0
 
         activation, sf = inputs
+        in_node_dim = activation.shape[1]
         activation = tf.reshape(activation, [-1, self.intermediate_dim], name="output_layer_reshape_activation_fwdpass")
 
         mean = self.means(activation)
         var = self.var_bias
 
-        mean = tf.reshape(mean, [-1, self.ncells_selected, self.original_dim], name="output_layer_reshape_mean")
+        mean = tf.reshape(mean, [-1, in_node_dim, self.original_dim], name="output_layer_reshape_mean")
         if self.use_node_scale:
             mean = mean + tf.math.log(tf.clip_by_value(sf, tf.exp(-bound), tf.exp(bound), "decoder_sf_clip"))
         var = tf.zeros_like(mean) + var  # broadcast
@@ -282,7 +282,6 @@ class NegBinConstDispOutput(tf.keras.layers.Layer):
 
     def __init__(
         self,
-        ncells_selected=None,
         original_dim=None,
         use_node_scale: bool = False,
         name="neg_bin_const_disp_output",
@@ -292,7 +291,6 @@ class NegBinConstDispOutput(tf.keras.layers.Layer):
         super().__init__(name=name, **kwargs)
 
         self.original_dim = original_dim
-        self.ncells_selected = ncells_selected
         self.intermediate_dim = None
         self.use_node_scale = use_node_scale
         self.means = None
@@ -313,12 +311,13 @@ class NegBinConstDispOutput(tf.keras.layers.Layer):
         bound = 60.0
 
         activation, sf = inputs
+        in_node_dim = activation.shape[1]
         activation = tf.reshape(activation, [-1, self.intermediate_dim], name="output_layer_reshape_activation_fwdpass")
 
         mean = self.means(activation)
         var = tf.zeros_like(mean)
 
-        mean = tf.reshape(mean, [-1, self.ncells_selected, self.original_dim], name="output_layer_reshape_mean")
+        mean = tf.reshape(mean, [-1, in_node_dim, self.original_dim], name="output_layer_reshape_mean")
         if self.use_node_scale:
             mean = mean + tf.math.log(tf.clip_by_value(sf, tf.exp(-bound), tf.exp(bound), "decoder_sf_clip"))
         var = tf.zeros_like(mean) + var  # broadcast

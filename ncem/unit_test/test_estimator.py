@@ -15,9 +15,23 @@ class TestEstimator(unittest.TestCase):
         data_origin: str = "zhang",
     ):
         node_label_space_id = "type"
-        if model == "linear":
+        node_feature_space_id = "standard"
+        if model in ["linear_baseline", "linear"]:
             self.est = ncem.train.EstimatorLinear()
-            node_feature_space_id = "type"
+        elif model in ["interactions_baseline", "interactions"]:
+            self.est = ncem.train.EstimatorInteractions()
+        elif model == 'ed':
+            self.est = ncem.train.EstimatorED()
+        elif model == 'ed_ncem_max':
+            self.est = ncem.train.EstimatorEDncem(cond_type='max')
+        elif model == 'ed_ncem_gcn':
+            self.est = ncem.train.EstimatorEDncem(cond_type='gcn')
+        elif model == 'cvae':
+            self.est = ncem.train.EstimatorCVAE()
+        elif model == 'cvae_ncem_max':
+            self.est = ncem.train.EstimatorCVAEncem(cond_type='max')
+        elif model == 'cvae_ncem_gcn':
+            self.est = ncem.train.EstimatorCVAEncem(cond_type='gcn')
         else:
             assert False
 
@@ -44,8 +58,76 @@ class TestEstimator(unittest.TestCase):
 
         if model == 'linear':
             kwargs = {
+                "use_source_type": True,
                 "use_domain": True,
                 "learning_rate": 1e-2
+            }
+            train_kwargs = {}
+        elif model == 'linear_baseline':
+            kwargs = {
+                "use_source_type": False,
+                "use_domain": True,
+                "learning_rate": 1e-2
+            }
+            train_kwargs = {}
+        elif model == 'interactions':
+            kwargs = {
+                "use_interactions": True,
+                "use_domain": True,
+                "learning_rate": 1e-2
+            }
+            train_kwargs = {}
+        elif model == 'interactions_baseline':
+            kwargs = {
+                "use_interactions": False,
+                "use_domain": True,
+                "learning_rate": 1e-2
+            }
+            train_kwargs = {}
+        elif model == 'ed':
+            kwargs = {
+                "depth_enc": 1,
+                "depth_dec": 0,
+
+                "use_domain": True,
+                "use_bias": True,
+                "learning_rate": 1e-2,
+                "beta": 0.1
+            }
+            train_kwargs = {}
+        elif model in ['ed_ncem_max', 'ed_ncem_gcn']:
+            kwargs = {
+                "depth_enc": 1,
+                "depth_dec": 0,
+
+                "cond_depth": 1,
+                "use_domain": True,
+                "use_bias": True,
+                "learning_rate": 1e-2,
+                "beta": 0.1,
+            }
+            train_kwargs = {}
+        elif model == 'cvae':
+            kwargs = {
+                "depth_enc": 1,
+                "depth_dec": 1,
+
+                "use_domain": True,
+                "use_bias": True,
+                "learning_rate": 1e-2,
+                "beta": 0.1
+            }
+            train_kwargs = {}
+        elif model in ['cvae_ncem_max', 'cvae_ncem_gcn']:
+            kwargs = {
+                "depth_enc": 1,
+                "depth_dec": 1,
+
+                "cond_depth": 1,
+                "use_domain": True,
+                "use_bias": True,
+                "learning_rate": 1e-2,
+                "beta": 0.1,
             }
             train_kwargs = {}
         else:
@@ -78,6 +160,20 @@ class TestEstimator(unittest.TestCase):
             log_dir=None,
             **train_kwargs
         )
+        self.est.model.training_model.summary()
 
     def test_linear(self):
-        self._test_train(model="linear", data_origin="hartmann")
+        # self._test_train(model='linear_baseline', data_origin='hartmann')
+        # self._test_train(model="linear", data_origin="hartmann")
+        # self._test_train(model='interactions_baseline', data_origin='hartmann')
+        self._test_train(model="interactions", data_origin="hartmann")
+
+    def test_ed(self):
+        # self._test_train(model="ed", data_origin="hartmann")
+        self._test_train(model="ed_ncem_max", data_origin="hartmann")
+        # self._test_train(model="ed_ncem_gcn", data_origin="hartmann")
+
+    def test_cvae(self):
+        # self._test_train(model="cvae", data_origin="hartmann")
+        self._test_train(model="cvae_ncem_max", data_origin="hartmann")
+        # self._test_train(model="cvae_ncem_gcn", data_origin="hartmann")

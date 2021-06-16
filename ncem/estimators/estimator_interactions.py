@@ -19,6 +19,7 @@ class EstimatorInteractions(Estimator):
         self.adj_type = "full"
         self.log_transform = log_transform
         self.metrics = {"np": [], "tf": []}
+        self.n_eval_nodes_per_graph = None
 
     def _get_output_signature(self, resampled: bool = False):
         pass

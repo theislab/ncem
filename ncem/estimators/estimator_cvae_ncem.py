@@ -1,51 +1,66 @@
-import tensorflow as tf
 import numpy as np
-from typing import Union
+import tensorflow as tf
 
-from ncem.estimators import EstimatorNoGraph
-from ncem.models import ModelCVAE
+from ncem.estimators import EstimatorGraph
+from ncem.models import ModelCVAEncem
 
 
-class EstimatorCVAE(EstimatorNoGraph):
+class EstimatorCVAEncem(EstimatorGraph):
+
     def __init__(
-            self,
-            use_type_cond: bool = True,
-            log_transform: bool = False,
+        self,
+        cond_type: str = 'gcn',
+        use_type_cond: bool = True,
+        log_transform: bool = False,
     ):
-        super(EstimatorCVAE, self).__init__()
-        self.adj_type = "none"
-        self.model_type = "cvae"
+        super(EstimatorCVAEncem, self).__init__()
+        self.model_type = "cvae_ncem"
+
+        if cond_type == "gcn":
+            self.adj_type = "scaled"
+        elif cond_type == "max":
+            self.adj_type = "full"
+        else:
+            raise ValueError("cond_type %s not recognized" % cond_type)
+        self.cond_type = cond_type
         self.use_type_cond = use_type_cond
         self.log_transform = log_transform
 
     def init_model(
-            self,
-            optimizer: str = 'adam',
-            learning_rate: float = 0.0001,
+        self,
+        optimizer: str = 'adam',
+        learning_rate: float = 0.0001,
 
-            latent_dim: int = 10,
-            intermediate_dim_enc: int = 128,
-            intermediate_dim_dec: int = 128,
-            depth_enc: int = 1,
-            depth_dec: int = 1,
-            dropout_rate: float = 0.1,
-            l2_coef: float = 0.,
-            l1_coef: float = 0.,
+        latent_dim: int = 8,
+        intermediate_dim_enc: int = 128,
+        intermediate_dim_dec: int = 128,
+        depth_enc: int = 1,
+        depth_dec: int = 1,
+        dropout_rate: float = 0.1,
+        l2_coef: float = 0.,
+        l1_coef: float = 0.,
 
-            n_eval_nodes_per_graph: int = 10,
+        cond_depth: int = 1,
+        cond_dim: int = 8,
+        cond_dropout_rate: float = 0.1,
+        cond_activation: str = 'relu',
+        cond_l2_reg: float = 0.,
+        cond_use_bias: bool = False,
 
-            use_domain: bool = False,
-            use_batch_norm: bool = False,
-            scale_node_size: bool = True,
-            transform_input: bool = False,
-            beta: float = 0.01,
-            max_beta: float = 1.,
-            pre_warm_up: int = 0,
-            output_layer: str = 'gaussian',
-            **kwargs
+        n_eval_nodes_per_graph: int = 32,
+
+        use_domain: bool = False,
+        use_batch_norm: bool = False,
+        scale_node_size: bool = True,
+        transform_input: bool = False,
+        beta: float = 0.01,
+        max_beta: float = 1.,
+        pre_warm_up: int = 0,
+        output_layer: str = 'gaussian',
+        **kwargs
     ):
         self.n_eval_nodes_per_graph = n_eval_nodes_per_graph
-        self.model = ModelCVAE(
+        self.model = ModelCVAEncem(
             input_shapes=(
                 self.n_features_0,
                 self.n_features_1,
@@ -62,6 +77,15 @@ class EstimatorCVAE(EstimatorNoGraph):
             dropout_rate=dropout_rate,
             l2_coef=l2_coef,
             l1_coef=l1_coef,
+
+            cond_type=self.cond_type,
+            cond_depth=cond_depth,
+            cond_dim=cond_dim,
+            cond_dropout_rate=cond_dropout_rate,
+            cond_activation=cond_activation,
+            cond_l2_reg=cond_l2_reg,
+            cond_use_bias=cond_use_bias,
+
             use_domain=use_domain,
             use_type_cond=self.use_type_cond,
             use_batch_norm=use_batch_norm,
@@ -71,6 +95,7 @@ class EstimatorCVAE(EstimatorNoGraph):
         )
         optimizer = tf.keras.optimizers.get(optimizer)
         tf.keras.backend.set_value(optimizer.lr, learning_rate)
+        self.cond_depth = cond_depth
         self.beta = beta
         self.max_beta = max_beta
         self.pre_warm_up = pre_warm_up
@@ -78,10 +103,10 @@ class EstimatorCVAE(EstimatorNoGraph):
         self.optimizer = optimizer
 
     def evaluate_any_posterior_sampling(
-            self,
-            img_keys,
-            node_idx,
-            batch_size: int = 1,
+        self,
+        img_keys,
+        node_idx,
+        batch_size: int = 1
     ):
         # generating a resampled dataset for neighbourhood transfer evaluation
         ds = self._get_resampled_dataset(
@@ -93,27 +118,32 @@ class EstimatorCVAE(EstimatorNoGraph):
         eval = []
         true = []
         pred = []
+
         latent_z = []
         latent_z_mean = []
         latent_z_log_var = []
         for step, (x_batch, y_batch, resampled_x_batch, resampled_y_batch) in enumerate(ds):
-            (h, sf, node_covar, g) = x_batch
-            (h_resampled, sf_resampled, node_covar_resampled, g) = resampled_x_batch
+            (h_1, sf, h_0, h_0_full, a, a_full, node_covar, g) = x_batch
+            (h_1_resampled, sf_resampled, h_0_resampled, h_0_full, a_resampled, a_full, node_covar_resampled,
+             g) = resampled_x_batch
 
-            z, z_mean, z_log_var = self.model.encoder((h, node_covar, g))
+            a_resampled = tf.sparse.reorder(a_resampled)
+            z, z_mean, z_log_var = self.model.encoder((h_1, h_0, h_0_full, a, a_full, node_covar, g))
+
             latent_z.append(z)
             latent_z_mean.append(z_mean)
             latent_z_log_var.append(z_log_var)
 
             z = tf.reshape(z, [batch_size, self.n_eval_nodes_per_graph, -1])
             results = self.model.decoder.evaluate(
-                (z, sf_resampled, node_covar_resampled, g),
+                (z, sf_resampled, h_0_resampled, h_0_full, a_resampled, a_full, node_covar_resampled, g),
                 resampled_y_batch,
             )
-
-            prediction = self.model.decoder.predict((z, sf_resampled, node_covar_resampled, g))[0]
+            prediction = self.model.decoder.predict(
+                (z, sf_resampled, h_0_resampled, h_0_full, a_resampled, a_full, node_covar_resampled, g)
+            )[0]
             eval.append(results)
-            true.append(h_resampled.numpy().squeeze())
+            true.append(h_1_resampled.numpy().squeeze())
             pred.append(prediction.squeeze())
 
         eval = np.concatenate(np.expand_dims(eval, axis=0), axis=0)

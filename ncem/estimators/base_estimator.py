@@ -309,11 +309,11 @@ class Estimator:
         :return:
         """
         self.vi_model = False  # variational inference
-        if self.model_type in ["vae", "cvae"]:
+        if self.model_type in ["cvae", "cvae_ncem"]:
             self.vi_model = True
         enc_dec_model = (
-            self.model_type == "vae"
-            or self.model_type == "cvae"
+            self.model_type == "cvae"
+            or self.model_type == "cvae_ncem"
         )
 
         if output_layer in ["gaussian", "gaussian_const_disp", "linear", "linear_const_disp"]:

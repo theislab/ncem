@@ -97,4 +97,3 @@ class ModelInteractions:
             outputs=output_concat,
             name="interaction_linear_model",
         )
-        self.training_model.summary()

@@ -7,7 +7,7 @@ class MaxLayer(tf.keras.layers.Layer):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def call(self, inputs):
+    def call(self, inputs, **kwargs):
         x = inputs[0]
         a = inputs[1]
 
@@ -64,7 +64,7 @@ class GCNLayer(tf.keras.layers.Layer):
         if self.use_bias:
             self.bias = self.add_weight(name="bias", shape=(self.output_dim,))
 
-    def call(self, inputs):
+    def call(self, inputs, **kwargs):
         x = inputs[0]
         a = inputs[1]
 
