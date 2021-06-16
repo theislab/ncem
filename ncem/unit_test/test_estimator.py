@@ -1,12 +1,6 @@
 import unittest
-from typing import Tuple, Union
-
-import numpy as np
-import scipy.sparse
 
 import ncem.api as ncem
-import ncem.data as data
-from ncem.models.custom_callbacks import BetaScheduler
 
 
 class TestEstimator(unittest.TestCase):
@@ -47,6 +41,43 @@ class TestEstimator(unittest.TestCase):
 
     def _test_train(self, model: str, data_origin: str = "zhang"):
         self.get_estimator(model=model, data_origin=data_origin)
+
+        if model == 'linear':
+            kwargs = {
+                "use_domain": True,
+                "learning_rate": 1e-2
+            }
+            train_kwargs = {}
+        else:
+            assert False
+        self._model_kwargs = kwargs
+        self.est.init_model(**kwargs)
+        self.est.split_data_node(
+            validation_split=0.5,
+            test_split=0.5
+        )
+
+        if data_origin == 'hartmann':
+            batch_size = None
+        else:
+            batch_size = 16
+
+        if batch_size is None:
+            bs = len(list(self.est.complete_img_keys))
+            shuffle_buffer_size = None  # None
+        else:
+            bs = batch_size
+            shuffle_buffer_size = int(2)
+        self.est.train(
+            epochs=5,
+            max_steps_per_epoch=2,
+            batch_size=bs,
+            validation_batch_size=6,
+            max_validation_steps=1,
+            shuffle_buffer_size=shuffle_buffer_size,
+            log_dir=None,
+            **train_kwargs
+        )
 
     def test_linear(self):
         self._test_train(model="linear", data_origin="hartmann")

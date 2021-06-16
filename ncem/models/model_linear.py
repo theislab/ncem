@@ -1,9 +1,8 @@
-from typing import Union
-
 import tensorflow as tf
 
-from ncem.models.layers import (DenseInteractions, LinearConstDispOutput,
-                                LinearOutput)
+from typing import Union
+
+from ncem.models.layers import (LinearConstDispOutput, LinearOutput)
 
 
 class ModelLinear:
@@ -94,4 +93,3 @@ class ModelLinear:
             outputs=output_concat,
             name="linear_model",
         )
-        self.training_model.summary()

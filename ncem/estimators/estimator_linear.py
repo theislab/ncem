@@ -1,9 +1,9 @@
-from typing import Union
-
 import numpy as np
-import scipy
 import tensorflow as tf
+
 from patsy import dmatrix
+from scipy.sparse import coo_matrix
+from typing import Union
 
 from ncem.estimators import Estimator
 from ncem.models import ModelLinear
@@ -19,6 +19,7 @@ class EstimatorLinear(Estimator):
         self.adj_type = "full"
         self.log_transform = log_transform
         self.metrics = {"np": [], "tf": []}
+        self.n_eval_nodes_per_graph = None
 
     def _get_output_signature(self, resampled: bool = False):
         pass
@@ -63,7 +64,7 @@ class EstimatorLinear(Estimator):
                     # dropping
                     index_list = [
                         np.asarray(
-                            nodes_idx[key][self.n_eval_nodes_per_graph * i : self.n_eval_nodes_per_graph * (i + 1)],
+                            nodes_idx[key][self.n_eval_nodes_per_graph * i: self.n_eval_nodes_per_graph * (i + 1)],
                             dtype=np.int32,
                         )
                         for i in range(len(nodes_idx[key]) // self.n_eval_nodes_per_graph)
@@ -88,7 +89,7 @@ class EstimatorLinear(Estimator):
                     a = a[indices, :]
                     coo = a.tocoo()
                     a_shape = np.asarray((self.n_eval_nodes_per_graph, self.max_nodes), dtype="int64")
-                    a = scipy.sparse.coo_matrix((coo.data, (coo.row, coo.col)), a_shape)
+                    a = coo_matrix((coo.data, (coo.row, coo.col)), a_shape)
 
                     # Assemble design matrix components for interactions:
                     source = (a.toarray() > 0.0).astype("int").dot(h_0_full)  # n_eval_nodes_per_graph x node types
@@ -136,6 +137,16 @@ class EstimatorLinear(Estimator):
         dataset = dataset.batch(batch_size)
         dataset = dataset.prefetch(prefetch)
         return dataset
+
+    def _get_resampled_dataset(
+        self,
+        image_keys: np.ndarray,
+        nodes_idx: dict,
+        batch_size: int,
+        seed: Union[int, None] = None,
+        prefetch: int = 100
+    ):
+        pass
 
     def init_model(
         self,

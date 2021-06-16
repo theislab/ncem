@@ -1,9 +1,9 @@
 import abc
-import time
-from typing import Tuple, List, Union
-
 import numpy as np
 import tensorflow as tf
+import time
+
+from typing import Tuple, List, Union
 
 from ncem.utils.losses import GaussianLoss, KLLoss, NegBinLoss
 from ncem.utils.metrics import (custom_kl, custom_mae, custom_mean_sd,
@@ -22,6 +22,15 @@ class Estimator:
 
     def __init__(self):
         self.model = None
+        self.loss = []
+        self.metrics = []
+        self.optimizer = None
+        self.beta = None
+        self.max_beta = None
+        self.pre_warm_up = None
+        self.train_hyperparam = {}
+        self.history = {}
+        self.pretrain_history = {}
 
     def _load_data(
         self,
@@ -122,7 +131,7 @@ class Estimator:
         self.n_features_standard = self.data.celldata.shape[1]
         self.node_feature_names = self.data.celldata.var_names
         # ToDo
-        # self.size_factors = self.data.size_factors()
+        self.size_factors = self.data.size_factors()
 
         # Add covariates:
         # Add graph-level hold-out covariate information
@@ -198,6 +207,18 @@ class Estimator:
         #    self.n_holdout_covar = list(self.holdout_covar.values())[0].shape[0]
         self.max_nodes = max([self.a[i].shape[0] for i in self.complete_img_keys])
 
+        # Define domains
+        if domain_type == "image":
+            self.domains = {key: i for i, key in enumerate(self.complete_img_keys)}
+        elif domain_type == "patient":
+            self.domains = {
+                key: self.patient_ids_unique.tolist().index(self.data.img_to_patient_dict[key])
+                for i, key in enumerate(self.complete_img_keys)
+            }
+        else:
+            assert False
+        self.n_domains = len(np.unique(list(self.domains.values())))
+
         # Report summary statistics of loaded graph:
         print(
             "Mean of mean node degree per images across images: %f"
@@ -238,7 +259,7 @@ class Estimator:
 
     @property
     def patient_ids_bytarget(self) -> np.ndarray:
-        return np.array([self.img_to_patient_dict[x] for x in self.target_img_keys])
+        return np.array([self.img_to_patient_dict[x] for x in self.complete_img_keys])
 
     @property
     def patient_ids_unique(self) -> np.ndarray:
@@ -288,16 +309,11 @@ class Estimator:
         :return:
         """
         self.vi_model = False  # variational inference
-        if self.model_type == "vae" or self.model_type == "cvae":
+        if self.model_type in ["vae", "cvae"]:
             self.vi_model = True
-        elif self.model_type == "lvm" or self.model_type == "clvm":
-            if self.model.args["probabilistic"]:
-                self.vi_model = True
         enc_dec_model = (
             self.model_type == "vae"
             or self.model_type == "cvae"
-            or self.model_type == "lvm"
-            or self.model_type == "clvm"
         )
 
         if output_layer in ["gaussian", "gaussian_const_disp", "linear", "linear_const_disp"]:
@@ -417,9 +433,9 @@ class Estimator:
         all_nodes = sum(h_nodes_dict.values())
         nodes_all_idx = {a: np.arange(0, b) for a, b in h_nodes_dict.items()}
 
-        self.img_keys_test = list(self.target_img_keys)
-        self.img_keys_train = list(self.target_img_keys)
-        self.img_keys_eval = list(self.target_img_keys)
+        self.img_keys_test = list(self.complete_img_keys)
+        self.img_keys_train = list(self.complete_img_keys)
+        self.img_keys_eval = list(self.complete_img_keys)
 
         n_undefined_nodes, nodes_all_idx = self._remove_unidentified_nodes(node_idx=nodes_all_idx)
         # updating h_nodes_dict to only include the number of identified cells
@@ -457,41 +473,37 @@ class Estimator:
 
         print(
             "\nExcluded %i cells with the following unannotated cell type: [%s] \n"
-            "\nWhole dataset: %i cells out of %i images from %i patients. %i images had a reference image."
+            "\nWhole dataset: %i cells out of %i images from %i patients."
             % (
                 n_undefined_nodes,
                 self.undefined_node_types,
                 all_nodes,
-                len(list(self.target_img_keys)),
+                len(list(self.complete_img_keys)),
                 len(self.patient_ids_unique),
-                int(np.sum([len(self.ref_img_keys[x]) > 0 for x in list(self.target_img_keys)])),
             )
         )
         print(
-            "Test dataset: %i cells out of %i images from %i patients. %i images had a reference image."
+            "Test dataset: %i cells out of %i images from %i patients."
             % (
                 test_nodes,
                 len(self.img_keys_test),
                 len(self.patient_ids_unique),
-                int(np.sum([len(self.ref_img_keys[x]) > 0 for x in self.img_keys_test])),
             )
         )
         print(
-            "Training dataset: %i cells out of %i images from %i patients. %i images had a reference image."
+            "Training dataset: %i cells out of %i images from %i patients."
             % (
                 train_nodes,
                 len(self.img_keys_train),
                 len(self.patient_ids_unique),
-                int(np.sum([len(self.ref_img_keys[x]) > 0 for x in self.img_keys_train])),
             )
         )
         print(
-            "Validation dataset: %i cells out of %i images from %i patients. %i images had a reference image.\n"
+            "Validation dataset: %i cells out of %i images from %i patients. \n"
             % (
                 eval_nodes,
                 len(self.img_keys_eval),
                 len(self.patient_ids_unique),
-                int(np.sum([len(self.ref_img_keys[x]) > 0 for x in self.img_keys_eval])),
             )
         )
 
@@ -526,7 +538,7 @@ class Estimator:
         target_cell_id = list(self.node_type_names.values()).index(target_cell)
 
         # Assign images to partitions:
-        self.img_keys_train = list(self.target_img_keys)
+        self.img_keys_train = list(self.complete_img_keys)
         self.img_keys_eval = self.img_keys_train.copy()
         self.img_keys_test = self.img_keys_train.copy()
 
@@ -576,52 +588,46 @@ class Estimator:
 
         print(
             "\nExcluded %i cells with the following unannotated cell type: [%s] \n"
-            "\nWhole dataset: %i cells out of %i images from %i patients. %i images had a reference image."
+            "\nWhole dataset: %i cells out of %i images from %i patients."
             % (
                 n_undefined_nodes,
                 self.undefined_node_types,
                 all_nodes,
-                len(list(self.target_img_keys)),
+                len(list(self.complete_img_keys)),
                 len(self.patient_ids_unique),
-                int(np.sum([len(self.ref_img_keys[x]) > 0 for x in list(self.target_img_keys)])),
             )
         )
         print(
             "\nCell type used for training %s: %i cells out of %i images from %i patients. "
-            "%i images had a reference image."
             % (
                 target_cell,
                 target_cell_nodes,
-                len(list(self.target_img_keys)),
+                len(list(self.complete_img_keys)),
                 len(self.patient_ids_unique),
-                int(np.sum([len(self.ref_img_keys[x]) > 0 for x in list(self.target_img_keys)])),
             )
         )
         print(
-            "Test dataset: %i cells out of %i images from %i patients. %i images had a reference image."
+            "Test dataset: %i cells out of %i images from %i patients. "
             % (
                 test_nodes,
                 len(self.img_keys_test),
                 len(self.patient_ids_unique),
-                int(np.sum([len(self.ref_img_keys[x]) > 0 for x in self.img_keys_test])),
             )
         )
         print(
-            "Training dataset: %i cells out of %i images from %i patients. %i images had a reference image."
+            "Training dataset: %i cells out of %i images from %i patients."
             % (
                 train_nodes,
                 len(self.img_keys_train),
                 len(self.patient_ids_unique),
-                int(np.sum([len(self.ref_img_keys[x]) > 0 for x in self.img_keys_train])),
             )
         )
         print(
-            "Validation dataset: %i cells out of %i images from %i patients. %i images had a reference image.\n"
+            "Validation dataset: %i cells out of %i images from %i patients.\n"
             % (
                 eval_nodes,
                 len(self.img_keys_eval),
                 len(self.patient_ids_unique),
-                int(np.sum([len(self.ref_img_keys[x]) > 0 for x in self.img_keys_eval])),
             )
         )
 
@@ -1131,9 +1137,6 @@ class Estimator:
         )
         results = self.model.training_model.evaluate(ds, verbose=2)
         eval = dict(zip(self.model.training_model.metrics_names, results))
-        if self.node_supervised_model is not None:
-            additional_metrics = self.eval_additional_metrics(ds=ds)
-            eval.update(additional_metrics)
         return eval
 
     def evaluate_per_node_type(self, batch_size: int = 1):
@@ -1147,7 +1150,7 @@ class Estimator:
         split_per_node_type = {}
         node_types = list(self.node_type_names.keys())
         for nt in node_types:
-            img_keys = list(self.target_img_keys)
+            img_keys = list(self.complete_img_keys)
             nodes_idx = {k: np.where(self.node_types[k][:, node_types.index(nt)] == 1)[0] for k in img_keys}
             split_per_node_type.update({nt: {"img_keys": img_keys, "nodes_idx": nodes_idx}})
             test = {k: len(np.where(self.node_types[k][:, node_types.index(nt)] == 1)[0]) for k in img_keys}
@@ -1164,9 +1167,6 @@ class Estimator:
             results = self.model.training_model.evaluate(ds, verbose=False)
             eval = dict(zip(self.model.training_model.metrics_names, results))
             print(eval)
-            if self.node_supervised_model is not None:
-                additional_metrics = self.eval_additional_metrics(ds=ds)
-                eval.update(additional_metrics)
             evaluation_per_node_type.update({nt: eval})
         return split_per_node_type, evaluation_per_node_type
 

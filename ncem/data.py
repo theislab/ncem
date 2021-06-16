@@ -1,11 +1,15 @@
 import abc
-from typing import Dict, List, Tuple, Union
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import seaborn as sns
 import squidpy as sq
+
 from anndata import AnnData, read_h5ad
+from matplotlib.ticker import FormatStrFormatter
 from pandas import read_csv, read_excel
+from typing import Dict, List, Tuple, Union
 
 # ToDo add graph covariates
 
@@ -61,9 +65,6 @@ class GraphTools:
                 raise ValueError("Provide either distance matrices or distance values!")
             else:
                 degree_matrices = self._get_degrees(max_distances)
-
-        import matplotlib.pyplot as plt
-        import seaborn as sns
 
         plt.ioff()
         fig = plt.figure(figsize=(4, 3))
@@ -191,10 +192,6 @@ class DataLoader(GraphTools):
         show: bool = True,
         return_axs: bool = False,
     ):
-        import matplotlib.pyplot as plt
-        import seaborn as sns
-        from matplotlib.ticker import FormatStrFormatter
-
         feature_mat = pd.concat(
             [
                 pd.concat(
@@ -232,7 +229,7 @@ class DataLoader(GraphTools):
             ncols=12, nrows=nrows, figsize=(12 * panel_width, nrows * panel_height), sharex="all", sharey="all"
         )
         ax = ax.flat
-        for axis in ax[len(ct) :]:
+        for axis in ax[len(ct):]:
             axis.remove()
         for i, ci in enumerate(ct):
             tab = feature_mat.loc[feature_mat["cell_type"].values == ci, :]
@@ -292,8 +289,26 @@ class DataLoader(GraphTools):
             adata.obsm["node_types"] = new_node_types
             adata.uns["node_type_names"] = {name: name for i, name in enumerate(new_types)}
 
+    def size_factors(self):
+        """
+        Get size factors. Only makes sense with positive input.
+
+        :return: Dict[str, np.ndarray] dictionary of size factors
+        """
+        # Check if irregular sums are encountered:
+        for i, adata in self.img_celldata.items():
+            if np.any(np.sum(adata.X, axis=1) <= 0):
+                print("WARNING: found irregular node sizes in image %s" % str(i))
+        # Get global mean of feature intensity across all features:
+        global_mean_per_node = self.celldata.X.sum(axis=1).mean(axis=0)
+        return {
+            i: global_mean_per_node / np.sum(adata.X, axis=1)
+            for i, adata in self.img_celldata.items()
+        }
+
 
 class DataLoaderZhang(DataLoader):
+
     def _register_celldata(self):
         """
         Registers an Anndata object over all images and collects all necessary information.
@@ -341,8 +356,12 @@ class DataLoaderZhang(DataLoader):
         image_col = self.celldata.uns["metadata"]["image_col"]
         img_celldata = {}
         for k in self.celldata.uns["img_keys"]:
-            img_celldata[str(k)] = self.celldata[self.celldata.obs[image_col] == k]
+            img_celldata[str(k)] = self.celldata[self.celldata.obs[image_col] == k].copy()
         self.img_celldata = img_celldata
+
+    def _register_graph_features(self, label_selection):
+        # ToDo
+        pass
 
 
 class DataLoaderJarosch(DataLoader):
@@ -408,8 +427,12 @@ class DataLoaderJarosch(DataLoader):
         image_col = self.celldata.uns["metadata"]["image_col"]
         img_celldata = {}
         for k in self.celldata.uns["img_keys"]:
-            img_celldata[str(k)] = self.celldata[self.celldata.obs[image_col] == k]
+            img_celldata[str(k)] = self.celldata[self.celldata.obs[image_col] == k].copy()
         self.img_celldata = img_celldata
+
+    def _register_graph_features(self, label_selection):
+        # ToDo
+        pass
 
 
 class DataLoaderHartmann(DataLoader):
@@ -508,7 +531,7 @@ class DataLoaderHartmann(DataLoader):
         image_col = self.celldata.uns["metadata"]["image_col"]
         img_celldata = {}
         for k in self.celldata.uns["img_keys"]:
-            img_celldata[str(k)] = self.celldata[self.celldata.obs[image_col] == k]
+            img_celldata[str(k)] = self.celldata[self.celldata.obs[image_col] == k].copy()
         self.img_celldata = img_celldata
 
     def _register_graph_features(
@@ -548,7 +571,7 @@ class DataLoaderHartmann(DataLoader):
         # transform this to have as output of this section dictionary by image with a dictionary by labels as values
         # which can be easily queried by image in a data generator.
         # Subset labels and label types:
-        label_cols = {label: type for label, type in label_cols.items() if label in label_selection}
+        label_cols = {label: nt for label, nt in label_cols.items() if label in label_selection}
         label_tensors = {}
         label_names = {}  # Names of individual variables in each label vector (eg. categories in onehot-encoding).
         # 1. Standardize continuous labels to z-scores:
@@ -607,9 +630,6 @@ class DataLoaderHartmann(DataLoader):
         }
         # Reduce to observed patients:
         label_tensors = dict([(k, v) for k, v in label_tensors.items() if v is not None])
-        print(label_tensors.keys())
-        print(self.img_celldata.keys())
-
 
         # Save processed data to attributes.
         for k, adata in self.img_celldata.items():
@@ -622,7 +642,6 @@ class DataLoaderHartmann(DataLoader):
                 'label_data_types': label_cols
             }
             adata.uns['graph_covariates'] = graph_covariates
-        print(self.img_celldata)
 
         graph_covariates = {
             'label_names': label_names,
@@ -633,7 +652,7 @@ class DataLoaderHartmann(DataLoader):
         }
         self.celldata.uns['graph_covariates'] = graph_covariates
 
-        #self.ref_img_keys = {k: [] for k, v in self.nodes_by_image.items()}
+        # self.ref_img_keys = {k: [] for k, v in self.nodes_by_image.items()}
 
 
 class DataLoaderPascualReguant(DataLoader):
@@ -739,9 +758,12 @@ class DataLoaderPascualReguant(DataLoader):
         image_col = self.celldata.uns["metadata"]["image_col"]
         img_celldata = {}
         for k in self.celldata.uns["img_keys"]:
-            img_celldata[str(k)] = self.celldata[self.celldata.obs[image_col] == k]
+            img_celldata[str(k)] = self.celldata[self.celldata.obs[image_col] == k].copy()
         self.img_celldata = img_celldata
-        print(img_celldata)
+
+    def _register_graph_features(self, label_selection):
+        # ToDo
+        pass
 
 
 class DataLoaderSchuerch(DataLoader):
@@ -889,6 +911,9 @@ class DataLoaderSchuerch(DataLoader):
         image_col = self.celldata.uns["metadata"]["image_col"]
         img_celldata = {}
         for k in self.celldata.uns["img_keys"]:
-            img_celldata[str(k)] = self.celldata[self.celldata.obs[image_col] == k]
+            img_celldata[str(k)] = self.celldata[self.celldata.obs[image_col] == k].copy()
         self.img_celldata = img_celldata
-        print(img_celldata)
+
+    def _register_graph_features(self, label_selection):
+        # ToDo
+        pass
