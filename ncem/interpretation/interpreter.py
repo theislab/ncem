@@ -24,6 +24,10 @@ markers = ["o", "v", "1", "s", "p", "+", "x", "D", "*"]
 class InterpreterBase(estimators.Estimator):
     def __init__(self):
         super().__init__()
+        self.data_path = None  # path to saved models and results
+        self.position_matrix = None
+        self.cell_type = None
+        self.adj_type = "full"
 
     def init_model(self):
         raise ValueError("models should not be initialized within interpreter class, use load_model()")

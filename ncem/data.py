@@ -1,9 +1,10 @@
 import abc
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Tuple, Union, Optional, Sequence
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import scanpy as sc
 import seaborn as sns
 import squidpy as sq
 from anndata import AnnData, read_h5ad
@@ -175,13 +176,13 @@ class DataLoader(GraphTools):
 
     def plot_noise_structure(
         self,
-        undefined_type: Union[str, None] = None,
-        merge_types: Union[None, Tuple[list, list]] = None,
-        min_x: Union[None, float] = None,
-        max_x: Union[None, float] = None,
+        undefined_type: Optional[str] = None,
+        merge_types: Optional[Tuple[list, list]] = None,
+        min_x: Optional[float] = None,
+        max_x: Optional[float] = None,
         panel_width: float = 2.0,
         panel_height: float = 2.7,
-        save: Union[str, None] = None,
+        save: Optional[str] = None,
         suffix: str = "_noise_structure.pdf",
         show: bool = True,
         return_axs: bool = False,
@@ -198,7 +199,7 @@ class DataLoader(GraphTools):
                         pd.DataFrame(adata.X, columns=list(adata.var_names)),
                         pd.DataFrame(
                             np.asarray(list(adata.uns["node_type_names"].values()))[
-                                np.argmax(adata.obsm["node_types"][k], axis=1)
+                                np.argmax(adata.obsm["node_types"], axis=1)
                             ],
                             columns=["cell_type"],
                         ),
@@ -253,6 +254,121 @@ class DataLoader(GraphTools):
             return ax
         else:
             return None
+
+    def plot_spatial(
+        self,
+        image_key: str,
+        undefined_type: Optional[str] = None,
+        panel_width: float = 7.,
+        panel_height: float = 7.,
+        front_size: int = 18,
+        spot_size: int = 30,
+        legend_loc: str = 'left',
+        save: Union[str, None] = None,
+        suffix: str = "_spatial.pdf",
+        show: bool = True,
+        return_axs: bool = False,
+    ):
+        temp_adata = self.img_celldata[image_key]
+        cluster_id = temp_adata.uns['metadata']['cluster_col']
+        if undefined_type:
+            temp_adata = temp_adata[temp_adata.obs[cluster_id] != undefined_type]
+
+        plt.ioff()
+        sc.set_figure_params(scanpy=True, fontsize=front_size)
+        fig, ax = plt.subplots(
+            nrows=1, ncols=1, figsize=(panel_width, panel_height))
+        sc.pl.spatial(
+            temp_adata,
+            color=cluster_id,
+            spot_size=spot_size,
+            legend_loc=legend_loc,
+            ax=ax,
+            show=False,
+            title=''
+        )
+        # Save, show and return figure.
+        plt.tight_layout()
+        if save is not None:
+            plt.savefig(save + image_key + suffix)
+
+        if show:
+            plt.show()
+
+        plt.close(fig)
+        plt.ion()
+
+        if return_axs:
+            return ax
+        else:
+            return None
+
+    def plot_ligrec(
+        self,
+        image_key: Optional[str] = None,
+        source_groups: Optional[Union[str, Sequence[str]]] = None,
+        undefined_type: Optional[str] = None,
+        fraction: Optional[float] = None,
+        pvalue_threshold: float = 0.3,
+        width: float = 3.,
+        seed: int = 10,
+        random_state: int = 0,
+        front_size: int = 18,
+        save: Union[str, None] = None,
+        suffix: str = "_ligrec.pdf",
+        show: bool = True,
+    ):
+        from omnipath.interactions import import_intercell_network
+        interactions = import_intercell_network(
+            transmitter_params={"categories": "ligand"},
+            receiver_params={"categories": "receptor"}
+        )
+        if 'source' in interactions.columns:
+            interactions.pop('source')
+        if 'target' in interactions.columns:
+            interactions.pop('target')
+        interactions.rename(
+            columns={"genesymbol_intercell_source": 'source', "genesymbol_intercell_target": 'target'}, inplace=True
+        )
+
+        if image_key:
+            temp_adata = self.img_celldata[image_key]
+        else:
+            temp_adata = sc.pp.subsample(self.celldata, fraction=fraction, copy=True, random_state=random_state)
+
+        cluster_id = temp_adata.uns['metadata']['cluster_col']
+        if undefined_type:
+            temp_adata = temp_adata[temp_adata.obs[cluster_id] != undefined_type]
+
+        print(temp_adata)
+
+        sq.gr.ligrec(
+            temp_adata,
+            interactions=interactions,
+            cluster_key=cluster_id,
+            use_raw=False,
+            seed=seed
+        )
+        if save is not None:
+            save = save + image_key + suffix
+
+        sc.set_figure_params(scanpy=True, fontsize=front_size)
+        sq.pl.ligrec(
+            temp_adata,
+            cluster_key=cluster_id,
+            title='',
+            source_groups=source_groups,
+            pvalue_threshold=pvalue_threshold,
+            width=width,
+            save=save
+        )
+        if show:
+            plt.show()
+
+        plt.close()
+        plt.ion()
+
+
 
     def merge_types(self, cell_type_mapping_dict: Dict[str, str]):
         """
@@ -329,7 +445,7 @@ class DataLoaderZhang(DataLoader):
 
         # register node type names
         node_type_names = list(np.unique(celldata.obs[metadata["cluster_col"]]))
-        celldata.uns["node_type_names"] = {x: x for x in node_type_names}
+        celldata.uns["node_type_names"] = {x: x.replace('_', ' ') for x in node_type_names}
         node_types = np.zeros((celldata.shape[0], len(node_type_names)))
         node_type_idx = np.array(
             [node_type_names.index(x) for x in celldata.obs[metadata["cluster_col"]].values]  # index in encoding vector
@@ -350,8 +466,26 @@ class DataLoaderZhang(DataLoader):
         self.img_celldata = img_celldata
 
     def _register_graph_features(self, label_selection):
-        # ToDo
-        pass
+        # Save processed data to attributes.
+        for k, adata in self.img_celldata.items():
+            graph_covariates = {
+                "label_names": {},
+                "label_tensors": {},
+                "label_selection": [],
+                "continuous_mean": {},
+                "continuous_std": {},
+                "label_data_types": {},
+            }
+            adata.uns["graph_covariates"] = graph_covariates
+
+        graph_covariates = {
+            "label_names": {},
+            "label_selection": [],
+            "continuous_mean": {},
+            "continuous_std": {},
+            "label_data_types": {},
+        }
+        self.celldata.uns["graph_covariates"] = graph_covariates
 
 
 class DataLoaderJarosch(DataLoader):
@@ -420,8 +554,26 @@ class DataLoaderJarosch(DataLoader):
         self.img_celldata = img_celldata
 
     def _register_graph_features(self, label_selection):
-        # ToDo
-        pass
+        # Save processed data to attributes.
+        for k, adata in self.img_celldata.items():
+            graph_covariates = {
+                "label_names": {},
+                "label_tensors": {},
+                "label_selection": [],
+                "continuous_mean": {},
+                "continuous_std": {},
+                "label_data_types": {},
+            }
+            adata.uns["graph_covariates"] = graph_covariates
+
+        graph_covariates = {
+            "label_names": {},
+            "label_selection": [],
+            "continuous_mean": {},
+            "continuous_std": {},
+            "label_data_types": {},
+        }
+        self.celldata.uns["graph_covariates"] = graph_covariates
 
 
 class DataLoaderHartmann(DataLoader):
@@ -737,8 +889,26 @@ class DataLoaderPascualReguant(DataLoader):
         self.img_celldata = img_celldata
 
     def _register_graph_features(self, label_selection):
-        # ToDo
-        pass
+        # Save processed data to attributes.
+        for k, adata in self.img_celldata.items():
+            graph_covariates = {
+                "label_names": {},
+                "label_tensors": {},
+                "label_selection": [],
+                "continuous_mean": {},
+                "continuous_std": {},
+                "label_data_types": {},
+            }
+            adata.uns["graph_covariates"] = graph_covariates
+
+        graph_covariates = {
+            "label_names": {},
+            "label_selection": [],
+            "continuous_mean": {},
+            "continuous_std": {},
+            "label_data_types": {},
+        }
+        self.celldata.uns["graph_covariates"] = graph_covariates
 
 
 class DataLoaderSchuerch(DataLoader):
@@ -890,5 +1060,23 @@ class DataLoaderSchuerch(DataLoader):
         self.img_celldata = img_celldata
 
     def _register_graph_features(self, label_selection):
-        # ToDo
-        pass
+        # Save processed data to attributes.
+        for k, adata in self.img_celldata.items():
+            graph_covariates = {
+                "label_names": {},
+                "label_tensors": {},
+                "label_selection": [],
+                "continuous_mean": {},
+                "continuous_std": {},
+                "label_data_types": {},
+            }
+            adata.uns["graph_covariates"] = graph_covariates
+
+        graph_covariates = {
+            "label_names": {},
+            "label_selection": [],
+            "continuous_mean": {},
+            "continuous_std": {},
+            "label_data_types": {},
+        }
+        self.celldata.uns["graph_covariates"] = graph_covariates
