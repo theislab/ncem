@@ -1,6 +1,6 @@
 import abc
 import time
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, Dict
 
 import numpy as np
 import tensorflow as tf
@@ -19,6 +19,44 @@ class Estimator:
     Estimator class for models Contains all necessary methods for data loading, model initialization, training,
     evaluation and prediction.
     """
+    img_to_patient_dict: Dict[str, str]
+    complete_img_keys: List[str]
+
+    a: dict  # dict of adjacency matrices of shape (max_nodes, max_nodes)
+    h_0: Dict[str, np.ndarray]  # dict of adjacency matrices of shape (max_nodes, n_features_0)
+    h_1: Dict[str, np.ndarray]  # dict of adjacency matrices of shape (max_nodes, n_features_1)
+    size_factors: Dict[str, np.ndarray]
+    graph_covar: Dict[str, np.ndarray]
+    node_covar: Dict[str, np.ndarray]
+    domains: Dict[str, np.ndarray]
+
+    covar_selection: Union[List[str], Tuple[str], None]
+
+    node_types: Dict[str, np.ndarray]
+    node_type_names: Dict[str, str]
+    graph_covar_names: Dict[str, List[str]]
+    node_feature_names: List[str]
+
+    n_features_type: int
+    n_features_standard: int
+    n_features_0: int
+    n_features_1: int
+    n_graph_covariates: int
+    n_node_covariates: int
+    max_nodes: int
+    n_domains: int
+    n_eval_nodes_per_graph: int
+
+    vi_model: bool
+    log_transform: bool
+    model_type: str
+    adj_type: str
+    cond_type: str
+    cond_depth: int
+    output_layer: str
+
+    steps_per_epoch: int
+    validation_steps: int
 
     def __init__(self):
         self.model = None
@@ -32,6 +70,17 @@ class Estimator:
         self.history = {}
         self.pretrain_history = {}
 
+        self.img_keys_test = None
+        self.img_keys_eval = None
+        self.img_keys_train = None
+
+        self.nodes_idx_test = None
+        self.nodes_idx_eval = None
+        self.nodes_idx_train = None
+
+        self.train_dataset = None
+        self.eval_dataset = None
+
     def _load_data(
         self,
         data_origin: str,
@@ -44,7 +93,6 @@ class Estimator:
         Initializes a DataLoader object.
         :param data_origin:
         :param data_path:
-        :param feature_transformation:
         :param radius:
         :return:
         """
@@ -74,12 +122,11 @@ class Estimator:
         use_covar_node_position: bool = False,
         use_covar_node_label: bool = False,
         use_covar_graph_covar: bool = False,
-        hold_out_covariate: Union[str, None] = None,
+        # hold_out_covariate: Union[str, None] = None,
         domain_type: str = "image",
         merge_node_types_predefined: bool = False,
-        remove_diagonal: bool = True,
+        # remove_diagonal: bool = True,
     ):
-        # ToDo
         if self.adj_type is None:
             raise ValueError("set adj_type by init_estim() first")
         if graph_covar_selection is None:
@@ -112,7 +159,7 @@ class Estimator:
         self.img_to_patient_dict = self.data.celldata.uns["img_to_patient_dict"]
         # ToDo
         # self.nodes_by_image = self.data.nodes_by_image
-        self.complete_img_keys = self.data.img_celldata.keys()
+        self.complete_img_keys = list(self.data.img_celldata.keys())
         # self.target_img_keys = self.data.target_img_keys
         # self.ref_img_keys = self.data.ref_img_keys
 
@@ -133,7 +180,7 @@ class Estimator:
         self.node_type_names = self.data.celldata.uns["node_type_names"]
         self.n_features_type = list(self.node_types.values())[0].shape[1]
         self.n_features_standard = self.data.celldata.shape[1]
-        self.node_feature_names = self.data.celldata.var_names
+        self.node_feature_names = list(self.data.celldata.var_names)
         # ToDo
         self.size_factors = self.data.size_factors()
 
@@ -202,7 +249,7 @@ class Estimator:
             self.domains = {key: i for i, key in enumerate(self.complete_img_keys)}
         elif domain_type == "patient":
             self.domains = {
-                key: self.patient_ids_unique.tolist().index(self.data.img_to_patient_dict[key])
+                key: list(self.patient_ids_unique).index(self.data.img_to_patient_dict[key])
                 for i, key in enumerate(self.complete_img_keys)
             }
         else:
@@ -218,8 +265,8 @@ class Estimator:
     @abc.abstractmethod
     def _get_dataset(
         self,
-        image_keys: np.ndarray,
-        nodes_idx: Union[dict, str],
+        image_keys: List[str],
+        nodes_idx: Dict[str, np.ndarray],
         batch_size: int,
         shuffle_buffer_size: int,
         train: bool,
@@ -275,7 +322,7 @@ class Estimator:
                         )
                     ),
                 )
-                for x in self.img_keys_all
+                for x in list(self.img_keys_all)
             ]
         )
 
@@ -711,6 +758,7 @@ class Estimator:
                 callbacks=decoder_callbacks,
                 early_stopping=early_stopping,
                 reduce_lr_plateau=reduce_lr_plateau,
+                **kwargs
             )
         if aggressive:
             self.train_aggressive(aggressive_enc_patience=aggressive_enc_patience, aggressive_epochs=aggressive_epochs)
@@ -729,6 +777,7 @@ class Estimator:
                 callbacks=callbacks,
                 early_stopping=False,
                 reduce_lr_plateau=reduce_lr_plateau,
+                **kwargs
             )
             initial_epoch += epochs_warmup
 
@@ -745,6 +794,7 @@ class Estimator:
             callbacks=callbacks,
             early_stopping=early_stopping,
             reduce_lr_plateau=reduce_lr_plateau,
+            **kwargs
         )
 
     def train_normal(
@@ -761,6 +811,7 @@ class Estimator:
         callbacks: Union[list, None] = None,
         early_stopping: bool = True,
         reduce_lr_plateau: bool = True,
+        **kwargs
     ):
 
         """
@@ -827,6 +878,7 @@ class Estimator:
             validation_data=self.eval_dataset,
             validation_steps=self.validation_steps,
             verbose=2,
+            **kwargs
         ).history
         for k, v in history.items():  # append to history if train() has been called before.
             if k in self.history.keys():
@@ -848,6 +900,7 @@ class Estimator:
         callbacks: Union[list, None] = None,
         early_stopping: bool = True,
         reduce_lr_plateau: bool = True,
+        **kwargs
     ):
         # Set callbacks.
         cbs = []
@@ -894,6 +947,7 @@ class Estimator:
             validation_data=self.eval_dataset,
             validation_steps=self.validation_steps,
             verbose=2,
+            **kwargs
         ).history
         for k, v in history.items():  # append to history if train() has been called before.
             if k in self.history.keys():
@@ -988,6 +1042,8 @@ class Estimator:
                 ll = ll + tf.multiply(input_x, eta_loc - log_r_plus_mu) + tf.multiply(scale, eta_scale - log_r_plus_mu)
 
                 neg_ll = -tf.clip_by_value(ll, -300, 300, "log_probs")
+            else:
+                neg_ll = None
             neg_ll = tf.reduce_mean(tf.reduce_sum(neg_ll, axis=-1))
             losses["elbo"] = neg_ll + d_kl
 
@@ -1004,6 +1060,7 @@ class Estimator:
             best_result = None
             # inner loop training only encoder until no further improvement in ELBO val loss
             enc_updates = 0
+            count = 0
             while no_improvement < aggressive_enc_patience:
                 enc_updates += 1
                 for step, (x_batch, y_batch) in enumerate(self.train_dataset):
@@ -1123,8 +1180,8 @@ class Estimator:
             reinit_n_eval=None,
         )
         results = self.model.training_model.evaluate(ds, verbose=2)
-        eval = dict(zip(self.model.training_model.metrics_names, results))
-        return eval
+        eval_dict = dict(zip(self.model.training_model.metrics_names, results))
+        return eval_dict
 
     def evaluate_per_node_type(self, batch_size: int = 1):
         """
@@ -1152,13 +1209,16 @@ class Estimator:
                 reinit_n_eval=None,
             )
             results = self.model.training_model.evaluate(ds, verbose=False)
-            eval = dict(zip(self.model.training_model.metrics_names, results))
-            print(eval)
-            evaluation_per_node_type.update({nt: eval})
+            eval_dict = dict(zip(self.model.training_model.metrics_names, results))
+            print(eval_dict)
+            evaluation_per_node_type.update({nt: eval_dict})
         return split_per_node_type, evaluation_per_node_type
 
 
 class EstimatorNoGraph(Estimator):
+    def init_model(self, **kwargs):
+        pass
+
     def _get_output_signature(self, resampled: bool = False):
         h_1 = tf.TensorSpec(
             shape=(self.n_eval_nodes_per_graph, self.n_features_1), dtype=tf.float32
@@ -1197,8 +1257,8 @@ class EstimatorNoGraph(Estimator):
 
     def _get_dataset(
         self,
-        image_keys: np.ndarray,
-        nodes_idx: dict,
+        image_keys: List[str],
+        nodes_idx: Dict[str, np.ndarray],
         batch_size: int,
         shuffle_buffer_size: int,
         train: bool = True,
@@ -1247,7 +1307,7 @@ class EstimatorNoGraph(Estimator):
                     # dropping
                     index_list = [
                         np.asarray(
-                            nodes_idx[key][self.n_eval_nodes_per_graph * i : self.n_eval_nodes_per_graph * (i + 1)],
+                            nodes_idx[key][self.n_eval_nodes_per_graph * i: self.n_eval_nodes_per_graph * (i + 1)],
                             dtype=np.int32,
                         )
                         for i in range(len(nodes_idx[key]) // self.n_eval_nodes_per_graph)
@@ -1329,7 +1389,7 @@ class EstimatorNoGraph(Estimator):
 
                 index_list = [
                     np.asarray(
-                        nodes_idx[key][self.n_eval_nodes_per_graph * i : self.n_eval_nodes_per_graph * (i + 1)],
+                        nodes_idx[key][self.n_eval_nodes_per_graph * i: self.n_eval_nodes_per_graph * (i + 1)],
                         dtype=np.int32,
                     )
                     for i in range(len(nodes_idx[key]) // self.n_eval_nodes_per_graph)
@@ -1394,6 +1454,9 @@ class EstimatorNoGraph(Estimator):
 
 
 class EstimatorGraph(Estimator):
+    def init_model(self, **kwargs):
+        pass
+
     def _get_output_signature(self, resampled: bool = False):
         h_1 = tf.TensorSpec(
             shape=(self.n_eval_nodes_per_graph, self.n_features_1), dtype=tf.float32
@@ -1440,8 +1503,8 @@ class EstimatorGraph(Estimator):
 
     def _get_dataset(
         self,
-        image_keys: np.ndarray,
-        nodes_idx: dict,
+        image_keys: List[str],
+        nodes_idx: Dict[str, np.ndarray],
         batch_size: int,
         shuffle_buffer_size: Union[int, None],
         train: bool = True,
@@ -1489,7 +1552,7 @@ class EstimatorGraph(Estimator):
                     # dropping
                     index_list = [
                         np.asarray(
-                            nodes_idx[key][self.n_eval_nodes_per_graph * i : self.n_eval_nodes_per_graph * (i + 1)],
+                            nodes_idx[key][self.n_eval_nodes_per_graph * i: self.n_eval_nodes_per_graph * (i + 1)],
                             dtype=np.int32,
                         )
                         for i in range(len(nodes_idx[key]) // self.n_eval_nodes_per_graph)
@@ -1596,7 +1659,7 @@ class EstimatorGraph(Estimator):
 
                 index_list = [
                     np.asarray(
-                        nodes_idx[key][self.n_eval_nodes_per_graph * i : self.n_eval_nodes_per_graph * (i + 1)],
+                        nodes_idx[key][self.n_eval_nodes_per_graph * i: self.n_eval_nodes_per_graph * (i + 1)],
                         dtype=np.int32,
                     )
                     for i in range(len(nodes_idx[key]) // self.n_eval_nodes_per_graph)
