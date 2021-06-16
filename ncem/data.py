@@ -317,6 +317,7 @@ class DataLoader(GraphTools):
         save: Union[str, None] = None,
         suffix: str = "_ligrec.pdf",
         show: bool = True,
+        copy: bool = True
     ):
         from omnipath.interactions import import_intercell_network
         interactions = import_intercell_network(
@@ -340,6 +341,7 @@ class DataLoader(GraphTools):
         if undefined_type:
             temp_adata = temp_adata[temp_adata.obs[cluster_id] != undefined_type]
 
+        temp_adata = temp_adata.copy()
         print(temp_adata)
 
         sq.gr.ligrec(
@@ -368,7 +370,52 @@ class DataLoader(GraphTools):
         plt.close()
         plt.ion()
 
+        if copy:
+            return temp_adata
 
+    def plot_ligrec_barplot(
+        self,
+        adata: AnnData,
+        source_group: str,
+        panel_width: float = 8.,
+        panel_height: float = 4.,
+        front_size: int = 18,
+        pvalue_threshold: float = 0.05,
+        save: Union[str, None] = None,
+        suffix: str = "_ligrec_barplot.pdf",
+        show: bool = True,
+        return_axs: bool = False,
+    ):
+        cluster_id = adata.uns['metadata']['cluster_col']
+        pvals = adata.uns[f"{cluster_id}_ligrec"]['pvalues'].xs((source_group), axis=1)
+
+        fig, ax = plt.subplots(
+            nrows=1, ncols=1, figsize=(panel_width, panel_height), )
+        sc.set_figure_params(scanpy=True, fontsize=front_size)
+        sns.barplot(
+            x=list(np.sum(pvals < pvalue_threshold, axis=0).index),
+            y=list(np.sum(pvals < pvalue_threshold, axis=0)),
+            ax=ax,
+            color='steelblue'
+        )
+        ax.grid(False)
+        ax.tick_params(axis='x', labelrotation=90)
+
+        # Save, show and return figure.
+        plt.tight_layout()
+        if save is not None:
+            plt.savefig(save + suffix)
+
+        if show:
+            plt.show()
+
+        plt.close(fig)
+        plt.ion()
+
+        if return_axs:
+            return ax
+        else:
+            return None
 
     def merge_types(self, cell_type_mapping_dict: Dict[str, str]):
         """
