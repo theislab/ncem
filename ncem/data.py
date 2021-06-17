@@ -2,6 +2,8 @@ import abc
 from typing import Dict, List, Tuple, Union, Optional, Sequence
 
 import matplotlib.pyplot as plt
+import matplotlib.colors as colors
+
 import numpy as np
 import pandas as pd
 import scanpy as sc
@@ -9,10 +11,10 @@ import seaborn as sns
 import squidpy as sq
 from anndata import AnnData, read_h5ad
 from matplotlib.ticker import FormatStrFormatter
+from matplotlib.tri import Triangulation
 from pandas import read_csv, read_excel
 
 # ToDo add graph covariates
-
 
 class GraphTools:
     celldata: AnnData
@@ -29,6 +31,7 @@ class GraphTools:
             sq.gr.spatial_neighbors(adata=adata, radius=radius, transform=transform, key_added="adjacency_matrix")
 
     def _get_degrees(self, max_distances: list):
+        # ToDo this is not efficient with squidpy distances. Keep old implementation from tissue package
         degs = {}
         degrees = {}
         for k, adata in self.img_celldata.items():
@@ -108,72 +111,7 @@ class GraphTools:
             return None
 
 
-class DataLoader(GraphTools):
-    def __init__(
-        self,
-        data_path: str,
-        radius: int,
-        label_selection: Union[List[str], None] = None,
-    ):
-        self.data_path = data_path
-
-        print("Loading data from raw files")
-        self.register_celldata()
-        self.register_img_celldata()
-        self.register_graph_features(label_selection=label_selection)
-        self.compute_adjacency_matrices(radius=radius)
-        self.radius = radius
-
-        print(
-            "Loaded %i images with complete data from %i patients "
-            "over %i cells with %i cell features and %i distinct celltypes."
-            % (
-                len(self.img_celldata),
-                len(self.patients),
-                self.celldata.shape[0],
-                self.celldata.shape[1],
-                len(self.celldata.uns["node_type_names"]),
-            )
-        )
-
-    @property
-    def patients(self):
-        return np.unique(np.asarray(list(self.celldata.uns["img_to_patient_dict"].values())))
-
-    def register_celldata(self):
-        """
-        Loads anndata object of complete dataset.
-        :return:
-        """
-        print("registering celldata")
-        self._register_celldata()
-        assert self.celldata is not None, "celldata was not loaded"
-
-    def register_img_celldata(self):
-        """
-        Loads dictionary of of image-wise celldata objects with {imgage key : anndata object of image}.
-        :return:
-        """
-        print("collecting image-wise celldata")
-        self._register_img_celldata()
-        assert self.img_celldata is not None, "image-wise celldata was not loaded"
-
-    def register_graph_features(self, label_selection):
-        print("adding graph-level covariates")
-        self._register_graph_features(label_selection=label_selection)
-
-    @abc.abstractmethod
-    def _register_celldata(self):
-        pass
-
-    @abc.abstractmethod
-    def _register_img_celldata(self):
-        pass
-
-    @abc.abstractmethod
-    def _register_graph_features(self, label_selection):
-        pass
-
+class PlottingTools:
     def plot_noise_structure(
         self,
         undefined_type: Optional[str] = None,
@@ -255,6 +193,62 @@ class DataLoader(GraphTools):
         else:
             return None
 
+    def plot_umap(
+        self,
+        image_key: str,
+        target_cell_type: Optional[str] = None,
+        n_neighbors: Optional[int] = 10,
+        n_pcs: Optional[int] = None,
+        panel_width: float = 5.,
+        panel_height: float = 5.,
+        front_size: int = 20,
+        size: Optional[int] = None,
+        palette: Optional[str] = None,
+        save: Union[str, None] = None,
+        suffix: str = "_umap.pdf",
+        show: bool = True,
+        copy: bool = True,
+    ):
+        temp_adata = self.img_celldata[image_key].copy()
+        cluster_id = temp_adata.uns['metadata']['cluster_col']
+        if target_cell_type:
+            temp_adata = temp_adata[temp_adata.obs[cluster_id] == target_cell_type]
+        sc.pp.neighbors(temp_adata, n_neighbors=n_neighbors, n_pcs=n_pcs)
+        sc.tl.louvain(temp_adata)
+        sc.tl.umap(temp_adata)
+        print('n cells: ', temp_adata.shape[0])
+        if target_cell_type:
+            temp_adata.obs[f"{target_cell_type}_sub-states"] = target_cell_type + temp_adata.obs.louvain.astype(str)
+            print(temp_adata.obs[f"{target_cell_type}_sub-states"].value_counts())
+            color = [f"{target_cell_type}_sub-states"]
+        else:
+            color = [cluster_id]
+
+        plt.ioff()
+        sc.set_figure_params(scanpy=True, fontsize=front_size)
+        fig, ax = plt.subplots(
+            nrows=1, ncols=1, figsize=(panel_width, panel_height), )
+        sc.pl.umap(
+            temp_adata,
+            color=color,
+            ax=ax,
+            show=False,
+            size=size,
+            palette=palette,
+            title='')
+        # Save, show and return figure.
+        if save is not None:
+            plt.savefig(save + image_key + suffix)
+
+        if show:
+            plt.show()
+
+        plt.close(fig)
+        plt.ion()
+
+        if copy:
+            return temp_adata
+
     def plot_spatial(
         self,
         image_key: str,
@@ -266,13 +260,17 @@ class DataLoader(GraphTools):
         legend_loc: str = 'left',
         save: Union[str, None] = None,
         suffix: str = "_spatial.pdf",
+        clean_view: bool = False,
         show: bool = True,
-        return_axs: bool = False,
+        copy: bool = True,
     ):
-        temp_adata = self.img_celldata[image_key]
+        temp_adata = self.img_celldata[image_key].copy()
         cluster_id = temp_adata.uns['metadata']['cluster_col']
         if undefined_type:
             temp_adata = temp_adata[temp_adata.obs[cluster_id] != undefined_type]
+
+        if clean_view:
+            temp_adata = temp_adata[np.argwhere(np.array(temp_adata.obsm['spatial'])[:, 1] < 0).squeeze()]
 
         plt.ioff()
         sc.set_figure_params(scanpy=True, fontsize=front_size)
@@ -298,10 +296,316 @@ class DataLoader(GraphTools):
         plt.close(fig)
         plt.ion()
 
-        if return_axs:
-            return ax
-        else:
-            return None
+        if copy:
+            return temp_adata
+
+    def cluster_enrichment(
+        self,
+        image_key: str,
+        target_cell_type: str,
+        undefined_type: Optional[str] = None,
+        filter_titles: Optional[List[str]] = None,
+        n_neighbors: Optional[int] = 40,
+        n_pcs: Optional[int] = 40,
+        clip_pvalues: Optional[int] = -5,
+    ):
+        sorce_type_names = [f"source type {x.replace('_', ' ')}" for x in list(self.celldata.uns['node_type_names'].values())]
+        h_1 = []
+        h_0 = []
+        fov = []
+        a = []
+        pm = []
+        img_size = []
+        for k, adata in self.img_celldata.items():
+            img_size.append(adata.shape[0])
+            h_1.append(adata.X)
+            fov.append(np.expand_dims(np.repeat(k, adata.shape[0]), axis=1))
+            h_0.append(adata.obsm['node_types'])
+            pm.append(adata.obsm['spatial'])
+            a.append(np.array(adata.obsp['adjacency_matrix_connectivities'].todense()))
+
+        source_type = []
+        for i, adj in enumerate(a):
+            adj = np.asarray(adj > 0, dtype="int")
+            source_type.append(
+                np.matmul(adj, h_0[i].astype(int))
+            )
+
+        h_1 = pd.DataFrame(np.concatenate(h_1, axis=0), columns=self.celldata.var_names)
+        fov = pd.DataFrame(np.concatenate(fov, axis=0), columns=['fov'])
+        source_type = pd.DataFrame(
+            (np.concatenate(source_type, axis=0) > 0).astype(str), columns=sorce_type_names
+        ).replace({'True': 'in neighbourhood', 'False': 'not in neighbourhood'}, regex=True)
+        h_0 = pd.DataFrame(
+            np.concatenate(h_0, axis=0),
+            columns=[x.replace('_', ' ') for x in list(self.celldata.uns['node_type_names'].values())]
+        )
+        position_matrix = np.concatenate(pm, axis=0)
+        target_type = pd.DataFrame(np.array(h_0.idxmax(axis=1)), columns=['target_cell'], dtype="category")
+
+        metadata = pd.concat(
+            [fov, target_type, source_type],
+            axis=1
+        )
+
+        adata = AnnData(X=h_1, obs=metadata)
+        adata.obsm["spatial"] = position_matrix
+        if undefined_type:
+            adata = adata[adata.obs['target_cell'] != undefined_type]
+
+        adata_substates = adata[
+            (adata.obs['target_cell'] == target_cell_type) & (adata.obs['fov'] == image_key)
+            ]
+        sc.pp.neighbors(adata_substates, n_neighbors=n_neighbors, n_pcs=n_pcs)
+        sc.tl.louvain(adata_substates)
+        sc.tl.umap(adata_substates)
+
+        print('n cells: ', adata_substates.shape[0])
+        adata_substates.obs[
+            f"{target_cell_type}_sub-states"] = f"{target_cell_type} " + adata_substates.obs.louvain.astype(
+            str)
+        print(adata_substates.obs[f"{target_cell_type}_sub-states"].value_counts())
+
+        one_hot = pd.get_dummies(adata_substates.obs.louvain, dtype=np.bool)
+        # Join the encoded df
+        df = adata_substates.obs.join(one_hot)
+
+        import scipy.stats as stats
+        from diffxpy.testing.correction import correct
+
+        titles = list(self.celldata.uns['node_type_names'].values())
+        distinct_louvain = len(np.unique(adata_substates.obs.louvain))
+        pval_source_type = []
+        for i, st in enumerate(titles):
+            pval_cluster = []
+            for j in range(distinct_louvain):
+                crosstab = np.array(pd.crosstab(df[f"source type {st}"], df[str(j)]))
+                if crosstab.shape[0] < 2:
+                    crosstab = np.vstack([crosstab, [0, 0]])
+                oddsratio, pvalue = stats.fisher_exact(crosstab)
+                pvalue = correct(np.array([pvalue]))
+                pval_cluster.append(pvalue)
+            pval_source_type.append(pval_cluster)
+
+        columns = [f"{target_cell_type} {x}" for x in np.unique(adata_substates.obs.louvain)]
+        pval = pd.DataFrame(
+            np.array(pval_source_type).squeeze(),
+            index=[x.replace('_', ' ') for x in titles],
+            columns=columns
+        )
+        log_pval = np.log10(pval)
+
+        if filter_titles:
+            log_pval = log_pval.sort_values(columns, ascending=True).filter(
+                items=filter_titles,
+                axis=0
+            )
+        if clip_pvalues:
+            log_pval[log_pval < clip_pvalues] = clip_pvalues
+        fold_change_df = adata_substates.obs[
+            ['target_cell', f"{target_cell_type}_sub-states"] + sorce_type_names
+            ]
+        counts = pd.pivot_table(
+            fold_change_df.replace({'in neighbourhood': 1, 'not in neighbourhood': 0}),
+            index=[f"{target_cell_type}_sub-states"],
+            aggfunc=np.sum,
+            margins=True
+        ).T
+        counts['new_index'] = [x.replace('source type ', '') for x in counts.index]
+        counts = counts.set_index('new_index')
+
+        fold_change = counts.loc[:, columns].div(counts["All"], axis=0)
+        fold_change = fold_change.subtract(np.array(counts['All'] / np.sum(counts['All'])), axis=0)
+
+        if filter_titles:
+            fold_change = fold_change.fillna(0).filter(
+                items=filter_titles,
+                axis=0
+            )
+        return adata_substates, log_pval, fold_change
+
+    def plot_cluster_enrichment(
+        self,
+        pvalues,
+        fold_change,
+        panel_width: float = 2.5,
+        panel_height: float = 10.,
+        frontsize: int = 14,
+        save: Union[str, None] = None,
+        suffix: str = "_cluster_enrichment.pdf",
+        show: bool = True,
+    ):
+
+        class MidpointNormalize(colors.Normalize):
+            def __init__(self, vmin=None, vmax=None, midpoint=None, clip=False):
+                self.midpoint = midpoint
+                colors.Normalize.__init__(self, vmin, vmax, clip)
+
+            def __call__(self, value, clip=None):
+                x, y = [self.vmin, self.midpoint, self.vmax], [0, 0.5, 1]
+                return np.ma.masked_array(np.interp(value, x, y))
+
+        fig, ax = plt.subplots(
+            nrows=1, ncols=1, figsize=(panel_width, panel_height), )
+        sc.set_figure_params(scanpy=True, fontsize=frontsize)
+        M = pvalues.shape[1]
+        N = pvalues.shape[0]
+        y = np.arange(N + 1)
+        x = np.arange(M + 1)
+        xs, ys = np.meshgrid(x, y)
+
+        triangles1 = [(i + j * (M + 1), i + 1 + j * (M + 1), i + (j + 1) * (M + 1)) for j in range(N) for i in range(M)]
+        triangles2 = [(i + 1 + j * (M + 1), i + 1 + (j + 1) * (M + 1), i + (j + 1) * (M + 1)) for j in range(N) for i in
+                      range(M)]
+        triang1 = Triangulation(xs.ravel() - 0.5, ys.ravel() - 0.5, triangles1)
+        triang2 = Triangulation(xs.ravel() - 0.5, ys.ravel() - 0.5, triangles2)
+        img1 = plt.tripcolor(
+            triang1,
+            np.array(pvalues).ravel(),
+            cmap=plt.get_cmap('Greys_r'),
+        )
+        img2 = plt.tripcolor(
+            triang2,
+            np.array(fold_change).ravel(),
+            cmap=plt.get_cmap('seismic'),
+            norm=MidpointNormalize(midpoint=0.)
+        )
+
+        # v1 = np.linspace(0.08, 0.22, 3, endpoint=True)
+        cbar = plt.colorbar(
+            img2,
+            # ticks=v1,
+            pad=0.2, orientation="horizontal",
+        ).set_label(f"fold change")
+        # cbar.set_yticklabels(["{:4.2f}".format(i) for i in v1]) # add the labels
+        plt.colorbar(img1, ).set_label("$\log_{10}$ FDR-corrected pvalues")
+        plt.xlim(x[0] - 0.5, x[-1] - 0.5)
+        plt.ylim(y[0] - 0.5, y[-1] - 0.5)
+        plt.yticks(y[:-1])
+        plt.xticks(x[:-1])
+        ax.set_ylim(ax.get_ylim()[::-1])
+        ax.set_yticklabels(list(pvalues.index))
+        ax.set_xticklabels(list(pvalues.columns), rotation=90)
+
+        # Save, show and return figure.
+        if save is not None:
+            plt.savefig(save + suffix)
+
+        if show:
+            plt.show()
+
+        plt.close(fig)
+        plt.ion()
+
+    def plot_cluster_enrichment_umaps(
+        self,
+        adata,
+        filter_titles,
+        save: Union[str, None] = None,
+        suffix: str = "_cluster_enrichment_umaps.pdf",
+        show: bool = True,
+    ):
+        for i, x in enumerate(filter_titles):
+            adata.uns[f"source type {x}_colors"] = ['darkgreen', 'lightgrey']
+        sc.set_figure_params(scanpy=True, fontsize=24)
+        plt.ioff()
+        fig, axs = plt.subplots(
+            nrows=4, ncols=5, figsize=(6 * 3, 3 * 4), )
+        fig.supxlabel("UMAP2")
+        fig.supylabel("UMAP1")
+        N = len(filter_titles)
+        #ax = trim_axs(ax, 25)
+        axs = axs.flat
+        for ax in axs[N:]:
+            ax.remove()
+        ax = axs[:N]
+
+        for i, x in enumerate(filter_titles[:-1]):
+            sc.pl.umap(
+                adata,
+                color=f"source type {x}",
+                title=x,
+                show=False,
+                legend_loc='None',
+                ax=ax[i]
+            )
+            ax[i].set_xlabel('')
+            ax[i].set_ylabel('')
+        sc.pl.umap(
+            adata,
+            color=f"source type {filter_titles[-1]}",
+            title=filter_titles[-1],
+            show=False,
+            ax=ax[N-1]
+        )
+        ax[N-1].set_xlabel('')
+        ax[N-1].set_ylabel('')
+        # Save, show and return figure.
+        plt.tight_layout()
+        if save is not None:
+            plt.savefig(save + suffix)
+
+        if show:
+            plt.show()
+
+        plt.close(fig)
+        plt.ion()
+
+    def plot_spatial_substates(
+        self,
+        adata_substates: AnnData,
+        image_key: str,
+        target_cell_type: str,
+        clean_view: bool = False,
+        panel_width: float = 7.,
+        panel_height: float = 7.,
+        spot_size: Optional[int] = 40,
+        save: Union[str, None] = None,
+        suffix: str = "_spatial_substates.pdf",
+        show: bool = True,
+        copy: bool = False
+    ):
+        temp_adata = self.img_celldata[image_key].copy()
+        cluster_id = temp_adata.uns['metadata']['cluster_col']
+        if clean_view:
+            temp_adata = temp_adata[np.argwhere(np.array(temp_adata.obsm['spatial'])[:, 1] < 0).squeeze()]
+            adata_substates = adata_substates[np.argwhere(np.array(adata_substates.obsm['spatial'])[:, 1] < 0).squeeze()]
+        fig, ax = plt.subplots(
+            nrows=1, ncols=1, figsize=(panel_width, panel_height), )
+        sc.set_figure_params(scanpy=True, fontsize=18)
+        sc.pl.spatial(
+            # adata,
+            temp_adata[temp_adata.obs[cluster_id] != target_cell_type],
+            spot_size=spot_size,
+            ax=ax,
+            show=False,
+            na_color='whitesmoke',
+            title=''
+        )
+        sc.pl.spatial(
+            adata_substates,
+            color=f"{target_cell_type}sub-states",
+            spot_size=spot_size,
+            ax=ax,
+            show=False,
+            legend_loc='left',
+            title='',
+            palette='tab10'
+        )
+        ax.invert_yaxis()
+        # Save, show and return figure.
+        plt.tight_layout()
+        if save is not None:
+            plt.savefig(save + image_key + suffix)
+
+        if show:
+            plt.show()
+
+        plt.close(fig)
+        plt.ion()
+
+        if copy:
+            return temp_adata
 
     def plot_ligrec(
         self,
@@ -416,6 +720,73 @@ class DataLoader(GraphTools):
             return ax
         else:
             return None
+
+
+class DataLoader(GraphTools, PlottingTools):
+    def __init__(
+        self,
+        data_path: str,
+        radius: int,
+        label_selection: Union[List[str], None] = None,
+    ):
+        self.data_path = data_path
+
+        print("Loading data from raw files")
+        self.register_celldata()
+        self.register_img_celldata()
+        self.register_graph_features(label_selection=label_selection)
+        self.compute_adjacency_matrices(radius=radius)
+        self.radius = radius
+
+        print(
+            "Loaded %i images with complete data from %i patients "
+            "over %i cells with %i cell features and %i distinct celltypes."
+            % (
+                len(self.img_celldata),
+                len(self.patients),
+                self.celldata.shape[0],
+                self.celldata.shape[1],
+                len(self.celldata.uns["node_type_names"]),
+            )
+        )
+
+    @property
+    def patients(self):
+        return np.unique(np.asarray(list(self.celldata.uns["img_to_patient_dict"].values())))
+
+    def register_celldata(self):
+        """
+        Loads anndata object of complete dataset.
+        :return:
+        """
+        print("registering celldata")
+        self._register_celldata()
+        assert self.celldata is not None, "celldata was not loaded"
+
+    def register_img_celldata(self):
+        """
+        Loads dictionary of of image-wise celldata objects with {imgage key : anndata object of image}.
+        :return:
+        """
+        print("collecting image-wise celldata")
+        self._register_img_celldata()
+        assert self.img_celldata is not None, "image-wise celldata was not loaded"
+
+    def register_graph_features(self, label_selection):
+        print("adding graph-level covariates")
+        self._register_graph_features(label_selection=label_selection)
+
+    @abc.abstractmethod
+    def _register_celldata(self):
+        pass
+
+    @abc.abstractmethod
+    def _register_img_celldata(self):
+        pass
+
+    @abc.abstractmethod
+    def _register_graph_features(self, label_selection):
+        pass
 
     def merge_types(self, cell_type_mapping_dict: Dict[str, str]):
         """
@@ -901,13 +1272,11 @@ class DataLoaderPascualReguant(DataLoader):
             "Vimentin",
             "cKit",
         ]
-        print(celldata_df.dtypes)
         celldata = AnnData(X=celldata_df[feature_cols], obs=celldata_df[["ObjectNumber", "cell_class"]])
 
         celldata.uns["metadata"] = metadata
         celldata.obs["img_keys"] = np.repeat("tonsil_image", repeats=celldata.shape[0])
         celldata.uns["img_keys"] = ["tonsil_image"]
-        print(celldata)
         # register x and y coordinates into obsm
         celldata.obsm["spatial"] = np.array(celldata_df[metadata["pos_cols"]])
 
@@ -1034,7 +1403,7 @@ class DataLoaderSchuerch(DataLoader):
             "MMP12 - matrix metalloproteinase:Cyc_21_ch_4",
         ]
 
-        celldata = AnnData(X=celldata_df[feature_cols], obs=celldata_df[["patients", "ClusterName"]])
+        celldata = AnnData(X=celldata_df[feature_cols], obs=celldata_df[["File Name", "patients", "ClusterName"]])
 
         celldata.uns["metadata"] = metadata
         img_keys = list(np.unique(celldata_df[metadata["image_col"]]))

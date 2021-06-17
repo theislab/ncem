@@ -98,12 +98,24 @@ class Estimator:
         """
         if data_origin == "zhang":
             from ncem.data import DataLoaderZhang as DataLoader
-
             self.undefined_node_types = ["other"]
+        elif data_origin == "jarosch":
+            from ncem.data import DataLoaderJarosch as DataLoader
+            self.undefined_node_types = None
         elif data_origin == "hartmann":
             from ncem.data import DataLoaderHartmann as DataLoader
-
             self.undefined_node_types = None
+        elif data_origin == "pascualreguant":
+            from ncem.data import DataLoaderPascualReguant as DataLoader
+            self.undefined_node_types = ["other"]
+        elif data_origin == "schuerch":
+            from ncem.data import DataLoaderSchuerch as DataLoader
+            self.undefined_node_types = [
+                "dirt",
+                "undefined",
+                "tumor cells / immune cells",
+                "immune cells / vasculature"
+            ]
         else:
             raise ValueError(f"data_origin {data_origin} not recognized")
 
