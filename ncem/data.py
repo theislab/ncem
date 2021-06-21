@@ -112,7 +112,7 @@ class GraphTools:
 
 
 class PlottingTools:
-    def plot_noise_structure(
+    def noise_structure(
         self,
         undefined_type: Optional[str] = None,
         merge_types: Optional[Tuple[list, list]] = None,
@@ -120,11 +120,13 @@ class PlottingTools:
         max_x: Optional[float] = None,
         panel_width: float = 2.0,
         panel_height: float = 2.7,
+        fontsize: int = 18,
         save: Optional[str] = None,
         suffix: str = "_noise_structure.pdf",
         show: bool = True,
         return_axs: bool = False,
     ):
+        sc.set_figure_params(scanpy=True, fontsize=fontsize)
         feature_mat = pd.concat(
             [
                 pd.concat(
@@ -148,10 +150,10 @@ class PlottingTools:
             ]
         )
         feature_mat["log_expression"] = np.log(feature_mat["expression"].values + 1)
-        if undefined_type is not None:
+        if undefined_type:
             feature_mat = feature_mat[feature_mat["cell_type"] != undefined_type]
 
-        if merge_types is not None:
+        if merge_types:
             for mt in merge_types[0]:
                 feature_mat = feature_mat.replace(mt, merge_types[-1])
 
@@ -193,15 +195,16 @@ class PlottingTools:
         else:
             return None
 
-    def plot_umap(
+    def umap(
         self,
         image_key: str,
         target_cell_type: Optional[str] = None,
+        undefined_type: Optional[str] = None,
         n_neighbors: Optional[int] = 10,
         n_pcs: Optional[int] = None,
         panel_width: float = 5.,
         panel_height: float = 5.,
-        front_size: int = 20,
+        fontsize: int = 20,
         size: Optional[int] = None,
         palette: Optional[str] = None,
         save: Union[str, None] = None,
@@ -211,6 +214,8 @@ class PlottingTools:
     ):
         temp_adata = self.img_celldata[image_key].copy()
         cluster_id = temp_adata.uns['metadata']['cluster_col']
+        if undefined_type:
+            temp_adata = temp_adata[temp_adata.obs[cluster_id] != undefined_type]
         if target_cell_type:
             temp_adata = temp_adata[temp_adata.obs[cluster_id] == target_cell_type]
         sc.pp.neighbors(temp_adata, n_neighbors=n_neighbors, n_pcs=n_pcs)
@@ -218,14 +223,14 @@ class PlottingTools:
         sc.tl.umap(temp_adata)
         print('n cells: ', temp_adata.shape[0])
         if target_cell_type:
-            temp_adata.obs[f"{target_cell_type}_sub-states"] = target_cell_type + temp_adata.obs.louvain.astype(str)
-            print(temp_adata.obs[f"{target_cell_type}_sub-states"].value_counts())
-            color = [f"{target_cell_type}_sub-states"]
+            temp_adata.obs[f"{target_cell_type}_substates"] = target_cell_type + temp_adata.obs.louvain.astype(str)
+            print(temp_adata.obs[f"{target_cell_type}_substates"].value_counts())
+            color = [f"{target_cell_type}_substates"]
         else:
             color = [cluster_id]
 
         plt.ioff()
-        sc.set_figure_params(scanpy=True, fontsize=front_size)
+        sc.set_figure_params(scanpy=True, fontsize=fontsize)
         fig, ax = plt.subplots(
             nrows=1, ncols=1, figsize=(panel_width, panel_height), )
         sc.pl.umap(
@@ -249,15 +254,15 @@ class PlottingTools:
         if copy:
             return temp_adata
 
-    def plot_spatial(
+    def spatial(
         self,
         image_key: str,
         undefined_type: Optional[str] = None,
         panel_width: float = 7.,
         panel_height: float = 7.,
-        front_size: int = 18,
         spot_size: int = 30,
-        legend_loc: str = 'left',
+        fontsize: int = 18,
+        legend_loc: str = 'right margin',
         save: Union[str, None] = None,
         suffix: str = "_spatial.pdf",
         clean_view: bool = False,
@@ -273,7 +278,7 @@ class PlottingTools:
             temp_adata = temp_adata[np.argwhere(np.array(temp_adata.obsm['spatial'])[:, 1] < 0).squeeze()]
 
         plt.ioff()
-        sc.set_figure_params(scanpy=True, fontsize=front_size)
+        sc.set_figure_params(scanpy=True, fontsize=fontsize)
         fig, ax = plt.subplots(
             nrows=1, ncols=1, figsize=(panel_width, panel_height))
         sc.pl.spatial(
@@ -285,6 +290,8 @@ class PlottingTools:
             show=False,
             title=''
         )
+        ax.set_xlabel('')
+        ax.set_ylabel('')
         # Save, show and return figure.
         plt.tight_layout()
         if save is not None:
@@ -299,7 +306,7 @@ class PlottingTools:
         if copy:
             return temp_adata
 
-    def cluster_enrichment(
+    def compute_cluster_enrichment(
         self,
         image_key: str,
         target_cell_type: str,
@@ -362,9 +369,9 @@ class PlottingTools:
 
         print('n cells: ', adata_substates.shape[0])
         adata_substates.obs[
-            f"{target_cell_type}_sub-states"] = f"{target_cell_type} " + adata_substates.obs.louvain.astype(
+            f"{target_cell_type}_substates"] = f"{target_cell_type} " + adata_substates.obs.louvain.astype(
             str)
-        print(adata_substates.obs[f"{target_cell_type}_sub-states"].value_counts())
+        print(adata_substates.obs[f"{target_cell_type}_substates"].value_counts())
 
         one_hot = pd.get_dummies(adata_substates.obs.louvain, dtype=np.bool)
         # Join the encoded df
@@ -403,11 +410,11 @@ class PlottingTools:
         if clip_pvalues:
             log_pval[log_pval < clip_pvalues] = clip_pvalues
         fold_change_df = adata_substates.obs[
-            ['target_cell', f"{target_cell_type}_sub-states"] + sorce_type_names
+            ['target_cell', f"{target_cell_type}_substates"] + sorce_type_names
             ]
         counts = pd.pivot_table(
             fold_change_df.replace({'in neighbourhood': 1, 'not in neighbourhood': 0}),
-            index=[f"{target_cell_type}_sub-states"],
+            index=[f"{target_cell_type}_substates"],
             aggfunc=np.sum,
             margins=True
         ).T
@@ -424,13 +431,13 @@ class PlottingTools:
             )
         return adata_substates, log_pval, fold_change
 
-    def plot_cluster_enrichment(
+    def cluster_enrichment(
         self,
         pvalues,
         fold_change,
         panel_width: float = 2.5,
         panel_height: float = 10.,
-        frontsize: int = 14,
+        fontsize: int = 14,
         save: Union[str, None] = None,
         suffix: str = "_cluster_enrichment.pdf",
         show: bool = True,
@@ -447,7 +454,7 @@ class PlottingTools:
 
         fig, ax = plt.subplots(
             nrows=1, ncols=1, figsize=(panel_width, panel_height), )
-        sc.set_figure_params(scanpy=True, fontsize=frontsize)
+        sc.set_figure_params(scanpy=True, fontsize=fontsize)
         M = pvalues.shape[1]
         N = pvalues.shape[0]
         y = np.arange(N + 1)
@@ -497,7 +504,7 @@ class PlottingTools:
         plt.close(fig)
         plt.ion()
 
-    def plot_cluster_enrichment_umaps(
+    def umaps_cluster_enrichment(
         self,
         adata,
         filter_titles,
@@ -551,7 +558,7 @@ class PlottingTools:
         plt.close(fig)
         plt.ion()
 
-    def plot_spatial_substates(
+    def spatial_substates(
         self,
         adata_substates: AnnData,
         image_key: str,
@@ -560,6 +567,8 @@ class PlottingTools:
         panel_width: float = 7.,
         panel_height: float = 7.,
         spot_size: Optional[int] = 40,
+        fontsize: int = 18,
+        legend_loc: str = 'right margin',
         save: Union[str, None] = None,
         suffix: str = "_spatial_substates.pdf",
         show: bool = True,
@@ -572,7 +581,7 @@ class PlottingTools:
             adata_substates = adata_substates[np.argwhere(np.array(adata_substates.obsm['spatial'])[:, 1] < 0).squeeze()]
         fig, ax = plt.subplots(
             nrows=1, ncols=1, figsize=(panel_width, panel_height), )
-        sc.set_figure_params(scanpy=True, fontsize=18)
+        sc.set_figure_params(scanpy=True, fontsize=fontsize)
         sc.pl.spatial(
             # adata,
             temp_adata[temp_adata.obs[cluster_id] != target_cell_type],
@@ -584,15 +593,17 @@ class PlottingTools:
         )
         sc.pl.spatial(
             adata_substates,
-            color=f"{target_cell_type}sub-states",
+            color=f"{target_cell_type}_substates",
             spot_size=spot_size,
             ax=ax,
             show=False,
-            legend_loc='left',
+            legend_loc=legend_loc,
             title='',
             palette='tab10'
         )
         ax.invert_yaxis()
+        ax.set_xlabel('')
+        ax.set_ylabel('')
         # Save, show and return figure.
         plt.tight_layout()
         if save is not None:
@@ -607,17 +618,18 @@ class PlottingTools:
         if copy:
             return temp_adata
 
-    def plot_ligrec(
+    def ligrec(
         self,
         image_key: Optional[str] = None,
         source_groups: Optional[Union[str, Sequence[str]]] = None,
         undefined_type: Optional[str] = None,
+        hgnc_names: Optional[List[str]] = None,
         fraction: Optional[float] = None,
         pvalue_threshold: float = 0.3,
         width: float = 3.,
         seed: int = 10,
         random_state: int = 0,
-        front_size: int = 18,
+        fontsize: int = 18,
         save: Union[str, None] = None,
         suffix: str = "_ligrec.pdf",
         show: bool = True,
@@ -639,14 +651,22 @@ class PlottingTools:
         if image_key:
             temp_adata = self.img_celldata[image_key]
         else:
-            temp_adata = sc.pp.subsample(self.celldata, fraction=fraction, copy=True, random_state=random_state)
+            if fraction:
+                temp_adata = sc.pp.subsample(self.celldata, fraction=fraction, copy=True, random_state=random_state)
+            else:
+                temp_adata = self.celldata.copy()
 
         cluster_id = temp_adata.uns['metadata']['cluster_col']
         if undefined_type:
             temp_adata = temp_adata[temp_adata.obs[cluster_id] != undefined_type]
 
+        print('n cells:', temp_adata.shape[0])
         temp_adata = temp_adata.copy()
-        print(temp_adata)
+        if hgnc_names:
+            hgcn_X = pd.DataFrame(temp_adata.X, columns=hgnc_names)
+            temp_adata = AnnData(
+                X=hgcn_X, obs=temp_adata.obs.astype('category'), obsm=temp_adata.obsm, obsp=temp_adata.obsp, uns=temp_adata.uns
+            )
 
         sq.gr.ligrec(
             temp_adata,
@@ -658,7 +678,7 @@ class PlottingTools:
         if save is not None:
             save = save + image_key + suffix
 
-        sc.set_figure_params(scanpy=True, fontsize=front_size)
+        sc.set_figure_params(scanpy=True, fontsize=fontsize)
         sq.pl.ligrec(
             temp_adata,
             cluster_key=cluster_id,
@@ -677,13 +697,13 @@ class PlottingTools:
         if copy:
             return temp_adata
 
-    def plot_ligrec_barplot(
+    def ligrec_barplot(
         self,
         adata: AnnData,
         source_group: str,
         panel_width: float = 8.,
-        panel_height: float = 4.,
-        front_size: int = 18,
+        panel_height: float = 5.,
+        fontsize: int = 18,
         pvalue_threshold: float = 0.05,
         save: Union[str, None] = None,
         suffix: str = "_ligrec_barplot.pdf",
@@ -695,7 +715,7 @@ class PlottingTools:
 
         fig, ax = plt.subplots(
             nrows=1, ncols=1, figsize=(panel_width, panel_height), )
-        sc.set_figure_params(scanpy=True, fontsize=front_size)
+        sc.set_figure_params(scanpy=True, fontsize=fontsize)
         sns.barplot(
             x=list(np.sum(pvals < pvalue_threshold, axis=0).index),
             y=list(np.sum(pvals < pvalue_threshold, axis=0)),
@@ -705,6 +725,143 @@ class PlottingTools:
         ax.grid(False)
         ax.tick_params(axis='x', labelrotation=90)
 
+        # Save, show and return figure.
+        plt.tight_layout()
+        if save is not None:
+            plt.savefig(save + suffix)
+
+        if show:
+            plt.show()
+
+        plt.close(fig)
+        plt.ion()
+
+        if return_axs:
+            return ax
+        else:
+            return None
+
+    def compute_variance_decomposition(
+        self,
+        undefined_type: Optional[str] = None,
+    ):
+        from tqdm import tqdm
+
+        temp_adata = self.celldata.copy()
+        cluster_id = temp_adata.uns['metadata']['cluster_col']
+        img_col = temp_adata.uns['metadata']['image_col']
+        if undefined_type:
+            temp_adata = temp_adata[temp_adata.obs[cluster_id] != undefined_type]
+
+        df = pd.DataFrame(
+            temp_adata.X, columns=temp_adata.var_names
+        )
+        df['image_col'] = pd.Series(list(temp_adata.obs[img_col]), dtype="category")
+        df['cluster_col'] = pd.Series(list(temp_adata.obs[cluster_id]), dtype="category")
+        images = np.unique(df['image_col'])
+        variance_decomposition = []
+        with tqdm(total=len(images)) as pbar:
+            for img in images:
+                mean_img_genes = np.mean(df[df['image_col'] == img], axis=0)
+                mean_img_global = np.mean(mean_img_genes)
+
+                intra_ct_var = []
+                inter_ct_var = []
+                gene_var = []
+                for ct in np.unique(df['cluster_col']):
+                    img_celltype = np.array(
+                        df[(df['image_col'] == img) & (df['cluster_col'] == ct)]
+                    )[:, :-2]
+                    if img_celltype.shape[0] == 0:
+                        continue
+                    mean_image_celltype = np.mean(img_celltype, axis=0)
+
+                    for i in range(img_celltype.shape[0]):
+                        intra_ct_var.append(
+                            (img_celltype[i, :] - mean_image_celltype) ** 2
+                        )
+                        inter_ct_var.append(
+                            (mean_image_celltype - mean_img_genes) ** 2
+                        )
+                        gene_var.append(
+                            (mean_img_genes - mean_img_global) ** 2
+                        )
+
+                intra_ct_var = np.sum(intra_ct_var)
+                inter_ct_var = np.sum(inter_ct_var)
+                gene_var = np.sum(gene_var)
+                variance_decomposition.append(
+                    np.array([img, intra_ct_var, inter_ct_var, gene_var])
+                )
+                pbar.update(1)
+        df = pd.DataFrame(
+            variance_decomposition,
+            columns=['image_col', 'intra_celltype_var', 'inter_celltype_var', 'gene_var']
+        ).astype(
+            {'image_col': str, 'intra_celltype_var': 'float32', 'inter_celltype_var': 'float32', 'gene_var': 'float32'}
+        ).set_index('image_col')
+
+        df['total'] = df.intra_celltype_var + df.inter_celltype_var + df.gene_var
+        df['intra cell type variance'] = df.intra_celltype_var / df.total
+        df['inter cell type variance'] = df.inter_celltype_var / df.total
+        df['gene variance'] = df.gene_var / df.total
+        return df
+
+    def variance_decomposition(
+        self,
+        df,
+        panel_width: float = 16.,
+        panel_height: float = 3.5,
+        fontsize: int = 14,
+        multiindex: bool = False,
+        save: Union[str, None] = None,
+        suffix: str = "_variance_decomposition.pdf",
+        show: bool = True,
+        return_axs: bool = False,
+    ):
+        from collections import OrderedDict
+        sc.set_figure_params(scanpy=True, fontsize=fontsize)
+        plt.rcParams['axes.grid'] = False
+
+        fig, ax = plt.subplots(1, 1, figsize=(panel_width, panel_height))
+        df.plot(
+            y=['intra cell type variance', 'inter cell type variance', 'gene variance'],
+            kind='bar',
+            stacked=True,
+            figsize=(panel_width, panel_height),
+            ax=ax,
+            colormap='Blues_r'
+        )
+        if multiindex:
+            def process_index(k):
+                return tuple(k.split("_"))
+
+            df['index1'], df['index2'] = zip(*map(process_index, df.index))
+            df = df.set_index(['index1', 'index2'])
+
+            ax.set_xlabel('')
+            xlabel_mapping = OrderedDict()
+            for index1, index2 in df.index:
+                xlabel_mapping.setdefault(index1, [])
+                xlabel_mapping[index1].append(index2)
+
+            hline = []
+            new_xlabels = []
+            for index1, index2_list in xlabel_mapping.items():
+                # slice_list[0] = "{} - {}".format(mouse, slice_list[0])
+                index2_list[0] = "{}".format(index2_list[0])
+                new_xlabels.extend(index2_list)
+
+                if hline:
+                    hline.append(len(index2_list) + hline[-1])
+                else:
+                    hline.append(len(index2_list))
+
+            # new_xlabels.remove('20')
+            # ax.hlines(hline, xmin=-1, xmax=4, color="white", linewidth=5)
+            ax.set_xticklabels(new_xlabels)
+        ax.set_xlabel('')
+        ax.legend(bbox_to_anchor=(1, 1), loc='upper left')
         # Save, show and return figure.
         plt.tight_layout()
         if save is not None:
