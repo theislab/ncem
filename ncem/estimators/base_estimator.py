@@ -150,8 +150,8 @@ class Estimator:
             radius=radius,
             label_selection=labels_to_load,
         )
-        if merge_node_types_predefined:
-            self.data.merge_types_predefined()
+        #if merge_node_types_predefined:
+        #    self.data.merge_types_predefined()
         # Validate graph-wise covariate selection:
         if len(graph_covar_selection) > 0:
             if (
