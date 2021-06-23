@@ -12,11 +12,12 @@ from typing import List, Tuple, Union, Optional
 
 class GridSearchContainer:
 
-    def __init__(self, source_path, gs_ids):
+    def __init__(self, source_path, gs_ids, lateral_resolution):
         self.source_path = source_path
         if isinstance(gs_ids, str):
             gs_ids = [gs_ids]
         self.gs_ids = gs_ids
+        self.lateral_resolution = lateral_resolution
 
     @property
     def cv_keys(self) -> List[str]:
@@ -246,6 +247,8 @@ class GridSearchContainer:
 
         self.summary_table = pd.concat(self.summary_table)
         self.runparams_table = pd.concat(self.runparams_table)
+
+        self.summary_table['um_radius'] = (self.summary_table['radius'] * self.lateral_resolution).astype(int)
 
         # Load files that are shared across a grid search.
         keys_all = {}
