@@ -661,7 +661,7 @@ class GridSearchContainer:
         metric_select: str,
         param_x: str,
         ncols: int = 8,
-        plot_mode: Optional[str] = None,
+        plot_mode: str = 'boxplot',
         # show_swarm: bool = True,
         show: bool = True,
         save: Optional[str] = None,
