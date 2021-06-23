@@ -276,6 +276,132 @@ class GridSearchContainer:
         self.nodes_train = nodes_train
         self.nodes_val = nodes_val
 
+    def load_target_cell_evaluation(self):
+        self.target_cell_table = []
+        self.target_cell_runparams = {}
+        self.target_cell_evals = {}
+        self.target_cell_indices = {}
+        target_cell_table = []
+        for gs_id in self.gs_ids:
+            # Collect runs that belong to grid search by looping over file names in directory.
+            indir = self.source_path + gs_id + "/results/"
+            # runs_ids are the unique hyper-parameter settings, which are again subsetted by cross-validation.
+            # These ids are present in all files names but are only collected from the *model.tf file names here.
+
+            run_ids = np.sort(np.unique([
+                "_".join(".".join(x.split(".")[:-1]).split("_")[:-1])
+                for x in os.listdir(indir)
+                if x.split("_")[-1].split(".")[0] == "time"
+            ]))
+            cv_ids = np.sort(np.unique([  # identifiers of cross-validation splits
+                x.split("_")[-1]
+                for x in run_ids
+            ]))
+            run_ids = np.sort(np.unique([  # identifiers of hyper-parameters settings
+                "_".join(x.split("_")[:-1])
+                for x in run_ids
+            ]))
+            run_ids_clean = []  # only IDs of completed runs (all files present)
+            for j, r in enumerate(run_ids):
+                complete_run = True
+                for cv in cv_ids:
+                    fn = r + "_" + cv + "_ntevaluation.pickle"
+                    if not os.path.isfile(indir + fn):
+                        print("File %r missing" % fn)
+                        complete_run = False
+                # Check run parameter files (one per cross-validation set):
+                fn = r + "_runparams.pickle"
+                if not os.path.isfile(indir + fn):
+                    print("File %r missing" % fn)
+                    complete_run = False
+                if not complete_run:
+                    print("Run %r not successful" % r + "_" + cv)
+                else:
+                    run_ids_clean.append(r)
+            # Load results and settings from completed runs:
+            evals = {}  # Dictionary over runs with dictionary over cross-validations with results from model evaluation.
+            indices = {}
+            runparams = {}  # Dictionary over runs with model settings.
+            for x in run_ids_clean:
+                # Load model settings (these are shared across all partitions).
+                fn_runparams = indir + x + "_runparams.pickle"
+                with open(fn_runparams, 'rb') as f:
+                    runparams[x] = pickle.load(f)
+                evals[x] = {}
+                for cv in cv_ids:
+                    fn_eval = indir + x + "_" + cv + "_ntevaluation.pickle"
+                    with open(fn_eval, 'rb') as f:
+                        evals[x][cv] = pickle.load(f)
+                indices[x] = {}
+                for cv in cv_ids:
+                    fn_eval = indir + x + "_" + cv + "_ntindices.pickle"
+                    with open(fn_eval, 'rb') as f:
+                        indices[x][cv] = pickle.load(f)
+            self.target_cell_runparams[gs_id] = runparams
+            self.target_cell_evals[gs_id] = evals
+            self.target_cell_indices[gs_id] = indices
+
+            for x in run_ids_clean:
+                for cv in cv_ids:
+                    for target_cell in evals[x][cv].keys():
+                        if evals[x][cv][target_cell]:
+                            tc_frequencies = {
+                                k: len(indices[x][cv][target_cell]['nodes_idx'][k]) for k in indices[x][cv][target_cell]['nodes_idx'].keys()
+                            }
+
+                            target_cell_table.append(pd.concat([pd.DataFrame(dict(list({
+                                "model_class": [runparams[x]['model_class']],
+                                "cond_type": [runparams[x]['cond_type']] if 'cond_type' in list(runparams[x].keys()) else "none",
+                                "gs_id": [runparams[x]['gs_id']],
+                                "model_id": [runparams[x]['model_id']],
+                                "split_mode": [runparams[x]['split_mode']],
+
+                                "radius": [runparams[x]['max_dist']],
+                                "graph_covar_selection": [runparams[x]['graph_covar_selection']],
+                                "node_label_space_id": [runparams[x]['node_feature_space_id_0']],
+                                "node_feature_space_id": [runparams[x]['node_feature_space_id_1']],
+                                "feature_transformation": [runparams[x]['feature_transformation']],
+                                "use_covar_node_position": [runparams[x]['use_covar_node_position']],
+                                "use_covar_node_label": [runparams[x]['use_covar_node_label']],
+                                "use_covar_graph_covar": [runparams[x]['use_covar_graph_covar']],
+                                # "hold_out_covariate": [runparams[x]['hold_out_covariate']],
+
+                                "optimizer": [runparams[x]['optimizer']],
+                                "learning_rate": [runparams[x]['learning_rate']],
+                                "intermediate_dim_enc": [runparams[x]['intermediate_dim_enc']],
+                                "intermediate_dim_dec": [runparams[x]['intermediate_dim_dec']],
+                                "latent_dim": [runparams[x]['latent_dim']],
+                                # "depth_enc": [runparams[x]['depth_enc']],
+                                # "depth_dec": [runparams[x]['depth_dec']],
+                                "dropout_rate": [runparams[x]['dropout_rate']],
+                                "l2_coef": [runparams[x]['l2_coef']],
+                                "l1_coef": [runparams[x]['l1_coef']],
+
+                                "use_domain": [runparams[x]['use_domain']],
+                                "domain_type": [runparams[x]['domain_type']],
+                                "use_batch_norm": [runparams[x]['use_batch_norm']],
+                                "scale_node_size": [runparams[x]['scale_node_size']],
+                                "transform_input": [runparams[x]['transform_input']],
+                                "output_layer": [runparams[x]['output_layer']],
+                                "log_transform": [runparams[x]['log_transform']] if 'log_transform' in list(runparams[x].keys()) else False,
+                                "epochs": [runparams[x]['epochs']],
+                                "batch_size": [runparams[x]['batch_size']],
+                                "run_id": x,
+                                "cv": cv,
+                                "target_cell_frequencies": sum(tc_frequencies.values()),
+                                "model": "_".join(gs_id.split("/")[-1].split("_")[1:-1]),
+
+                                'target_cell': target_cell,
+                                'loss': [evals[x][cv][target_cell]['loss']] if 'loss' in list(evals[x][cv][target_cell].keys()) else np.nan,
+                                'custom_mean_sd': [evals[x][cv][target_cell]['custom_mean_sd']] if 'custom_mean_sd' in list(evals[x][cv][target_cell].keys()) else np.nan,
+                                'custom_mse': [evals[x][cv][target_cell]['custom_mse']] if 'custom_mse' in list(evals[x][cv][target_cell].keys()) else np.nan,
+                                'custom_mse_scaled': [evals[x][cv][target_cell]['custom_mse_scaled']] if 'custom_mse_scaled' in list(evals[x][cv][target_cell].keys()) else np.nan,
+                                'gaussian_reconstruction_loss': [evals[x][cv][target_cell]['gaussian_reconstruction_loss']] if 'gaussian_reconstruction_loss' in list(evals[x][cv][target_cell].keys()) else np.nan,
+                                'r_squared': [evals[x][cv][target_cell]['r_squared']] if 'r_squared' in list(evals[x][cv][target_cell].keys()) else np.nan,
+                                'r_squared_linreg': [evals[x][cv][target_cell]['r_squared_linreg']] if 'r_squared_linreg' in list(evals[x][cv][target_cell].keys()) else np.nan
+                            }.items())))]))
+        self.target_cell_table = pd.concat(target_cell_table)
+
     def select_cv(self, cv_idx: int) -> str:
         """
         Return key of of cross-validation selected with numeric index.
@@ -516,6 +642,98 @@ class GridSearchContainer:
         # plt.tight_layout()
         if save is not None:
             plt.savefig(save + "_" + partition_show + suffix, bbox_extra_artists=(lgd,), bbox_inches='tight')
+
+        if show:
+            plt.show()
+
+        plt.close(fig)
+        plt.ion()
+
+        if return_axs:
+            return ax
+        else:
+            return None
+
+    def plot_target_cell_evaluation(
+        self,
+        metric_show: str,
+        metric_select: str,
+        param_x: str,
+        ncols: int = 8,
+        plot_mode: Optional[str] = None,
+        # show_swarm: bool = True,
+        show: bool = True,
+        save: Optional[str] = None,
+        suffix: str = "target_cell_evaluation.pdf",
+        return_axs: bool = False,
+        panel_width: float = 3.,
+        panel_height: float = 3.,
+        # transform_str: bool = False,
+        # order_dict: dict = {'0': 0, '35': 1, '120': 2, '1600': 3}
+    ):
+        params_x_unique = np.sort(np.unique(self.target_cell_table[param_x].values))
+        params_tc_unique = np.sort(np.unique(self.target_cell_table['target_cell'].values))
+
+        ct = len(params_tc_unique)
+        nrows = len(params_tc_unique) // ncols + int(len(params_tc_unique) % ncols > 0)
+
+        fig, ax = plt.subplots(
+            ncols=ncols, nrows=nrows,
+            figsize=(ncols * panel_width, nrows * panel_height),
+            sharex=True
+        )
+        ax = ax.flat
+        for a in ax[ct:]:
+            a.remove()
+        ax = ax[:ct]
+        ax = ax.ravel()
+        target_cell_frequencies = {}
+        for i, tc in enumerate(params_tc_unique):
+            run_ids = []
+            for x in params_x_unique:
+
+                target_cell_table = self.target_cell_table[self.target_cell_table['target_cell'] == tc]
+                subset_hyperparameters = [(param_x, x)]
+                for a, b in subset_hyperparameters:
+                    if not isinstance(b, list):
+                        b = [b]
+                    if not np.any([xx in b for xx in target_cell_table[a].values]):
+                        print(
+                            "subset was empty, available values for %s are %s, given was %s" %
+                            (a, str(np.unique(target_cell_table[a].values).tolist()), str(b))
+                        )
+                    summary_table = target_cell_table.loc[[xx in b for xx in target_cell_table[a].values], :]
+
+                best_model = summary_table.groupby("run_id", as_index=False)[metric_select].mean().sort_values(
+                    [metric_select], ascending=False, na_position='last')
+                run_id_temp = best_model['run_id'].values[0]
+
+                if run_id_temp is not None:
+                    run_ids.append(run_id_temp)
+
+            table = target_cell_table.loc[np.array([x in run_ids for x in target_cell_table["run_id"].values]), :]
+            tc_frequencies = int(np.unique(table["target_cell_frequencies"])[0])
+            target_cell_frequencies.update({tc: tc_frequencies})
+            #if transform_str:
+                #table[param_x] = table[param_x].astype(str)
+                #table = table.sort_values(by=[param_x], key=lambda x: x.map(order_dict))
+            if plot_mode == 'boxplot':
+                sns.boxplot(x=param_x, y=metric_show, data=table, ax=ax[i], color='steelblue')
+                sns.swarmplot(x=param_x, y=metric_show, data=table, ax=ax[i], color='steelblue')
+            elif plot_mode == 'lineplot':
+                sns.lineplot(x=param_x, y=metric_show, style='cv', data=table, ax=ax[i], sort=False, markers=True)
+            ax[i].set_title(f"{tc.replace('_', ' ')} \n({str(tc_frequencies)} cells)")
+            ax[i].set_xlabel('')
+            ax[i].set_ylabel('')
+            ax[i].yaxis.set_major_formatter(FormatStrFormatter('%0.3f'))
+            for tick in ax[i].get_xticklabels():
+                tick.set_rotation(90)
+
+        self.target_cell_frequencies = target_cell_frequencies
+        plt.tight_layout()
+        # Save, show and return figure.
+        if save is not None:
+            plt.savefig(save + "_" + suffix)
 
         if show:
             plt.show()
