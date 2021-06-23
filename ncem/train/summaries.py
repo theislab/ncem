@@ -401,6 +401,7 @@ class GridSearchContainer:
                                 'r_squared_linreg': [evals[x][cv][target_cell]['r_squared_linreg']] if 'r_squared_linreg' in list(evals[x][cv][target_cell].keys()) else np.nan
                             }.items())))]))
         self.target_cell_table = pd.concat(target_cell_table)
+        self.target_cell_table['um_radius'] = (self.target_cell_table['radius'] * self.lateral_resolution).astype(int)
 
     def select_cv(self, cv_idx: int) -> str:
         """
