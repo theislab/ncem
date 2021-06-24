@@ -16,6 +16,7 @@ class ModelInteractions:
         use_domain: bool = False,
         scale_node_size: bool = False,
         output_layer: str = "linear",
+        **kwargs
     ):
         super().__init__()
         self.args = {

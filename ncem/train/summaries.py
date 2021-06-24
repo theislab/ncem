@@ -32,6 +32,7 @@ class GridSearchContainer:
         self,
         expected_pickle: Optional[list] = None,
         add_posterior_sampling_model: bool = False,
+        report_unsuccessful_runs: bool = False
     ):
         """
         Load all metrics from grid search output files.
@@ -82,15 +83,18 @@ class GridSearchContainer:
                     for end in expected_pickle:
                         fn = r + "_" + cv + "_" + end + ".pickle"
                         if not os.path.isfile(indir + fn):
-                            print("File %r missing" % fn)
+                            if report_unsuccessful_runs:
+                                print("File %r missing" % fn)
                             complete_run = False
                 # Check run parameter files (one per cross-validation set):
                 fn = r + "_runparams.pickle"
                 if not os.path.isfile(indir + fn):
-                    print("File %r missing" % fn)
+                    if report_unsuccessful_runs:
+                        print("File %r missing" % fn)
                     complete_run = False
                 if not complete_run:
-                    print("Run %r not successful" % r + "_" + cv)
+                    if report_unsuccessful_runs:
+                        print("Run %r not successful" % r + "_" + cv)
                 else:
                     run_ids_clean.append(r)
             # Load results and settings from completed runs:
@@ -276,7 +280,10 @@ class GridSearchContainer:
         self.nodes_train = nodes_train
         self.nodes_val = nodes_val
 
-    def load_target_cell_evaluation(self):
+    def load_target_cell_evaluation(
+        self,
+        report_unsuccessful_runs: bool = False
+    ):
         self.target_cell_table = []
         self.target_cell_runparams = {}
         self.target_cell_evals = {}
@@ -307,15 +314,18 @@ class GridSearchContainer:
                 for cv in cv_ids:
                     fn = r + "_" + cv + "_ntevaluation.pickle"
                     if not os.path.isfile(indir + fn):
-                        print("File %r missing" % fn)
+                        if report_unsuccessful_runs:
+                            print("File %r missing" % fn)
                         complete_run = False
                 # Check run parameter files (one per cross-validation set):
                 fn = r + "_runparams.pickle"
                 if not os.path.isfile(indir + fn):
-                    print("File %r missing" % fn)
+                    if report_unsuccessful_runs:
+                        print("File %r missing" % fn)
                     complete_run = False
                 if not complete_run:
-                    print("Run %r not successful" % r + "_" + cv)
+                    if report_unsuccessful_runs:
+                        print("Run %r not successful" % r + "_" + cv)
                 else:
                     run_ids_clean.append(r)
             # Load results and settings from completed runs:
@@ -545,7 +555,6 @@ class GridSearchContainer:
         rename_levels: Optional[List[Tuple[str, str]]] = None,
         subset_hyperparameters: Optional[List[Tuple[str, str]]] = None,
         cv_mode: str = "mean",
-        ylim: Tuple[float, float] = (-np.inf, np.inf),
         yaxis_limit: Optional[Tuple[float, float]] = None,
         xticks: Optional[List[int]] = None,
         rotate_xticks: bool = True,
@@ -575,8 +584,8 @@ class GridSearchContainer:
         params_hue_unique = np.sort(np.unique(self.summary_table[param_hue].values))
 
         run_ids = []
-        summary_table = self.summary_table
-        runparams_table = self.runparams_table
+        summary_table = self.summary_table.copy()
+        runparams_table = self.runparams_table.copy()
         for x in params_x_unique:
             for hue in params_hue_unique:
                 run_id_temp = self.get_best_model_id(
@@ -597,7 +606,6 @@ class GridSearchContainer:
         self.best_model_hyperparam_table = runparams_table
         summary_table.sort_values([param_x, param_hue])
         ycol = partition_show + "_" + metric_show
-        summary_table[ycol] = [np.min([ylim[1], np.max([ylim[0], x])]) for x in summary_table[ycol].values]
 
         if plot_mode == 'boxplot':
             sns.boxplot(x=param_x, hue=param_hue, y=ycol, hue_order=hue_order, data=summary_table, ax=ax)

@@ -25,6 +25,7 @@ class ModelCVAE:
         scale_node_size: bool = False,
         transform_input: bool = False,
         output_layer="gaussian",
+        **kwargs
     ):
         super().__init__()
         self.args = {

@@ -36,6 +36,7 @@ class ModelCVAEncem:
         use_batch_norm: bool = False,
         transform_input: bool = False,
         output_layer: str = "gaussian",
+        **kwargs
     ):
         super().__init__()
         self.args = {

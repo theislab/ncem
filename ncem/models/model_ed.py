@@ -21,6 +21,7 @@ class ModelED:
         use_type_cond: bool = True,
         scale_node_size: bool = False,
         output_layer: str = "gaussian",
+        **kwargs
     ):
         super().__init__()
         self.args = {
