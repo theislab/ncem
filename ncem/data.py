@@ -1241,13 +1241,13 @@ class DataLoaderJarosch(DataLoader):
         "GATA3+ epithelial": "GATA3+ epithelial",
         "Ki67 high epithelial": "Ki67 epithelial",
         "Ki67 low epithelial": "Ki67 epithelial",
-        "Lamina propria cells": "Lamina propria\ncells",
+        "Lamina propria cells": "Lamina propria cells",
         "Macrophages": "Macrophages",
         "Monocytes": "Monocytes",
         "PD-L1+ cells": "PD-L1+ cells",
-        "intraepithelial Lymphocytes": "intraepithelial\nLymphocytes",
+        "intraepithelial Lymphocytes": "intraepithelial Lymphocytes",
         "muscular cells": "muscular cells",
-        "other Lymphocytes": "other\nLymphocytes",
+        "other Lymphocytes": "other Lymphocytes",
     }
 
     def _register_celldata(self):
