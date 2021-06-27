@@ -410,7 +410,7 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
         adata.obs['relative_r_squared'] = np.array(graph) - np.array(baseline)
             
         adata_tc =adata[(adata.obs[adata.uns['metadata']['cluster_col_preprocessed']] == target_cell_type)].copy()
-        sc.pp.normalize_total(adata_tc)
+        # sc.pp.normalize_total(adata_tc)
         sc.pp.neighbors(adata_tc, n_neighbors=n_neighbors, n_pcs=n_pcs)
         sc.tl.louvain(adata_tc)
         sc.tl.umap(adata_tc)

@@ -838,9 +838,8 @@ class PlottingTools:
         self,
         adata: AnnData,
         source_group: str,
-        panel_width: float = 8.,
-        panel_height: float = 5.,
-        fontsize: int = 18,
+        figsize: Tuple[float, float] = (5., 2.5),
+        fontsize: int = 10,
         pvalue_threshold: float = 0.05,
         save: Union[str, None] = None,
         suffix: str = "_ligrec_barplot.pdf",
@@ -851,7 +850,7 @@ class PlottingTools:
         pvals = adata.uns[f"{cluster_id}_ligrec"]['pvalues'].xs((source_group), axis=1)
 
         fig, ax = plt.subplots(
-            nrows=1, ncols=1, figsize=(panel_width, panel_height), )
+            nrows=1, ncols=1, figsize=figsize)
         sc.set_figure_params(scanpy=True, fontsize=fontsize)
         sns.barplot(
             x=list(np.sum(pvals < pvalue_threshold, axis=0).index),
