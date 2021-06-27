@@ -368,39 +368,49 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
         n_pcs: Optional[int] = None,
         clean_view: bool = False
     ):
-        nodes_idx = {image_key: self.nodes_idx_all[image_key]}
-        ds = self._get_dataset(
-            image_keys=[image_key],
-            nodes_idx=nodes_idx,
-            batch_size=1,
-            shuffle_buffer_size=1,
-            train=False,
-            seed=None,
-            reinit_n_eval=1
-        )
+        if isinstance(image_key, str):
+            image_key = [image_key]
         graph = []
         baseline = []
-        with tqdm(total=len(self.nodes_idx_all[image_key])) as pbar:
-            for step, (x_batch, y_batch) in enumerate(ds):
-                out_graph = self.reinit_model.training_model(x_batch)
-                out_graph = np.split(ary=out_graph.numpy().squeeze(), indices_or_sections=2, axis=-1)[0]
+        tqdm_total = 0
+        for key in image_key:
+            tqdm_total = tqdm_total + len(self.nodes_idx_all[str(key)])
+        with tqdm(total=tqdm_total) as pbar:
+            for key in image_key:
+                if key == 8:
+                    nodes_idx = {str(key): self.nodes_idx_all[str(key)][:-1]}#
+                else:
+                    nodes_idx = {str(key): self.nodes_idx_all[str(key)]}
+                ds = self._get_dataset(
+                    image_keys=[str(key)],
+                    nodes_idx=nodes_idx,
+                    batch_size=1,
+                    shuffle_buffer_size=1,
+                    train=False,
+                    seed=None,
+                    reinit_n_eval=1
+                )
+                for step, (x_batch, y_batch) in enumerate(ds):
+                    out_graph = self.reinit_model.training_model(x_batch)
+                    out_graph = np.split(ary=out_graph.numpy().squeeze(), indices_or_sections=2, axis=-1)[0]
 
-                out_base = baseline_model.reinit_model.training_model(x_batch)
-                out_base = np.split(ary=out_base.numpy().squeeze(), indices_or_sections=2, axis=-1)[0]
+                    out_base = baseline_model.reinit_model.training_model(x_batch)
+                    out_base = np.split(ary=out_base.numpy().squeeze(), indices_or_sections=2, axis=-1)[0]
 
-                r2_graph = stats.linregress(out_graph, y_batch.numpy().squeeze())[2] ** 2
-                graph.append(r2_graph)
+                    r2_graph = stats.linregress(out_graph, y_batch.numpy().squeeze())[2] ** 2
+                    graph.append(r2_graph)
 
-                r2_base = stats.linregress(out_base, y_batch.numpy().squeeze())[2] ** 2
-                baseline.append(r2_base)
-                pbar.update(1)
+                    r2_base = stats.linregress(out_base, y_batch.numpy().squeeze())[2] ** 2
+                    baseline.append(r2_base)
+                    pbar.update(1)
 
-        adata = self.data.img_celldata[image_key].copy()
+        adata = self.data.celldata[self.data.celldata.obs[self.data.celldata.uns['metadata']['image_col']].isin(image_key)]
         if undefined_type:
             adata = adata[adata.obs[adata.uns['metadata']['cluster_col_preprocessed']] != undefined_type]
         adata.obs['relative_r_squared'] = np.array(graph) - np.array(baseline)
             
         adata_tc =adata[(adata.obs[adata.uns['metadata']['cluster_col_preprocessed']] == target_cell_type)].copy()
+        sc.pp.normalize_total(adata_tc)
         sc.pp.neighbors(adata_tc, n_neighbors=n_neighbors, n_pcs=n_pcs)
         sc.tl.louvain(adata_tc)
         sc.tl.umap(adata_tc)
@@ -685,16 +695,14 @@ class InterpreterEDncem(estimators.EstimatorEDncem, InterpreterGraph):
                 if len(saliencies) == 0:
                     continue
                 saliencies = np.concatenate(saliencies, axis=0)
-                n_cells = saliencies.shape[0]
-                saliencies = np.mean(saliencies, axis=0)
+                saliencies = np.sum(saliencies, axis=0)
                 neighbourhood = self._neighbourhood_frequencies(
                         a=a,
                         h_0_full=h_0_full,
                         discretize_adjacency=True
                 )
-                neighbourhood = np.mean(np.array(neighbourhood), axis=0)
-                normalized = saliencies / n_cells
-                img_saliency.append(normalized)
+                neighbourhood = np.sum(np.array(neighbourhood), axis=0)
+                img_saliency.append(saliencies/neighbourhood)
                 keys.append(key)
                 pbar.update(1)
         
@@ -736,7 +744,6 @@ class InterpreterEDncem(estimators.EstimatorEDncem, InterpreterGraph):
         plt.rcParams['axes.grid'] = False
         plt.ioff()
         fig, ax = plt.subplots(nrows=1, ncols=2, figsize=figsize, gridspec_kw={'width_ratios': width_ratios})
-        
         sns.heatmap(saliencies, cmap='seismic', ax=ax[0], center=0)
         ax[0].set_xlabel('')
         
@@ -744,7 +751,7 @@ class InterpreterEDncem(estimators.EstimatorEDncem, InterpreterGraph):
             xlabel_mapping = OrderedDict()
             for index1, index2 in saliencies.columns:
                 xlabel_mapping.setdefault(index1, [])
-                xlabel_mapping[index1].append(index2)
+                xlabel_mapping[index1].append(index2.replace('slice', ''))
 
             hline = []
             new_xlabels = []
@@ -756,10 +763,10 @@ class InterpreterEDncem(estimators.EstimatorEDncem, InterpreterGraph):
                     hline.append(len(index2_list) + hline[-1])
                 else:
                     hline.append(len(index2_list))
-            ax[0].set_xticklabels(new_xlabels)
+            ax[0].set_xticklabels(new_xlabels, rotation=90)
         
-        sns.boxplot(data=saliencies.T, ax=ax[1], color='steelblue', showfliers=False)
-        plt.xticks(rotation=90)
+        sns.boxplot(data=saliencies.T, ax=ax[1], orient="h", color='steelblue', showfliers=True)
+        ax[1].set_yticklabels('')
         
         # Save, show and return figure.
         plt.tight_layout()

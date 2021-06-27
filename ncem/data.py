@@ -118,6 +118,110 @@ class GraphTools:
 
 
 class PlottingTools:
+    def celldata_interaction_matrix(
+        self,
+        fontsize: int = 13,
+        figsize: Tuple[float, float] = (5,5),
+        title: Optional[str] = None,
+        save: Optional[str] = None,
+        suffix: str = "_celldata_interaction_matrix.pdf",
+    ):
+        from tqdm import tqdm
+        interaction_matrix = []
+        cluster_key = self.celldata.uns['metadata']['cluster_col_preprocessed']
+        with tqdm(total=len(self.img_celldata.keys())) as pbar:
+            for k, adata in self.img_celldata.items():
+                im = sq.gr.interaction_matrix(
+                    adata,
+                    cluster_key=cluster_key,
+                    connectivity_key='adjacency_matrix',
+                    normalized=True,
+                    copy=True
+                )
+                im = pd.DataFrame(
+                    im, 
+                    columns=list(np.unique(adata.obs[cluster_key])), 
+                    index=list(np.unique(adata.obs[cluster_key]))
+                )
+                interaction_matrix.append(im)
+                pbar.update(1)
+        df_concat = pd.concat(interaction_matrix)
+        by_row_index = df_concat.groupby(df_concat.index)
+        df_means = by_row_index.mean().sort_index(axis=1)
+        self.celldata.uns[f"{cluster_key}_interactions"] = np.array(df_means).T
+        
+        sc.set_figure_params(scanpy=True, fontsize=fontsize)
+        if save:
+            save = save + suffix
+        sq.pl.interaction_matrix(
+            self.celldata,
+            cluster_key=cluster_key,
+            connectivity_key='adjacency_matrix',
+            figsize=figsize,
+            title=title,
+            save=save
+        )
+        
+    def celldata_nhood_enrichment(
+        self,
+        fontsize: int = 13,
+        figsize: Tuple[float, float] = (5,5),
+        title: Optional[str] = None,
+        save: Optional[str] = None,
+        suffix: str = "_celldata_nhood_enrichment.pdf",
+    ):
+        from tqdm import tqdm
+        zscores = []
+        counts = []
+        cluster_key = self.celldata.uns['metadata']['cluster_col_preprocessed']
+        with tqdm(total=len(self.img_celldata.keys())) as pbar:
+            for k, adata in self.img_celldata.items():
+                im = sq.gr.nhood_enrichment(
+                    adata,
+                    cluster_key=cluster_key,
+                    connectivity_key='adjacency_matrix',
+                    copy=True,
+                    show_progress_bar=False
+                )
+                zscore = pd.DataFrame(
+                    im[0], 
+                    columns=list(np.unique(adata.obs[cluster_key])), 
+                    index=list(np.unique(adata.obs[cluster_key]))
+                )
+                count = pd.DataFrame(
+                    im[1], 
+                    columns=list(np.unique(adata.obs[cluster_key])), 
+                    index=list(np.unique(adata.obs[cluster_key]))
+                )
+                zscores.append(zscore)
+                counts.append(count)
+                pbar.update(1)
+        df_zscores = pd.concat(zscores)
+        by_row_index = df_zscores.groupby(df_zscores.index)
+        df_zscores = by_row_index.mean().sort_index(axis=1)
+        
+        df_counts = pd.concat(counts)
+        by_row_index = df_counts.groupby(df_counts.index)
+        df_counts = by_row_index.sum().sort_index(axis=1)
+        
+        self.celldata.uns[f"{cluster_key}_nhood_enrichment"] = {
+            'zscore': np.array(df_zscores).T,
+            'count': np.array(df_counts).T,
+        }
+        
+        sc.set_figure_params(scanpy=True, fontsize=fontsize)
+        if save:
+            save = save + suffix
+        sq.pl.nhood_enrichment(
+            self.celldata,
+            cluster_key=cluster_key,
+            connectivity_key='adjacency_matrix',
+            figsize=figsize,
+            title=title,
+            save=save
+        )
+        
+        
     def noise_structure(
         self,
         undefined_type: Optional[str] = None,
@@ -315,7 +419,7 @@ class PlottingTools:
 
     def compute_cluster_enrichment(
         self,
-        image_key: str,
+        image_key: list,
         target_cell_type: str,
         undefined_type: Optional[str] = None,
         filter_titles: Optional[List[str]] = None,
@@ -385,7 +489,7 @@ class PlottingTools:
                 adata = adata[adata.obs['target_cell'] != undefined_type]
 
             adata_substates = adata[
-                (adata.obs['target_cell'] == target_cell_type) & (adata.obs['fov'] == image_key)
+                (adata.obs['target_cell'] == target_cell_type) & (adata.obs['fov'].isin(image_key))
                 ]
             sc.pp.neighbors(adata_substates, n_neighbors=n_neighbors, n_pcs=n_pcs)
             sc.tl.louvain(adata_substates)
@@ -601,6 +705,7 @@ class PlottingTools:
         spot_size: Optional[int] = 40,
         fontsize: int = 18,
         legend_loc: str = 'right margin',
+        palette: Union[str, list] = 'tab10',
         save: Union[str, None] = None,
         suffix: str = "_spatial_substates.pdf",
         show: bool = True,
@@ -631,7 +736,7 @@ class PlottingTools:
             show=False,
             legend_loc=legend_loc,
             title='',
-            palette='tab10'
+            #palette=palette
         )
         ax.invert_yaxis()
         ax.set_xlabel('')
@@ -1137,13 +1242,13 @@ class DataLoaderJarosch(DataLoader):
         "GATA3+ epithelial": "GATA3+ epithelial",
         "Ki67 high epithelial": "Ki67 epithelial",
         "Ki67 low epithelial": "Ki67 epithelial",
-        "Lamina propria cells": "Lamina propria cells",
+        "Lamina propria cells": "Lamina propria\ncells",
         "Macrophages": "Macrophages",
         "Monocytes": "Monocytes",
         "PD-L1+ cells": "PD-L1+ cells",
-        "intraepithelial Lymphocytes": "intraepithelial Lymphocytes",
+        "intraepithelial Lymphocytes": "intraepithelial\nLymphocytes",
         "muscular cells": "muscular cells",
-        "other Lymphocytes": "other Lymphocytes",
+        "other Lymphocytes": "other\nLymphocytes",
     }
 
     def _register_celldata(self):
@@ -1253,6 +1358,7 @@ class DataLoaderHartmann(DataLoader):
         }
         celldata_df = read_csv(self.data_path + metadata["fn"][0])
         celldata_df = celldata_df.dropna(inplace=False).reset_index()
+        #celldata_df = celldata_df.reset_index()
         feature_cols = [
             "H3",
             "vimentin",
