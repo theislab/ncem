@@ -154,9 +154,9 @@ class InterpreterBase(estimators.Estimator):
         )
 
     def init_model_again(self):
-        if self.model_class in ['cvae', 'vae']:
+        if self.model_class in ['vae']:
             model = models.ModelCVAE(**self._model_kwargs)
-        elif self.model_class == 'cvae_ncem':
+        elif self.model_class in ['cvae', 'cvae_ncem']:
             model = models.ModelCVAEncem(**self._model_kwargs)
         elif self.model_class == ['ed', 'lvmnp']:
             model = models.ModelED(**self._model_kwargs)
@@ -187,9 +187,9 @@ class InterpreterBase(estimators.Estimator):
         new_model_kwargs = self._model_kwargs.copy()
         new_model_kwargs.update(changed_model_kwargs)
 
-        if self.model_class in ['cvae', 'vae']:
+        if self.model_class in ['vae']:
             reinit_model = models.ModelCVAE(**new_model_kwargs)
-        elif self.model_class == 'cvae_ncem':
+        elif self.model_class in ['cvae', 'cvae_ncem']:
             reinit_model = models.ModelCVAEncem(**new_model_kwargs)
         elif self.model_class == ['ed', 'lvmnp']:
             reinit_model = models.ModelED(**new_model_kwargs)
@@ -368,19 +368,16 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
         n_pcs: Optional[int] = None,
         clean_view: bool = False
     ):
+        cluster_col = self.data.celldata.uns['metadata']['cluster_col_preprocessed']
         if isinstance(image_key, str):
             image_key = [image_key]
-        graph = []
-        baseline = []
+        adata_list = []
         tqdm_total = 0
         for key in image_key:
             tqdm_total = tqdm_total + len(self.nodes_idx_all[str(key)])
         with tqdm(total=tqdm_total) as pbar:
             for key in image_key:
-                if key == 8:
-                    nodes_idx = {str(key): self.nodes_idx_all[str(key)][:-1]}#
-                else:
-                    nodes_idx = {str(key): self.nodes_idx_all[str(key)]}
+                nodes_idx = {str(key): self.nodes_idx_all[str(key)]}
                 ds = self._get_dataset(
                     image_keys=[str(key)],
                     nodes_idx=nodes_idx,
@@ -390,6 +387,8 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
                     seed=None,
                     reinit_n_eval=1
                 )
+                graph = []
+                baseline = []
                 for step, (x_batch, y_batch) in enumerate(ds):
                     out_graph = self.reinit_model.training_model(x_batch)
                     out_graph = np.split(ary=out_graph.numpy().squeeze(), indices_or_sections=2, axis=-1)[0]
@@ -403,13 +402,15 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
                     r2_base = stats.linregress(out_base, y_batch.numpy().squeeze())[2] ** 2
                     baseline.append(r2_base)
                     pbar.update(1)
-
-        adata = self.data.celldata[self.data.celldata.obs[self.data.celldata.uns['metadata']['image_col']].isin(image_key)]
+                temp_adata = self.data.img_celldata[key].copy()
+                temp_adata.obs['relative_r_squared'] = np.array(graph) - np.array(baseline)
+                adata_list.append(temp_adata)
+    
+        adata = adata_list[0].concatenate(adata_list[1:], uns_merge="same") if len(adata_list) > 0 else adata_list
         if undefined_type:
-            adata = adata[adata.obs[adata.uns['metadata']['cluster_col_preprocessed']] != undefined_type]
-        adata.obs['relative_r_squared'] = np.array(graph) - np.array(baseline)
+            adata = adata[adata.obs[cluster_col] != undefined_type]
             
-        adata_tc =adata[(adata.obs[adata.uns['metadata']['cluster_col_preprocessed']] == target_cell_type)].copy()
+        adata_tc =adata[(adata.obs[cluster_col] == target_cell_type)].copy()
         # sc.pp.normalize_total(adata_tc)
         sc.pp.neighbors(adata_tc, n_neighbors=n_neighbors, n_pcs=n_pcs)
         sc.tl.louvain(adata_tc)
@@ -440,8 +441,8 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
         plt.rcParams['axes.grid'] = False
         fig, ax = plt.subplots(nrows=1, ncols=1, figsize=figsize)
         sns.boxplot(
-            data=adata.obs, x=f"{target_cell_type} substates", y=relative_performance_key, 
-            order=list(np.unique(adata.obs[f"{target_cell_type} substates"])),
+            data=adata.obs, x=f"{target_cell_type}_substates", y=relative_performance_key, 
+            order=list(np.unique(adata.obs[f"{target_cell_type}_substates"])),
             palette=palette,
             ax=ax
         )
@@ -785,8 +786,151 @@ class InterpreterEDncem(estimators.EstimatorEDncem, InterpreterGraph):
             return None
         
         
-            
 
+class InterpreterCVAEncem(estimators.EstimatorCVAEncem, InterpreterGraph):
+    """
+    Inherits all relevant functions specific to EstimatorInteractions estimators
+    """
+    def __init__(self):
+        super().__init__()
+        
+    def compute_latent_space_cluster_enrichment(
+        self,
+        image_key,
+        target_cell_type: str,
+        n_neighbors: Optional[int] = None,
+        n_pcs: Optional[int] = None,
+        filter_titles: Optional[List[str]] = None,
+        clip_pvalues: Optional[int] = -5,
+    ):
+        
+        node_type_names = list(self.data.celldata.uns['node_type_names'].values())
+        ds = self._get_dataset(
+            image_keys=[image_key],
+            nodes_idx={image_key: self.nodes_idx_all[image_key]},
+            batch_size=1,
+            shuffle_buffer_size=1,
+            seed=None,
+            train=False,
+            reinit_n_eval=1
+        )
+
+        cond_encoder = tf.keras.Model(
+            self.reinit_model.training_model.input,
+            self.reinit_model.training_model.get_layer('cond_encoder').output
+        )
+        cond_latent_z_mean = []
+        h_0_full = []
+        h_0 = []
+        a = []
+        for step, (x_batch, y_batch) in enumerate(ds):
+            h_1_batch, sf_batch, h_0_batch, h_0_full_batch, a_batch, a_full_batch, node_covar_batch, g_batch = x_batch
+
+            cond_z, cond_z_mean, cond_z_log = cond_encoder(x_batch)
+            cond_latent_z_mean.append(cond_z_mean.numpy())
+
+            h_0.append(h_0_batch.numpy())
+            h_0_full.append(h_0_full_batch.numpy().squeeze())
+            a.append(sparse.csr_matrix(
+                (
+                    a_batch.values.numpy(),
+                    (
+                        a_batch.indices.numpy()[:, 1],
+                        a_batch.indices.numpy()[:, 2]
+                    )
+                ),
+                shape=a_batch.dense_shape.numpy()[1:]
+            ).toarray())
+
+        cond_latent_z_mean = np.concatenate(cond_latent_z_mean, axis=0)
+        source_type = self._neighbourhood_frequencies(
+            a=a,
+            h_0_full=h_0_full,
+            discretize_adjacency=True
+        )
+        source_type = pd.DataFrame(
+            (source_type > 0).astype(str), columns=node_type_names
+        ).replace({'True': 'in neighbourhood', 'False': 'not in neighbourhood'}, regex=True).astype("category")
+        h_0 = pd.DataFrame(
+            np.concatenate(h_0, axis=0).squeeze(), columns=node_type_names
+        )
+        target_type = pd.DataFrame(np.array(h_0.idxmax(axis=1)), columns=['target_cell'])
+
+        metadata = pd.concat(
+            [target_type, source_type], 
+            axis=1
+        )
+        cond_adata = AnnData(cond_latent_z_mean, obs=metadata)
+        sc.pp.neighbors(cond_adata, n_neighbors=n_neighbors, n_pcs=n_pcs)
+        sc.tl.louvain(cond_adata)
+        sc.tl.umap(cond_adata)
+
+        for i, x in enumerate(node_type_names):
+            cond_adata.uns[f"{x}_colors"] = ['darkgreen', 'lightgrey']
+            
+        cond_adata.obs['sub-states'] = target_cell_type + ' ' + cond_adata.obs.louvain.astype(str) 
+        cond_adata.obs['sub-states'] = cond_adata.obs['sub-states'].astype("category")
+        print('n cells: ', cond_adata.shape[0])
+        substate_counts = cond_adata.obs["sub-states"].value_counts()
+        print(substate_counts)
+        
+        one_hot = pd.get_dummies(cond_adata.obs.louvain, dtype=np.bool)
+        # Join the encoded df
+        df = cond_adata.obs.join(one_hot)
+        
+        import scipy.stats as stats
+        from diffxpy.testing.correction import correct
+
+        distinct_louvain = len(np.unique(cond_adata.obs.louvain))
+        pval_source_type = []
+        for i, st in enumerate(node_type_names):
+            pval_cluster = []
+            for j in range(distinct_louvain):
+                crosstab = np.array(pd.crosstab(df[f"{st}"], df[str(j)]))
+                if crosstab.shape[0] < 2:
+                    crosstab = np.vstack([crosstab, [0,0]])
+                oddsratio, pvalue = stats.fisher_exact(crosstab)
+                pvalue = correct(np.array([pvalue]))
+                pval_cluster.append(pvalue)
+            pval_source_type.append(pval_cluster)
+        
+        columns = [f"{target_cell_type} {x}" for x in np.unique(cond_adata.obs.louvain)]
+        pval = pd.DataFrame(
+            np.array(pval_source_type).squeeze(),
+            index=node_type_names,
+            columns=columns
+        )
+        log_pval = np.log10(pval)
+        
+        if filter_titles:
+            log_pval = log_pval.sort_values(columns, ascending=True).filter(
+                items=filter_titles,
+                axis=0
+            )
+        if clip_pvalues:
+            log_pval[log_pval < clip_pvalues] = clip_pvalues
+        
+        fold_change_df = cond_adata.obs[
+            ["target_cell", "sub-states"] + node_type_names
+        ]
+        counts = pd.pivot_table(
+            fold_change_df.replace({'in neighbourhood': 1, 'not in neighbourhood': 0}),
+            index=["sub-states"],
+            aggfunc=np.sum,
+            margins=True
+        ).T
+
+        fold_change = counts.loc[:, columns].div(np.array(substate_counts), axis=1)
+        fold_change = fold_change.subtract(np.array(counts['All'] / cond_adata.shape[0]), axis=0)
+
+        if filter_titles:
+            fold_change = fold_change.fillna(0).filter(
+                items=filter_titles,
+                axis=0
+            )
+        return cond_adata.copy(), log_pval, fold_change
+        
+        
 class InterpreterNoGraph(estimators.EstimatorNoGraph, InterpreterBase):
     """
     Inherits all relevant functions specific to EstimatorEDncem estimators and InterpreterBase

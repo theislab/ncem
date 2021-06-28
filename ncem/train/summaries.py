@@ -232,19 +232,19 @@ class GridSearchContainer:
                              }.items()) +
                         list(dict([
                             ("train_" + m.replace('reconstruction_', '').replace('logp1_', ''),
-                             [evals[x][cv]["train"][m] for x in run_ids_clean]) for m in list(evals_posterior_sampling[run_ids_clean[0]][cv]["train"].keys())
+                             [evals_posterior_sampling[x][cv]["train"][m] for x in run_ids_clean]) for m in list(evals_posterior_sampling[run_ids_clean[0]][cv]["train"].keys())
                         ]).items()) +
                         list(dict([
                             ("val_" + m.replace('reconstruction_', '').replace('logp1_', ''),
-                             [evals[x][cv]["val"][m] for x in run_ids_clean]) for m in list(evals_posterior_sampling[run_ids_clean[0]][cv]["val"].keys())
+                             [evals_posterior_sampling[x][cv]["val"][m] for x in run_ids_clean]) for m in list(evals_posterior_sampling[run_ids_clean[0]][cv]["val"].keys())
                         ]).items()) +
                         list(dict([
                             ("test_" + m.replace('reconstruction_', '').replace('logp1_', ''),
-                             [evals[x][cv]["test"][m] for x in run_ids_clean]) for m in list(evals_posterior_sampling[run_ids_clean[0]][cv]["test"].keys())
+                             [evals_posterior_sampling[x][cv]["test"][m] for x in run_ids_clean]) for m in list(evals_posterior_sampling[run_ids_clean[0]][cv]["test"].keys())
                         ]).items()) +
                         list(dict([
                             ("all_" + m.replace('reconstruction_', '').replace('logp1_', ''),
-                             [evals[x][cv]["all"][m] for x in run_ids_clean]) for m in list(evals_posterior_sampling[run_ids_clean[0]][cv]["all"].keys())
+                             [evals_posterior_sampling[x][cv]["all"][m] for x in run_ids_clean]) for m in list(evals_posterior_sampling[run_ids_clean[0]][cv]["all"].keys())
                         ]).items()))) for cv in cv_ids]))
                     print("%s: loaded posterior sampling as seperate model (%i runs with %i-fold cross validation)"
                           % (gs_id, len(run_ids_clean), len(cv_ids)))
@@ -562,6 +562,7 @@ class GridSearchContainer:
         plot_mode: str = 'boxplot',
         hue_order=None,
         palette: Optional[dict] = None,
+        color: Optional[str] = None,
         save: Optional[str] = None,
         suffix: str = "best_by_hyperparam.pdf",
         show: bool = True,
@@ -608,8 +609,12 @@ class GridSearchContainer:
         ycol = partition_show + "_" + metric_show
 
         if plot_mode == 'boxplot':
-            sns.boxplot(x=param_x, hue=param_hue, y=ycol, hue_order=hue_order, data=summary_table, ax=ax)
-            sns.swarmplot(x=param_x, hue=param_hue, y=ycol, palette=palette, data=summary_table, ax=ax)
+            if color:
+                sns.boxplot(x=param_x, y=ycol, data=summary_table, ax=ax,color=color)
+                sns.swarmplot(x=param_x, y=ycol, palette=[color], data=summary_table, ax=ax,)
+            else:
+                sns.boxplot(x=param_x, y=ycol, hue=param_hue, hue_order=hue_order, data=summary_table, ax=ax,)
+                sns.swarmplot(x=param_x, y=ycol, hue=param_hue, data=summary_table, ax=ax)
         elif plot_mode == 'lineplot':
             sns.scatterplot(
                 x=param_x, y=ycol, hue=param_hue, style='cv', palette=palette,

@@ -35,14 +35,21 @@ class GraphTools:
             for k, adata in self.img_celldata.items():
                 sq.gr.spatial_neighbors(adata=adata, radius=radius, transform=transform, key_added="adjacency_matrix")
                 pbar.update(1)
-
-    def _get_degrees(self, max_distances: list):
-        # ToDo this is not efficient with squidpy distances. Keep old implementation from tissue package
+                
+    def _compute_distance_matrix(self, pos_matrix):
+        diff = pos_matrix[:, :, None] - pos_matrix[:, :, None].T
+        return (diff * diff).sum(1)
+                
+    def _get_degrees(
+        self,
+        max_distances: list
+    ):
         degs = {}
         degrees = {}
-        for k, adata in self.img_celldata.items():
-            dist_matrix = adata.obsp["adjacency_matrix_distances"]
-            degs[k] = {dist: np.sum(dist_matrix < dist * dist, axis=0) for dist in max_distances}
+        for i, adata in self.img_celldata.items():
+            pm = np.array(adata.obsm['spatial'])
+            dist_matrix = self._compute_distance_matrix(pm)
+            degs[i] = {dist: np.sum(dist_matrix < dist * dist, axis=0) for dist in max_distances}
         for dist in max_distances:
             degrees[dist] = [deg[dist] for deg in degs.values()]
         return degrees
@@ -96,6 +103,7 @@ class GraphTools:
         ax = fig.add_subplot(111)
         sns.boxplot(data=sns_data, x="dist", color="steelblue", y="mean_degree", ax=ax)
         ax.set_yscale("log", basey=10)
+        ax.grid(False)
         plt.ylabel("")
         plt.xlabel("")
         plt.xticks(rotation=90)
@@ -443,60 +451,37 @@ class PlottingTools:
             pm = []
             img_size = []
             for k, adata in self.img_celldata.items():
-                img_size.append(adata.shape[0])
-                h_1.append(adata.X)
-                fov.append(np.expand_dims(np.repeat(k, adata.shape[0]), axis=1))
-                h_0.append(adata.obsm['node_types'])
-                pm.append(adata.obsm['spatial'])
-                a.append(np.array(adata.obsp['adjacency_matrix_connectivities'].todense()))
-                pbar.update(1)
-
-            source_type = []
-            for i, adj in enumerate(a):
-                adj = np.asarray(adj > 0, dtype="int")
-                source_type.append(
-                    np.matmul(adj, h_0[i].astype(int))
+                source_type = np.matmul(
+                    np.asarray(adata.obsp['adjacency_matrix_connectivities'].todense() > 0, dtype="int"),
+                    adata.obsm['node_types']
                 )
+                source_type = pd.DataFrame(
+                    (source_type > 0).astype(str), columns=sorce_type_names
+                ).replace({'True': 'in neighbourhood', 'False': 'not in neighbourhood'}, regex=True).astype("category")
+                
+                for col in source_type.columns:
+                    adata.obs[col] = list(source_type[col])
+                
                 pbar.update(1)
-            h_1 = np.concatenate(h_1, axis=0)
-            h_1 = pd.DataFrame(
-                h_1,
-                columns=self.celldata.var_names,
-                index=[str(x) for x in range(h_1.shape[0])]
-            )
-            fov = pd.DataFrame(
-                np.concatenate(fov, axis=0), columns=['fov'], index=[str(x) for x in range(h_1.shape[0])]
-            ).astype("category")
-            source_type = pd.DataFrame(
-                (np.concatenate(source_type, axis=0) > 0).astype(str), columns=sorce_type_names,
-                index=[str(x) for x in range(h_1.shape[0])]
-            ).replace({'True': 'in neighbourhood', 'False': 'not in neighbourhood'}, regex=True).astype("category")
-            h_0 = pd.DataFrame(
-                np.concatenate(h_0, axis=0),
-                columns=[x.replace('_', ' ') for x in list(self.celldata.uns['node_type_names'].values())]
-            )
-            position_matrix = np.concatenate(pm, axis=0)
-            target_type = pd.DataFrame(np.array(h_0.idxmax(axis=1)), columns=['target_cell'],
-                                       index=[str(x) for x in range(h_1.shape[0])], dtype="category")
+                pbar.update(1)
 
-            metadata = pd.concat(
-                [fov, target_type, source_type],
-                axis=1
-            )
-            adata = AnnData(X=h_1, obs=metadata)
-            adata.obsm["spatial"] = position_matrix
+            adata_list = list(self.img_celldata.values())
+            adata = adata_list[0].concatenate(adata_list[1:], uns_merge="same")
+            
+            cluster_col = self.celldata.uns['metadata']['cluster_col_preprocessed']
+            image_col = self.celldata.uns['metadata']['image_col']
             if undefined_type:
-                adata = adata[adata.obs['target_cell'] != undefined_type]
+                adata = adata[adata.obs[cluster_col] != undefined_type]
 
             adata_substates = adata[
-                (adata.obs['target_cell'] == target_cell_type) & (adata.obs['fov'].isin(image_key))
-                ]
+                (adata.obs[cluster_col] == target_cell_type) & (adata.obs[image_col].isin(image_key))
+            ]
             sc.pp.neighbors(adata_substates, n_neighbors=n_neighbors, n_pcs=n_pcs)
             sc.tl.louvain(adata_substates)
             sc.tl.umap(adata_substates)
             adata_substates.obs[f"{target_cell_type}_substates"] = f"{target_cell_type} " + adata_substates.obs.louvain.astype(str)
             adata_substates.obs[f"{target_cell_type}_substates"] = adata_substates.obs[f"{target_cell_type}_substates"].astype("category")
-
+            
             one_hot = pd.get_dummies(adata_substates.obs.louvain, dtype=np.bool)
             # Join the encoded df
             df = adata_substates.obs.join(one_hot)
@@ -535,7 +520,7 @@ class PlottingTools:
         if clip_pvalues:
             log_pval[log_pval < clip_pvalues] = clip_pvalues
         fold_change_df = adata_substates.obs[
-            ['target_cell', f"{target_cell_type}_substates"] + sorce_type_names
+            [cluster_col, f"{target_cell_type}_substates"] + sorce_type_names
             ]
         counts = pd.pivot_table(
             fold_change_df.replace({'in neighbourhood': 1, 'not in neighbourhood': 0}),
@@ -554,7 +539,7 @@ class PlottingTools:
                 items=filter_titles,
                 axis=0
             )
-        return adata_substates.copy(), log_pval, fold_change
+        return adata.copy(), adata_substates.copy(), log_pval, fold_change
 
     def cluster_enrichment(
         self,
@@ -1356,8 +1341,9 @@ class DataLoaderHartmann(DataLoader):
             "patient_col": "donor",
         }
         celldata_df = read_csv(self.data_path + metadata["fn"][0])
-        celldata_df = celldata_df.dropna(inplace=False).reset_index()
-        #celldata_df = celldata_df.reset_index()
+        celldata_df["point"] = [f"scMEP_point_{str(x)}" for x in celldata_df["point"]]
+        celldata_df = celldata_df.fillna(0)
+        #celldata_df = celldata_df.dropna(inplace=False).reset_index()
         feature_cols = [
             "H3",
             "vimentin",
@@ -1402,8 +1388,8 @@ class DataLoaderHartmann(DataLoader):
             # "Cluster",
         ]
 
-        celldata = AnnData(X=celldata_df[feature_cols], obs=celldata_df[["point", "cell_id", "donor", "Cluster"]])
-
+        celldata = AnnData(X=celldata_df[feature_cols], obs=celldata_df[["point", "cell_id", "donor", "Cluster"]].astype("category"))
+        
         celldata.uns["metadata"] = metadata
         img_keys = list(np.unique(celldata_df[metadata["image_col"]]))
         celldata.uns["img_keys"] = img_keys
