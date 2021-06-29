@@ -129,11 +129,9 @@ class Estimator:
         graph_covar_selection: Union[List[str], Tuple[str], None] = None,
         node_label_space_id: str = "type",
         node_feature_space_id: str = "standard",
-        # feature_transformation: str = "none",
         use_covar_node_position: bool = False,
         use_covar_node_label: bool = False,
         use_covar_graph_covar: bool = False,
-        # hold_out_covariate: Union[str, None] = None,
         domain_type: str = "image",
         merge_node_types_predefined: bool = False,
     ):
@@ -145,12 +143,9 @@ class Estimator:
         self._load_data(
             data_origin=data_origin,
             data_path=data_path,
-            # feature_transformation=feature_transformation,
             radius=radius,
             label_selection=labels_to_load,
         )
-        #if merge_node_types_predefined:
-        #    self.data.merge_types_predefined()
         # Validate graph-wise covariate selection:
         if len(graph_covar_selection) > 0:
             if (
@@ -167,11 +162,7 @@ class Estimator:
                     % (str(graph_covar_selection), str(self.data.celldata.uns["graph_covariates"]["label_selection"]))
                 )
         self.img_to_patient_dict = self.data.celldata.uns["img_to_patient_dict"]
-        # ToDo
-        # self.nodes_by_image = self.data.nodes_by_image
         self.complete_img_keys = list(self.data.img_celldata.keys())
-        # self.target_img_keys = self.data.target_img_keys
-        # self.ref_img_keys = self.data.ref_img_keys
 
         self.a = {k: adata.obsp["adjacency_matrix_connectivities"] for k, adata in self.data.img_celldata.items()}
         if node_label_space_id == "standard":
@@ -194,16 +185,6 @@ class Estimator:
         self.size_factors = self.data.size_factors()
 
         # Add covariates:
-        # Add graph-level hold-out covariate information
-        # self.holdout_covariate = hold_out_covariate
-        # if hold_out_covariate is not None:
-        #    if hold_out_covariate == 'images':
-        #        self.holdout_covar = self.node_types
-        #    else:
-        #        self.holdout_covar = {
-        #            k: np.concatenate([v[kk] for kk in [hold_out_covariate]], axis=0)
-        #            for k, v in self.data.label_tensors.items()
-        #        }
         # Add graph-level covariate information
         self.covar_selection = graph_covar_selection
         self.graph_covar_names = self.data.celldata.uns["graph_covariates"]["label_names"]
@@ -249,8 +230,6 @@ class Estimator:
         self.n_features_1 = list(self.h_1.values())[0].shape[1]
         self.n_graph_covariates = list(self.graph_covar.values())[0].shape[0]
         self.n_node_covariates = list(self.node_covar.values())[0].shape[1]
-        # if hold_out_covariate is not None:
-        #    self.n_holdout_covar = list(self.holdout_covar.values())[0].shape[0]
         self.max_nodes = max([self.a[i].shape[0] for i in self.complete_img_keys])
 
         # Define domains
