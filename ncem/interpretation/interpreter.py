@@ -403,13 +403,12 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
                     baseline.append(r2_base)
                     pbar.update(1)
                 temp_adata = self.data.img_celldata[key].copy()
+                if undefined_type:
+                    temp_adata = temp_adata[temp_adata.obs[cluster_col] != undefined_type]
                 temp_adata.obs['relative_r_squared'] = np.array(graph) - np.array(baseline)
                 adata_list.append(temp_adata)
     
         adata = adata_list[0].concatenate(adata_list[1:], uns_merge="same") if len(adata_list) > 0 else adata_list
-        if undefined_type:
-            adata = adata[adata.obs[cluster_col] != undefined_type]
-            
         adata_tc =adata[(adata.obs[cluster_col] == target_cell_type)].copy()
         # sc.pp.normalize_total(adata_tc)
         sc.pp.neighbors(adata_tc, n_neighbors=n_neighbors, n_pcs=n_pcs)
@@ -429,7 +428,7 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
         adata,
         target_cell_type: str,
         relative_performance_key: str = 'relative_r_squared',
-        fontsize: int =14,
+        fontsize: Optional[int] = None,
         figsize: Tuple[float, float] = (4., 4.),
         palette: list = ['#1f77b4', '#2ca02c', '#8c564b', '#7f7f7f', '#17becf'],
         save: Union[str, None] = None,
@@ -437,12 +436,13 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
         show: bool = True,
         return_axs: bool = False,
     ):
-        sc.set_figure_params(scanpy=True, fontsize=fontsize)
+        if fontsize:
+            sc.set_figure_params(scanpy=True, fontsize=fontsize)
         plt.rcParams['axes.grid'] = False
         fig, ax = plt.subplots(nrows=1, ncols=1, figsize=figsize)
         sns.boxplot(
-            data=adata.obs, x=f"{target_cell_type}_substates", y=relative_performance_key, 
-            order=list(np.unique(adata.obs[f"{target_cell_type}_substates"])),
+            data=adata.obs, x=f"{target_cell_type} substates", y=relative_performance_key, 
+            order=list(np.unique(adata.obs[f"{target_cell_type} substates"])),
             palette=palette,
             ax=ax
         )
@@ -732,7 +732,7 @@ class InterpreterEDncem(estimators.EstimatorEDncem, InterpreterGraph):
         self,
         saliencies,
         multiindex: bool = True,
-        fontsize: int = 14,
+        fontsize: Optional[int] = None,
         figsize: Tuple[float, float] = (30., 7.),
         width_ratios: list = [5, 1],
         save: Union[str, None] = None,
@@ -741,7 +741,8 @@ class InterpreterEDncem(estimators.EstimatorEDncem, InterpreterGraph):
         return_axs: bool = False,
     ):
         from collections import OrderedDict
-        sc.set_figure_params(scanpy=True, fontsize=fontsize)
+        if fontsize:
+            sc.set_figure_params(scanpy=True, fontsize=fontsize)
         plt.rcParams['axes.grid'] = False
         plt.ioff()
         fig, ax = plt.subplots(nrows=1, ncols=2, figsize=figsize, gridspec_kw={'width_ratios': width_ratios})
@@ -868,10 +869,10 @@ class InterpreterCVAEncem(estimators.EstimatorCVAEncem, InterpreterGraph):
         for i, x in enumerate(node_type_names):
             cond_adata.uns[f"{x}_colors"] = ['darkgreen', 'lightgrey']
             
-        cond_adata.obs['sub-states'] = target_cell_type + ' ' + cond_adata.obs.louvain.astype(str) 
-        cond_adata.obs['sub-states'] = cond_adata.obs['sub-states'].astype("category")
+        cond_adata.obs['substates'] = target_cell_type + ' ' + cond_adata.obs.louvain.astype(str) 
+        cond_adata.obs['substates'] = cond_adata.obs['substates'].astype("category")
         print('n cells: ', cond_adata.shape[0])
-        substate_counts = cond_adata.obs["sub-states"].value_counts()
+        substate_counts = cond_adata.obs["substates"].value_counts()
         print(substate_counts)
         
         one_hot = pd.get_dummies(cond_adata.obs.louvain, dtype=np.bool)
@@ -911,11 +912,11 @@ class InterpreterCVAEncem(estimators.EstimatorCVAEncem, InterpreterGraph):
             log_pval[log_pval < clip_pvalues] = clip_pvalues
         
         fold_change_df = cond_adata.obs[
-            ["target_cell", "sub-states"] + node_type_names
+            ["target_cell", "substates"] + node_type_names
         ]
         counts = pd.pivot_table(
             fold_change_df.replace({'in neighbourhood': 1, 'not in neighbourhood': 0}),
-            index=["sub-states"],
+            index=["substates"],
             aggfunc=np.sum,
             margins=True
         ).T

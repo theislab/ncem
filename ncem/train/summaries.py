@@ -429,7 +429,7 @@ class GridSearchContainer:
     def get_best_model_id(
             self,
             subset_hyperparameters: Optional[List[Tuple[str, str]]] = None,
-            metric_select: str = "loss",
+            metric_select: str = "r_squared_linreg",
             partition_select: str = "test",
             cv_mode: str = "mean"
     ):
@@ -559,6 +559,7 @@ class GridSearchContainer:
         xticks: Optional[List[int]] = None,
         rotate_xticks: bool = True,
         figsize: Tuple[float, float] = (3.5, 4.),
+        fontsize: Optional[int] = None,
         plot_mode: str = 'boxplot',
         hue_order=None,
         palette: Optional[dict] = None,
@@ -568,6 +569,9 @@ class GridSearchContainer:
         show: bool = True,
         return_axs: bool = False,
     ):
+        if fontsize:
+            sc.set_figure_params(scanpy=True, fontsize=fontsize)
+        sns.set_palette("colorblind")
         rename_levels = [] if not rename_levels else rename_levels
         subset_hyperparameters = [] if not subset_hyperparameters else subset_hyperparameters
 
@@ -634,7 +638,8 @@ class GridSearchContainer:
                 markers=True
             )
             ax.set_xscale('symlog')
-
+        
+        ax.grid(False)
         box = ax.get_position()
         ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
         # Put a legend to the right of the current axis

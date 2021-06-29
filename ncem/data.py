@@ -228,6 +228,44 @@ class PlottingTools:
             title=title,
             save=save
         )
+    
+    def celltype_frequencies(
+        self,
+        figsize: Tuple[float, float] = (5.0, 6.0),
+        fontsize: Optional[int] = None,
+        save: Optional[str] = None,
+        suffix: str = "_noise_structure.pdf",
+        show: bool = True,
+        return_axs: bool = False,
+    ):
+        plt.ioff()
+        cluster_id = self.celldata.uns['metadata']['cluster_col_preprocessed']
+        if fontsize:
+            sc.set_figure_params(scanpy=True, fontsize=fontsize)
+            
+        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=figsize)
+        sns.barplot(
+            y=self.celldata.obs[cluster_id].value_counts().index,
+            x=list(self.celldata.obs[cluster_id].value_counts()),
+            color='steelblue',
+            ax=ax
+        )
+        ax.grid(False)
+        # Save, show and return figure.
+        plt.tight_layout()
+        if save is not None:
+            plt.savefig(save + suffix)
+
+        if show:
+            plt.show()
+
+        plt.close(fig)
+        plt.ion()
+
+        if return_axs:
+            return ax
+        else:
+            return None
         
         
     def noise_structure(
@@ -236,15 +274,15 @@ class PlottingTools:
         merge_types: Optional[Tuple[list, list]] = None,
         min_x: Optional[float] = None,
         max_x: Optional[float] = None,
-        panel_width: float = 2.0,
-        panel_height: float = 2.0,
-        fontsize: int = 18,
+        panelsize: Tuple[float, float] = (2.0, 2.3),
+        fontsize: Optional[int] = None,
         save: Optional[str] = None,
         suffix: str = "_noise_structure.pdf",
         show: bool = True,
         return_axs: bool = False,
     ):
-        sc.set_figure_params(scanpy=True, fontsize=fontsize)
+        if fontsize:
+            sc.set_figure_params(scanpy=True, fontsize=fontsize)
         feature_mat = pd.concat(
             [
                 pd.concat(
@@ -279,7 +317,7 @@ class PlottingTools:
         ct = np.unique(feature_mat["cell_type"].values)
         nrows = len(ct) // 12 + int(len(ct) % 12 > 0)
         fig, ax = plt.subplots(
-            ncols=12, nrows=nrows, figsize=(12 * panel_width, nrows * panel_height), sharex="all", sharey="all"
+            ncols=12, nrows=nrows, figsize=(12 * panelsize[0], nrows * panelsize[1]), sharex="all", sharey="all"
         )
         ax = ax.flat
         for axis in ax[len(ct) :]:
@@ -320,9 +358,8 @@ class PlottingTools:
         undefined_type: Optional[str] = None,
         n_neighbors: Optional[int] = 10,
         n_pcs: Optional[int] = None,
-        panel_width: float = 5.,
-        panel_height: float = 5.,
-        fontsize: int = 20,
+        figsize: Tuple[float, float] = (4., 4.),
+        fontsize: Optional[int] = None,
         size: Optional[int] = None,
         palette: Optional[str] = None,
         save: Union[str, None] = None,
@@ -341,17 +378,18 @@ class PlottingTools:
         sc.tl.umap(temp_adata)
         print('n cells: ', temp_adata.shape[0])
         if target_cell_type:
-            temp_adata.obs[f"{target_cell_type}_substates"] = target_cell_type + ' ' + temp_adata.obs.louvain.astype(str)
-            temp_adata.obs[f"{target_cell_type}_substates"] = temp_adata.obs[f"{target_cell_type}_substates"].astype("category")
-            print(temp_adata.obs[f"{target_cell_type}_substates"].value_counts())
-            color = [f"{target_cell_type}_substates"]
+            temp_adata.obs[f"{target_cell_type} substates"] = target_cell_type + ' ' + temp_adata.obs.louvain.astype(str)
+            temp_adata.obs[f"{target_cell_type} substates"] = temp_adata.obs[f"{target_cell_type} substates"].astype("category")
+            print(temp_adata.obs[f"{target_cell_type} substates"].value_counts())
+            color = [f"{target_cell_type} substates"]
         else:
             color = [cluster_id]
 
         plt.ioff()
-        sc.set_figure_params(scanpy=True, fontsize=fontsize)
+        if fontsize:
+            sc.set_figure_params(scanpy=True, fontsize=fontsize)
         fig, ax = plt.subplots(
-            nrows=1, ncols=1, figsize=(panel_width, panel_height), )
+            nrows=1, ncols=1, figsize=figsize, )
         sc.pl.umap(
             temp_adata,
             color=color,
@@ -377,10 +415,9 @@ class PlottingTools:
         self,
         image_key: str,
         undefined_type: Optional[str] = None,
-        panel_width: float = 7.,
-        panel_height: float = 7.,
+        figsize: Tuple[float, float] = (7., 7.),
         spot_size: int = 30,
-        fontsize: int = 18,
+        fontsize: Optional[int] = None,
         legend_loc: str = 'right margin',
         save: Union[str, None] = None,
         suffix: str = "_spatial.pdf",
@@ -397,9 +434,9 @@ class PlottingTools:
             temp_adata = temp_adata[np.argwhere(np.array(temp_adata.obsm['spatial'])[:, 1] < 0).squeeze()]
 
         plt.ioff()
-        sc.set_figure_params(scanpy=True, fontsize=fontsize)
-        fig, ax = plt.subplots(
-            nrows=1, ncols=1, figsize=(panel_width, panel_height))
+        if fontsize:
+            sc.set_figure_params(scanpy=True, fontsize=fontsize)
+        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=figsize)
         sc.pl.spatial(
             temp_adata,
             color=cluster_id,
@@ -431,8 +468,8 @@ class PlottingTools:
         target_cell_type: str,
         undefined_type: Optional[str] = None,
         filter_titles: Optional[List[str]] = None,
-        n_neighbors: Optional[int] = 40,
-        n_pcs: Optional[int] = 40,
+        n_neighbors: Optional[int] = None,
+        n_pcs: Optional[int] = None,
         clip_pvalues: Optional[int] = -5,
     ):
         from tqdm import tqdm
@@ -461,6 +498,7 @@ class PlottingTools:
                 
                 for col in source_type.columns:
                     adata.obs[col] = list(source_type[col])
+                    adata.obs[col] = adata.obs[col].astype("category")
                 
                 pbar.update(1)
                 pbar.update(1)
@@ -479,8 +517,8 @@ class PlottingTools:
             sc.pp.neighbors(adata_substates, n_neighbors=n_neighbors, n_pcs=n_pcs)
             sc.tl.louvain(adata_substates)
             sc.tl.umap(adata_substates)
-            adata_substates.obs[f"{target_cell_type}_substates"] = f"{target_cell_type} " + adata_substates.obs.louvain.astype(str)
-            adata_substates.obs[f"{target_cell_type}_substates"] = adata_substates.obs[f"{target_cell_type}_substates"].astype("category")
+            adata_substates.obs[f"{target_cell_type} substates"] = f"{target_cell_type} " + adata_substates.obs.louvain.astype(str)
+            adata_substates.obs[f"{target_cell_type} substates"] = adata_substates.obs[f"{target_cell_type} substates"].astype("category")
             
             one_hot = pd.get_dummies(adata_substates.obs.louvain, dtype=np.bool)
             # Join the encoded df
@@ -501,7 +539,7 @@ class PlottingTools:
                 pbar.update(1)
 
         print('n cells: ', adata_substates.shape[0])
-        substate_counts = adata_substates.obs[f"{target_cell_type}_substates"].value_counts()
+        substate_counts = adata_substates.obs[f"{target_cell_type} substates"].value_counts()
         print(substate_counts)
 
         columns = [f"{target_cell_type} {x}" for x in np.unique(adata_substates.obs.louvain)]
@@ -520,11 +558,11 @@ class PlottingTools:
         if clip_pvalues:
             log_pval[log_pval < clip_pvalues] = clip_pvalues
         fold_change_df = adata_substates.obs[
-            [cluster_col, f"{target_cell_type}_substates"] + sorce_type_names
+            [cluster_col, f"{target_cell_type} substates"] + sorce_type_names
             ]
         counts = pd.pivot_table(
             fold_change_df.replace({'in neighbourhood': 1, 'not in neighbourhood': 0}),
-            index=[f"{target_cell_type}_substates"],
+            index=[f"{target_cell_type} substates"],
             aggfunc=np.sum,
             margins=True
         ).T
@@ -545,9 +583,8 @@ class PlottingTools:
         self,
         pvalues,
         fold_change,
-        panel_width: float = 4,
-        panel_height: float = 10.,
-        fontsize: int = 14,
+        figsize: Tuple[float, float] = (4., 10.),
+        fontsize: Optional[int] = None,
         pad: float = 0.15,
         pvalues_cmap=None,
         linspace: Optional[Tuple[float, float, int]] = None,
@@ -564,10 +601,10 @@ class PlottingTools:
             def __call__(self, value, clip=None):
                 x, y = [self.vmin, self.midpoint, self.vmax], [0, 0.5, 1]
                 return np.ma.masked_array(np.interp(value, x, y))
-
-        fig, ax = plt.subplots(
-            nrows=1, ncols=1, figsize=(panel_width, panel_height), )
-        sc.set_figure_params(scanpy=True, fontsize=fontsize)
+            
+        if fontsize:
+            sc.set_figure_params(scanpy=True, fontsize=fontsize)
+        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=figsize)
         M = pvalues.shape[1]
         N = pvalues.shape[0]
         y = np.arange(N + 1)
@@ -629,20 +666,22 @@ class PlottingTools:
         self,
         adata,
         filter_titles,
+        nrows: int = 4,
+        ncols: int = 5,
+        size: Optional[int] = None,
+        figsize: Tuple[float, float] = (18, 12),
+        fontsize: Optional[int] = None,
         save: Union[str, None] = None,
         suffix: str = "_cluster_enrichment_umaps.pdf",
         show: bool = True,
     ):
         for i, x in enumerate(filter_titles):
             adata.uns[f"source type {x}_colors"] = ['darkgreen', 'lightgrey']
-        sc.set_figure_params(scanpy=True, fontsize=24)
+        if fontsize:
+            sc.set_figure_params(scanpy=True, fontsize=fontsize)
         plt.ioff()
-        fig, axs = plt.subplots(
-            nrows=4, ncols=5, figsize=(6 * 3, 3 * 4), )
-        fig.supxlabel("UMAP2")
-        fig.supylabel("UMAP1")
+        fig, axs = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize, )
         N = len(filter_titles)
-        #ax = trim_axs(ax, 25)
         axs = axs.flat
         for ax in axs[N:]:
             ax.remove()
@@ -654,6 +693,7 @@ class PlottingTools:
                 color=f"source type {x}",
                 title=x,
                 show=False,
+                size=size,
                 legend_loc='None',
                 ax=ax[i]
             )
@@ -663,13 +703,14 @@ class PlottingTools:
             adata,
             color=f"source type {filter_titles[-1]}",
             title=filter_titles[-1],
+            size=size,
             show=False,
             ax=ax[N-1]
         )
         ax[N-1].set_xlabel('')
         ax[N-1].set_ylabel('')
         # Save, show and return figure.
-        plt.tight_layout()
+        #plt.tight_layout()
         if save is not None:
             plt.savefig(save + suffix)
 
@@ -685,10 +726,9 @@ class PlottingTools:
         image_key: str,
         target_cell_type: str,
         clean_view: bool = False,
-        panel_width: float = 7.,
-        panel_height: float = 7.,
+        figsize: Tuple[float, float] = (7., 7.),
         spot_size: Optional[int] = 40,
-        fontsize: int = 18,
+        fontsize: Optional[int] = None,
         legend_loc: str = 'right margin',
         palette: Union[str, list] = 'tab10',
         save: Union[str, None] = None,
@@ -701,9 +741,9 @@ class PlottingTools:
         if clean_view:
             temp_adata = temp_adata[np.argwhere(np.array(temp_adata.obsm['spatial'])[:, 1] < 0).squeeze()]
             adata_substates = adata_substates[np.argwhere(np.array(adata_substates.obsm['spatial'])[:, 1] < 0).squeeze()]
-        fig, ax = plt.subplots(
-            nrows=1, ncols=1, figsize=(panel_width, panel_height), )
-        sc.set_figure_params(scanpy=True, fontsize=fontsize)
+        if fontsize:
+            sc.set_figure_params(scanpy=True, fontsize=fontsize)
+        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=figsize, )
         sc.pl.spatial(
             # adata,
             temp_adata[temp_adata.obs[cluster_id] != target_cell_type],
@@ -715,7 +755,7 @@ class PlottingTools:
         )
         sc.pl.spatial(
             adata_substates,
-            color=f"{target_cell_type}_substates",
+            color=f"{target_cell_type} substates",
             spot_size=spot_size,
             ax=ax,
             show=False,
@@ -751,7 +791,7 @@ class PlottingTools:
         width: float = 3.,
         seed: int = 10,
         random_state: int = 0,
-        fontsize: int = 18,
+        fontsize: Optional[int] = None,
         save: Union[str, None] = None,
         suffix: str = "_ligrec.pdf",
         show: bool = True,
@@ -799,8 +839,9 @@ class PlottingTools:
         )
         if save is not None:
             save = save + image_key + suffix
-
-        sc.set_figure_params(scanpy=True, fontsize=fontsize)
+            
+        if fontsize:
+            sc.set_figure_params(scanpy=True, fontsize=fontsize)
         sq.pl.ligrec(
             temp_adata,
             cluster_key=cluster_id,
@@ -823,8 +864,8 @@ class PlottingTools:
         self,
         adata: AnnData,
         source_group: str,
-        figsize: Tuple[float, float] = (5., 2.5),
-        fontsize: int = 10,
+        figsize: Tuple[float, float] = (5., 4.),
+        fontsize: Optional[int] = None,
         pvalue_threshold: float = 0.05,
         save: Union[str, None] = None,
         suffix: str = "_ligrec_barplot.pdf",
@@ -833,10 +874,9 @@ class PlottingTools:
     ):
         cluster_id = adata.uns['metadata']['cluster_col_preprocessed']
         pvals = adata.uns[f"{cluster_id}_ligrec"]['pvalues'].xs((source_group), axis=1)
-
-        fig, ax = plt.subplots(
-            nrows=1, ncols=1, figsize=figsize)
-        sc.set_figure_params(scanpy=True, fontsize=fontsize)
+        if fontsize:
+            sc.set_figure_params(scanpy=True, fontsize=fontsize)
+        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=figsize)
         sns.barplot(
             x=list(np.sum(pvals < pvalue_threshold, axis=0).index),
             y=list(np.sum(pvals < pvalue_threshold, axis=0)),
@@ -931,9 +971,8 @@ class PlottingTools:
     def variance_decomposition(
         self,
         df,
-        panel_width: float = 16.,
-        panel_height: float = 3.5,
-        fontsize: int = 14,
+        figsize: Tuple[float, float] = (16., 3.5),
+        fontsize: Optional[int] = None,
         multiindex: bool = False,
         save: Union[str, None] = None,
         suffix: str = "_variance_decomposition.pdf",
@@ -941,15 +980,15 @@ class PlottingTools:
         return_axs: bool = False,
     ):
         from collections import OrderedDict
-        sc.set_figure_params(scanpy=True, fontsize=fontsize)
-        plt.rcParams['axes.grid'] = False
+        if fontsize:
+            sc.set_figure_params(scanpy=True, fontsize=fontsize)
 
-        fig, ax = plt.subplots(1, 1, figsize=(panel_width, panel_height))
+        fig, ax = plt.subplots(1, 1, figsize=figsize)
         df.plot(
             y=['intra cell type variance', 'inter cell type variance', 'gene variance'],
             kind='bar',
             stacked=True,
-            figsize=(panel_width, panel_height),
+            figsize=figsize,
             ax=ax,
             colormap='Blues_r'
         )
@@ -1316,14 +1355,14 @@ class DataLoaderJarosch(DataLoader):
 
 class DataLoaderHartmann(DataLoader):
     cell_type_merge_dict = {
-        "Imm_other": "Other immune",
+        "Imm_other": "Other immune cells",
         "Epithelial": "Epithelial",
-        "Tcell_CD4": "Tcell CD4",
-        "Myeloid_CD68": "Myeloid CD68",
+        "Tcell_CD4": "CD4 T cells",
+        "Myeloid_CD68": "CD68 Myeloid",
         "Fibroblast": "Fibroblast",
-        "Tcell_CD8": "Tcell CD8",
+        "Tcell_CD8": "CD8 T cells",
         "Endothelial": "Endothelial",
-        "Myeloid_CD11c": "Myeloid CD11c"
+        "Myeloid_CD11c": "CD11c Myeloid"
     }
 
     def _register_celldata(self):
