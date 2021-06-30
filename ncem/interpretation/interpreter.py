@@ -542,7 +542,7 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
             scale_node_frequencies: int,
             metric: str = "r_squared_linreg",
             mode: str = 'mean',
-            figsize: Tuple[float,float] = (4., 4.),
+            figsize: Tuple[float,float] = (6., 5.),
             show_regplots: bool = True,
             save: Union[str, None] = None,
             suffix: str = "_expression_grid.pdf",
@@ -570,83 +570,79 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
             train=False,
             seed=None)
         node_names = list(self.node_type_names.values())
-        h_1 = []
-        h_0 = []
-        h_0_full = []
-        a = []
+        interaction_names = []
+        for source in node_names:
+            for target in node_names:
+                interaction_names.append(f"{target} - {source}")
+        expression = []
+        target = []
+        interactions = []
+
         base_pred = []
         graph_pred = []
         for step, (x_batch, y_batch) in enumerate(ds):
-            h_1_batch, sf_batch, h_0_batch, h_0_full_batch, a_batch, _, node_covar_batch, g_batch = x_batch
+            target_batch, interactions_batch, sf_batch, node_covar_batch, g_batch = x_batch
+
             base_pred.append(np.squeeze(
-                base_interpreter.model.training_model((h_1_batch, sf_batch, node_covar_batch, g_batch))[0].numpy()))
+                base_interpreter.model.training_model(x_batch)[0].numpy()
+            ))
             graph_pred.append(np.squeeze(
-                self.model.training_model(x_batch)[0].numpy()))
-            h_1.append(h_1_batch.numpy().squeeze())
-            h_0.append(h_0_batch.numpy().squeeze())
-            h_0_full.append(h_0_full_batch.numpy().squeeze())
-            a.append(sparse.csr_matrix(
+                self.model.training_model(x_batch)[0].numpy()
+            ))
+            expression.append(y_batch[0].numpy().squeeze())
+            target.append(target_batch.numpy().squeeze())
+            interactions.append(sparse.csr_matrix(
                 (
-                    a_batch.values.numpy(),
+                    interactions_batch.values.numpy(),
                     (
-                        a_batch.indices.numpy()[:, 1],
-                        a_batch.indices.numpy()[:, 2]
+                        interactions_batch.indices.numpy()[:, 1],
+                        interactions_batch.indices.numpy()[:, 2]
                     )
                 ),
-                shape=a_batch.dense_shape.numpy()[1:]
-            ).toarray())
-        
-        neighbourhood = self._neighbourhood_frequencies(
-            a=a,
-            h_0_full=h_0_full,
-            discretize_adjacency=True)
-        h_0 = pd.DataFrame(np.concatenate(h_0, axis=0), columns=node_names)
-        types = pd.DataFrame(np.array(h_0.idxmax(axis=1)), columns=['node types'])
-        neighbourhood = pd.concat([neighbourhood, types], axis=1)
-        h_1 = np.concatenate(h_1, axis=0)
+                shape=interactions_batch.dense_shape.numpy()[1:]
+            ).todense())
+
+        target = pd.DataFrame(np.concatenate(target, axis=0), columns=node_names)
+        types = pd.DataFrame(np.array(target.idxmax(axis=1)), columns=['node types'])
+
+        interactions = pd.DataFrame(np.concatenate(interactions, axis=0), columns=interaction_names)
+
+        expression = np.concatenate(expression, axis=0)
         base_pred = np.split(ary=np.concatenate(base_pred, axis=0), indices_or_sections=2, axis=1)[0]
         graph_pred = np.split(ary=np.concatenate(graph_pred, axis=0), indices_or_sections=2, axis=1)[0]
 
-        temp_dict = {
-            'neighbourhood': neighbourhood,
-            'h_1': h_1,
-            'base_prediction': base_pred,
-            'graph_prediction': graph_pred}
-
         plt.ioff()
         # function returns a n_features_type x n_features_type grid
-        fig, ax = plt.subplots(
-            nrows=len(node_names), ncols=len(node_names),
-            figsize=(panel_width * len(node_names), panel_height * len(node_names)))
         grid_summary = []
-        for i, k in enumerate(node_names):
-            neighbours = neighbourhood[neighbourhood['node types'] == k]
+        for i, k in enumerate(interaction_names):
+            temp_interactions = interactions[interactions[k] > 0][k]
 
-            for j, v in enumerate(node_names):
-                temp_neighbours = neighbours[neighbours[v] > 0][v]
-                if mode == 'mean':
-                    true = np.mean(h_1[list(temp_neighbours.index), :], axis=0)
-                    base = np.mean(base_pred[list(temp_neighbours.index), :], axis=0)
-                    graph = np.mean(graph_pred[list(temp_neighbours.index), :], axis=0)
-                elif mode == 'var':
-                    true = np.var(h_1[list(temp_neighbours.index), :], axis=0)
-                    base = np.var(base_pred[list(temp_neighbours.index), :], axis=0)
-                    graph = np.var(graph_pred[list(temp_neighbours.index), :], axis=0)
-                
-                if metric == 'r_squared_linreg':
-                    base_metric = stats.linregress(true, base)[2] ** 2
-                    graph_metric = stats.linregress(true, graph)[2] ** 2
-                    metric_str = "R^2"
-                elif metric == 'mae':
-                    base_metric = np.mean(np.abs(base - true))
-                    graph_metric = np.mean(np.abs(graph - true))
-                    metric_str = "MAE"
-                    
-                grid_summary.append(
-                    np.array([k, v, np.sum(np.array(temp_neighbours), dtype=np.int32), base_metric, graph_metric]))
+            if mode == 'mean':
+                true = np.mean(expression[list(temp_interactions.index), :], axis=0)
+                base = np.mean(base_pred[list(temp_interactions.index), :], axis=0)
+                graph = np.mean(graph_pred[list(temp_interactions.index), :], axis=0)
+            elif mode == 'var':
+                true = np.var(expression[list(temp_interactions.index), :], axis=0)
+                base = np.var(base_pred[list(temp_interactions.index), :], axis=0)
+                graph = np.var(graph_pred[list(temp_interactions.index), :], axis=0)
 
-        expression_grid_summary = np.concatenate(np.expand_dims(grid_summary, axis=0), axis=0)
+            if metric == 'r_squared_linreg':
+                base_metric = stats.linregress(true, base)[2] ** 2
+                graph_metric = stats.linregress(true, graph)[2] ** 2
+                metric_str = "R^2"
+            elif metric == 'mae':
+                base_metric = np.mean(np.abs(base - true))
+                graph_metric = np.mean(np.abs(graph - true))
+                metric_str = "MAE"
+
+            target = k.split(" - ")[0]
+            source = k.split(" - ")[1]
+
+            grid_summary.append(
+                np.array([target, source, np.sum(np.array(temp_interactions), dtype=np.int32), base_metric, graph_metric])
+            )
       
+        expression_grid_summary = np.concatenate(np.expand_dims(grid_summary, axis=0), axis=0)
         plt.ioff()
         fig, ax = plt.subplots(nrows=1, ncols=1, figsize=figsize)
         temp_df = pd.DataFrame(
@@ -678,6 +674,78 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
             plt.show()
         plt.close(fig)
         plt.ion()
+        
+    def interaction_significance(
+            self,
+            image_keys,
+            nodes_idx,
+            significance_threshold: float = 0.01,
+    ):
+        from ncem.utils.wald_test import interaction_wald_test
+
+        ds = self._get_dataset(
+            image_keys=image_keys,
+            nodes_idx=nodes_idx,
+            batch_size=1,
+            shuffle_buffer_size=1,
+            train=False,
+            seed=None
+        )
+        interaction_shape = self.model.training_model.inputs[1].shape
+        linear_layer = self.model.training_model.get_layer('LinearLayer')
+        
+        interaction_params = self.model.training_model.weights[0].numpy()[
+            self.n_features_0:interaction_shape[-1]+self.n_features_0, :
+        ].T
+
+        interaction_params = np.concatenate(
+            np.expand_dims(
+                np.split(interaction_params, indices_or_sections=self.n_features_0, axis=1),
+                axis=-1),
+            axis=-1
+        )
+
+        interactions = []
+        y = []
+        for step, (x_batch, y_batch) in enumerate(ds):
+            target_batch, interactions_batch, sf_batch, node_covar_batch, g_batch = x_batch
+            interactions.append(sparse.csr_matrix(
+                (
+                    interactions_batch.values.numpy(),
+                    (
+                        interactions_batch.indices.numpy()[:, 1],
+                        interactions_batch.indices.numpy()[:, 2]
+                    )
+                ),
+                shape=interactions_batch.dense_shape.numpy()[1:]
+            ).todense())
+            y.append(y_batch[0].numpy().squeeze())
+
+        interactions = np.concatenate(interactions, axis=0)
+        y = np.concatenate(y, axis=0)
+
+        interactions = np.concatenate(
+            np.expand_dims(
+                np.split(interactions, indices_or_sections=self.n_features_0, axis=1),
+                axis=-1),
+            axis=-1
+        )
+
+        fisher_inv = []
+        for i in range(interactions.shape[1]):
+            target_X = interactions[:, i, :]
+            target_fisher_inv = np.divide(
+                np.expand_dims(np.matmul(target_X.T, target_X), axis=0),
+                np.expand_dims(np.expand_dims(np.var(y, axis=0), axis=-1), axis=-1)
+            )
+            fisher_inv.append(target_fisher_inv)
+
+        bool_significance, significance = interaction_wald_test(
+            parameters=interaction_params,
+            fisher_inv=fisher_inv,
+            significance_threshold=significance_threshold
+        )
+        return interaction_params, bool_significance, significance
         
         
 class InterpreterGraph(estimators.EstimatorGraph, InterpreterBase):
