@@ -529,7 +529,7 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
         else:
             return None
 
-    def expression_grid(
+    def relative_performance_grid(
             self,
             image_keys: Union[np.ndarray, str],
             nodes_idx: Union[dict, str],
