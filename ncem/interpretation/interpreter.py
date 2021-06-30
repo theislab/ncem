@@ -366,7 +366,6 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
         undefined_type: Optional[str] = None,
         n_neighbors: int=40,
         n_pcs: Optional[int] = None,
-        clean_view: bool = False
     ):
         cluster_col = self.data.celldata.uns['metadata']['cluster_col_preprocessed']
         if isinstance(image_key, str):
@@ -407,10 +406,9 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
                     temp_adata = temp_adata[temp_adata.obs[cluster_col] != undefined_type]
                 temp_adata.obs['relative_r_squared'] = np.array(graph) - np.array(baseline)
                 adata_list.append(temp_adata)
-    
+
         adata = adata_list[0].concatenate(adata_list[1:], uns_merge="same") if len(adata_list) > 0 else adata_list
         adata_tc =adata[(adata.obs[cluster_col] == target_cell_type)].copy()
-        # sc.pp.normalize_total(adata_tc)
         sc.pp.neighbors(adata_tc, n_neighbors=n_neighbors, n_pcs=n_pcs)
         sc.tl.louvain(adata_tc)
         sc.tl.umap(adata_tc)
@@ -418,11 +416,11 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
         print('n cells: ', adata_tc.shape[0])
         adata_tc.obs[f"{target_cell_type} substates"] = f"{target_cell_type} " + adata_tc.obs.louvain.astype(str)
         adata_tc.obs[f"{target_cell_type} substates"] = adata_tc.obs[f"{target_cell_type} substates"].astype("category")
-        
+
         print(adata_tc.obs[f"{target_cell_type} substates"].value_counts())
-        
+
         return adata, adata_tc
-    
+
     def plot_substate_performance(
         self,
         adata,
@@ -441,7 +439,7 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
         plt.rcParams['axes.grid'] = False
         fig, ax = plt.subplots(nrows=1, ncols=1, figsize=figsize)
         sns.boxplot(
-            data=adata.obs, x=f"{target_cell_type} substates", y=relative_performance_key, 
+            data=adata.obs, x=f"{target_cell_type} substates", y=relative_performance_key,
             order=list(np.unique(adata.obs[f"{target_cell_type} substates"])),
             palette=palette,
             ax=ax
@@ -449,7 +447,7 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
         ax.set_xlabel('')
         ax.set_ylabel('')
         ax.tick_params(axis='x', labelrotation=90)
-        
+
         # Save, show and return figure.
         plt.tight_layout()
         if save is not None:
@@ -465,7 +463,7 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
             return ax
         else:
             return None
-        
+
     def plot_spatial_relative_performance(
         self,
         adata,
@@ -486,32 +484,29 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
                 colors.Normalize.__init__(self, vmin, vmax, clip)
 
             def __call__(self, value, clip=None):
-                # I'm ignoring masked values and all kinds of edge cases to make a
-                # simple example...
                 x, y = [self.vmin, self.midpoint, self.vmax], [0, 0.5, 1]
                 return np.ma.masked_array(np.interp(value, x, y))
-            
+
         fig, ax = plt.subplots(nrows=1, ncols=1, figsize=figsize)
         if fontsize:
             sc.set_figure_params(scanpy=True, fontsize=fontsize)
-            
+
         if clean_view:
             adata = adata[np.argwhere(np.array(adata.obsm['spatial'])[:, 1] < 0).squeeze()]
         sc.pl.spatial(
-            adata[adata.obs[adata.uns['metadata']['cluster_col_preprocessed']] != target_cell_type], 
-            spot_size=spot_size,  
+            adata[adata.obs[adata.uns['metadata']['cluster_col_preprocessed']] != target_cell_type],
+            spot_size=spot_size,
             ax=ax,
             show=False,
             na_color='whitesmoke',
             title=''
         )
         sc.pl.spatial(
-            #adata,
-            adata[adata.obs[adata.uns['metadata']['cluster_col_preprocessed']] == target_cell_type], 
-            color=relative_performance_key, 
-            spot_size=spot_size, 
+            adata[adata.obs[adata.uns['metadata']['cluster_col_preprocessed']] == target_cell_type],
+            color=relative_performance_key,
+            spot_size=spot_size,
             cmap='coolwarm',
-            norm=MidpointNormalize(midpoint=0.), 
+            norm=MidpointNormalize(midpoint=0.),
             ax=ax,
             show=False,
             title=''
@@ -533,7 +528,7 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
             return ax
         else:
             return None
-        
+
     def expression_grid(
             self,
             image_keys: Union[np.ndarray, str],
@@ -550,18 +545,16 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
             return_output: bool = False,
     ):
         import matplotlib.colors as colors
-        
+
         class MidpointNormalize(colors.Normalize):
             def __init__(self, vmin=None, vmax=None, midpoint=None, clip=False):
                 self.midpoint = midpoint
                 colors.Normalize.__init__(self, vmin, vmax, clip)
 
             def __call__(self, value, clip=None):
-                # I'm ignoring masked values and all kinds of edge cases to make a
-                # simple example...
                 x, y = [self.vmin, self.midpoint, self.vmax], [0, 0.5, 1]
                 return np.ma.masked_array(np.interp(value, x, y))
-            
+
         ds = self._get_dataset(
             image_keys=image_keys,
             nodes_idx=nodes_idx,
@@ -629,11 +622,9 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
             if metric == 'r_squared_linreg':
                 base_metric = stats.linregress(true, base)[2] ** 2
                 graph_metric = stats.linregress(true, graph)[2] ** 2
-                metric_str = "R^2"
             elif metric == 'mae':
                 base_metric = np.mean(np.abs(base - true))
                 graph_metric = np.mean(np.abs(graph - true))
-                metric_str = "MAE"
 
             target = k.split(" - ")[0]
             source = k.split(" - ")[1]
@@ -641,7 +632,7 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
             grid_summary.append(
                 np.array([target, source, np.sum(np.array(temp_interactions), dtype=np.int32), base_metric, graph_metric])
             )
-      
+
         expression_grid_summary = np.concatenate(np.expand_dims(grid_summary, axis=0), axis=0)
         plt.ioff()
         fig, ax = plt.subplots(nrows=1, ncols=1, figsize=figsize)
@@ -674,14 +665,14 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
             plt.show()
         plt.close(fig)
         plt.ion()
-        
+
     def interaction_significance(
             self,
             image_keys,
             nodes_idx,
             significance_threshold: float = 0.01,
     ):
-        from ncem.utils.wald_test import interaction_wald_test
+        from ncem.utils.wald_test import wald_test
 
         ds = self._get_dataset(
             image_keys=image_keys,
@@ -692,8 +683,6 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
             seed=None
         )
         interaction_shape = self.model.training_model.inputs[1].shape
-        linear_layer = self.model.training_model.get_layer('LinearLayer')
-        
         interaction_params = self.model.training_model.weights[0].numpy()[
             self.n_features_0:interaction_shape[-1]+self.n_features_0, :
         ].T
@@ -740,14 +729,14 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
             )
             fisher_inv.append(target_fisher_inv)
 
-        bool_significance, significance = interaction_wald_test(
+        bool_significance, significance = wald_test(
             parameters=interaction_params,
             fisher_inv=fisher_inv,
             significance_threshold=significance_threshold
         )
         return interaction_params, bool_significance, significance
-        
-        
+
+
 class InterpreterGraph(estimators.EstimatorGraph, InterpreterBase):
     """
     Inherits all relevant functions specific to EstimatorGraph estimators
@@ -817,15 +806,15 @@ class InterpreterGraph(estimators.EstimatorGraph, InterpreterBase):
             g.append(g_batch.numpy().squeeze())
             h_obs.append(y_batch[0].numpy().squeeze())
         return (h_1, sf, h_0, h_0_full, a, a_full, node_covar, g), h_obs
-    
-    
+
+
 class InterpreterEDncem(estimators.EstimatorEDncem, InterpreterGraph):
     """
     Inherits all relevant functions specific to EstimatorInteractions estimators
     """
     def __init__(self):
         super().__init__()
-        
+
     def target_cell_saliencies(
         self,
         target_cell_type: str,
@@ -835,7 +824,7 @@ class InterpreterEDncem(estimators.EstimatorEDncem, InterpreterGraph):
         multicolumns: Optional[list] = None
     ):
         target_cell_idx = list(self.node_type_names.values()).index(target_cell_type)
-        
+
         if partition == 'test':
             img_keys = self.img_keys_test
             node_idxs = self.nodes_idx_test
@@ -848,7 +837,7 @@ class InterpreterEDncem(estimators.EstimatorEDncem, InterpreterGraph):
         elif partition == 'all':
             img_keys = self.img_keys_all
             node_idxs = self.nodes_idx_all
-            
+
         img_saliency = []
         keys = []
         with tqdm(total=len(img_keys)) as pbar:
@@ -918,28 +907,28 @@ class InterpreterEDncem(estimators.EstimatorEDncem, InterpreterGraph):
                 img_saliency.append(saliencies/neighbourhood)
                 keys.append(key)
                 pbar.update(1)
-        
+
         if multicolumns:
             columns = [(x.replace('_', ' ').split()[0], x.replace('_', ' ').split()[1]) for x in keys]
         else:
             columns = keys
         df = pd.DataFrame(
-            np.concatenate(np.expand_dims(img_saliency, axis=0), axis=1).T, 
+            np.concatenate(np.expand_dims(img_saliency, axis=0), axis=1).T,
             columns=columns,
             index=list(self.node_type_names.values())
         )
         if multicolumns:
             df.columns = pd.MultiIndex.from_tuples(df.columns, names=multicolumns)
-        
+
         df = df.reindex(sorted(df.columns), axis=1)
-        
+
         if drop_columns:
             df = df.drop(drop_columns)
         if dop_images:
             df = df.drop(dop_images, axis=1, level=1)
-            
+
         return df
-    
+
     def plot_target_cell_saliencies(
         self,
         saliencies,
@@ -960,7 +949,7 @@ class InterpreterEDncem(estimators.EstimatorEDncem, InterpreterGraph):
         fig, ax = plt.subplots(nrows=1, ncols=2, figsize=figsize, gridspec_kw={'width_ratios': width_ratios})
         sns.heatmap(saliencies, cmap='seismic', ax=ax[0], center=0)
         ax[0].set_xlabel('')
-        
+
         if multiindex:
             xlabel_mapping = OrderedDict()
             for index1, index2 in saliencies.columns:
@@ -978,10 +967,10 @@ class InterpreterEDncem(estimators.EstimatorEDncem, InterpreterGraph):
                 else:
                     hline.append(len(index2_list))
             ax[0].set_xticklabels(new_xlabels, rotation=90)
-        
+
         sns.boxplot(data=saliencies.T, ax=ax[1], orient="h", color='steelblue', showfliers=True)
         ax[1].set_yticklabels('')
-        
+
         # Save, show and return figure.
         plt.tight_layout()
         if save is not None:
@@ -997,8 +986,8 @@ class InterpreterEDncem(estimators.EstimatorEDncem, InterpreterGraph):
             return ax
         else:
             return None
-        
-        
+
+
 
 class InterpreterCVAEncem(estimators.EstimatorCVAEncem, InterpreterGraph):
     """
@@ -1006,7 +995,7 @@ class InterpreterCVAEncem(estimators.EstimatorCVAEncem, InterpreterGraph):
     """
     def __init__(self):
         super().__init__()
-        
+
     def compute_latent_space_cluster_enrichment(
         self,
         image_key,
@@ -1016,7 +1005,7 @@ class InterpreterCVAEncem(estimators.EstimatorCVAEncem, InterpreterGraph):
         filter_titles: Optional[List[str]] = None,
         clip_pvalues: Optional[int] = -5,
     ):
-        
+
         node_type_names = list(self.data.celldata.uns['node_type_names'].values())
         ds = self._get_dataset(
             image_keys=[image_key],
@@ -1070,7 +1059,7 @@ class InterpreterCVAEncem(estimators.EstimatorCVAEncem, InterpreterGraph):
         target_type = pd.DataFrame(np.array(h_0.idxmax(axis=1)), columns=['target_cell'])
 
         metadata = pd.concat(
-            [target_type, source_type], 
+            [target_type, source_type],
             axis=1
         )
         cond_adata = AnnData(cond_latent_z_mean, obs=metadata)
@@ -1080,17 +1069,17 @@ class InterpreterCVAEncem(estimators.EstimatorCVAEncem, InterpreterGraph):
 
         for i, x in enumerate(node_type_names):
             cond_adata.uns[f"{x}_colors"] = ['darkgreen', 'lightgrey']
-            
-        cond_adata.obs['substates'] = target_cell_type + ' ' + cond_adata.obs.louvain.astype(str) 
+
+        cond_adata.obs['substates'] = target_cell_type + ' ' + cond_adata.obs.louvain.astype(str)
         cond_adata.obs['substates'] = cond_adata.obs['substates'].astype("category")
         print('n cells: ', cond_adata.shape[0])
         substate_counts = cond_adata.obs["substates"].value_counts()
         print(substate_counts)
-        
+
         one_hot = pd.get_dummies(cond_adata.obs.louvain, dtype=np.bool)
         # Join the encoded df
         df = cond_adata.obs.join(one_hot)
-        
+
         import scipy.stats as stats
         from diffxpy.testing.correction import correct
 
@@ -1106,7 +1095,7 @@ class InterpreterCVAEncem(estimators.EstimatorCVAEncem, InterpreterGraph):
                 pvalue = correct(np.array([pvalue]))
                 pval_cluster.append(pvalue)
             pval_source_type.append(pval_cluster)
-        
+
         columns = [f"{target_cell_type} {x}" for x in np.unique(cond_adata.obs.louvain)]
         pval = pd.DataFrame(
             np.array(pval_source_type).squeeze(),
@@ -1114,7 +1103,7 @@ class InterpreterCVAEncem(estimators.EstimatorCVAEncem, InterpreterGraph):
             columns=columns
         )
         log_pval = np.log10(pval)
-        
+
         if filter_titles:
             log_pval = log_pval.sort_values(columns, ascending=True).filter(
                 items=filter_titles,
@@ -1122,7 +1111,7 @@ class InterpreterCVAEncem(estimators.EstimatorCVAEncem, InterpreterGraph):
             )
         if clip_pvalues:
             log_pval[log_pval < clip_pvalues] = clip_pvalues
-        
+
         fold_change_df = cond_adata.obs[
             ["target_cell", "substates"] + node_type_names
         ]
@@ -1142,8 +1131,8 @@ class InterpreterCVAEncem(estimators.EstimatorCVAEncem, InterpreterGraph):
                 axis=0
             )
         return cond_adata.copy(), log_pval, fold_change
-        
-        
+
+
 class InterpreterNoGraph(estimators.EstimatorNoGraph, InterpreterBase):
     """
     Inherits all relevant functions specific to EstimatorEDncem estimators and InterpreterBase
@@ -1187,7 +1176,6 @@ class InterpreterNoGraph(estimators.EstimatorNoGraph, InterpreterBase):
             h_obs.append(y_batch[0].numpy().squeeze())
         return (h_1, sf, node_covar, g), h_obs
 
-    
 
 
-    
+
