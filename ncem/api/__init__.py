@@ -1,1 +1,1 @@
-from . import fits, train
+from . import train

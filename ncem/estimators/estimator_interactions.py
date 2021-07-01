@@ -1,9 +1,9 @@
+from typing import Union
+
 import numpy as np
 import tensorflow as tf
-
 from patsy import dmatrix
 from scipy.sparse import coo_matrix
-from typing import Union
 
 from ncem.estimators import Estimator
 from ncem.models import ModelInteractions
@@ -19,6 +19,7 @@ class EstimatorInteractions(Estimator):
         self.adj_type = "full"
         self.log_transform = log_transform
         self.metrics = {"np": [], "tf": []}
+        self.n_eval_nodes_per_graph = None
 
     def _get_output_signature(self, resampled: bool = False):
         pass
@@ -159,7 +160,7 @@ class EstimatorInteractions(Estimator):
         nodes_idx: dict,
         batch_size: int,
         seed: Union[int, None] = None,
-        prefetch: int = 100
+        prefetch: int = 100,
     ):
         pass
 
@@ -168,8 +169,12 @@ class EstimatorInteractions(Estimator):
         optimizer: str = "adam",
         learning_rate: float = 0.0001,
         n_eval_nodes_per_graph: int = 32,
+
+        l2_coef: Union[float, None] = 0.0,
+        l1_coef: Union[float, None] = 0.0,
         use_interactions: bool = True,
         use_domain: bool = False,
+        scale_node_size: bool = False,
         output_layer: str = "linear",
         **kwargs
     ):
@@ -183,9 +188,12 @@ class EstimatorInteractions(Estimator):
                 self.n_node_covariates,  # categ_condition_dim
                 self.n_domains,  # domain_dim
             ),
+            l1_coef=l1_coef,
+            l2_coef=l2_coef,
             use_interactions=use_interactions,
             use_domain=use_domain,
-            output_layer=output_layer,
+            scale_node_size=scale_node_size,
+            output_layer=output_layer
         )
         optimizer = tf.keras.optimizers.get(optimizer)
         tf.keras.backend.set_value(optimizer.lr, learning_rate)

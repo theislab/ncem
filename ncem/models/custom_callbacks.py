@@ -14,6 +14,7 @@ class BetaScheduler(tf.keras.callbacks.Callback):
     def __init__(self, verbose=1):
         super(BetaScheduler, self).__init__()
         self.verbose = verbose
+        self.beta = None
 
     def on_epoch_begin(self, epoch, logs=None):
         if not hasattr(self.model.loss[1], "beta"):

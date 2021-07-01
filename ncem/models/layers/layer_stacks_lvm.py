@@ -53,7 +53,6 @@ class Encoder(tf.keras.layers.Layer):
         n_hidden,
         l1_coef: float,
         l2_coef: float,
-        bottleneck_activation: str = "linear",
         use_type_cond: bool = True,
         use_batch_norm: bool = False,
         probabilistic: bool = True,
@@ -68,19 +67,11 @@ class Encoder(tf.keras.layers.Layer):
         self.n_hidden = n_hidden
         self.l1_coef = l1_coef
         self.l2_coef = l2_coef
-        self.bottleneck_activation = bottleneck_activation
         self.use_type_cond = use_type_cond
         self.use_batch_norm = use_batch_norm
         self.probabilistic = probabilistic
 
-        if isinstance(l1_coef, float) and isinstance(l2_coef, float):
-            self.kernel_regularizer = tf.keras.regularizers.l1_l2(l1=self.l1_coef, l2=self.l2_coef)
-        elif isinstance(l1_coef, float) and l2_coef is None:
-            self.kernel_regularizer = tf.keras.regularizers.l1(l1=self.l1_coef)
-        elif l1_coef is None and isinstance(l2_coef, float):
-            self.kernel_regularizer = tf.keras.regularizers.l2(l2=self.l2_coef)
-        else:
-            self.kernel_regularizer = None
+        self.kernel_regularizer = tf.keras.regularizers.l1_l2(l1=self.l1_coef, l2=self.l2_coef)
 
         self.fwd_pass = None
         self.dense_mean = None
@@ -97,7 +88,6 @@ class Encoder(tf.keras.layers.Layer):
                 "encoder_n_hidden": self.n_hidden,
                 "encoder_l1_coef": self.l1_coef,
                 "encoder_l2_coef": self.l2_coef,
-                "bottleneck_activation": self.bottleneck_activation,
                 "encoder_use_type_cond": self.use_type_cond,
             }
         )
@@ -121,10 +111,10 @@ class Encoder(tf.keras.layers.Layer):
 
         # final layer
         self.dense_mean = tf.keras.layers.Dense(
-            units=self.latent_dim, activation=self.bottleneck_activation
+            units=self.latent_dim, activation='linear'
         )  # last dense layer if not if self.probabilistic
         if self.probabilistic:
-            self.dense_log_var = tf.keras.layers.Dense(units=self.latent_dim, activation=self.bottleneck_activation)
+            self.dense_log_var = tf.keras.layers.Dense(units=self.latent_dim, activation='linear')
             self.sampling = Sampling()
 
     def call(self, inputs, **kwargs):

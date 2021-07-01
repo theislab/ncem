@@ -1,9 +1,9 @@
 from typing import Union
 
 import numpy as np
-import scipy
 import tensorflow as tf
 from patsy import dmatrix
+from scipy.sparse import coo_matrix
 
 from ncem.estimators import Estimator
 from ncem.models import ModelLinear
@@ -19,6 +19,7 @@ class EstimatorLinear(Estimator):
         self.adj_type = "full"
         self.log_transform = log_transform
         self.metrics = {"np": [], "tf": []}
+        self.n_eval_nodes_per_graph = None
 
     def _get_output_signature(self, resampled: bool = False):
         pass
@@ -88,7 +89,7 @@ class EstimatorLinear(Estimator):
                     a = a[indices, :]
                     coo = a.tocoo()
                     a_shape = np.asarray((self.n_eval_nodes_per_graph, self.max_nodes), dtype="int64")
-                    a = scipy.sparse.coo_matrix((coo.data, (coo.row, coo.col)), a_shape)
+                    a = coo_matrix((coo.data, (coo.row, coo.col)), a_shape)
 
                     # Assemble design matrix components for interactions:
                     source = (a.toarray() > 0.0).astype("int").dot(h_0_full)  # n_eval_nodes_per_graph x node types
@@ -137,13 +138,27 @@ class EstimatorLinear(Estimator):
         dataset = dataset.prefetch(prefetch)
         return dataset
 
+    def _get_resampled_dataset(
+        self,
+        image_keys: np.ndarray,
+        nodes_idx: dict,
+        batch_size: int,
+        seed: Union[int, None] = None,
+        prefetch: int = 100,
+    ):
+        pass
+
     def init_model(
         self,
         optimizer: str = "adam",
         learning_rate: float = 0.0001,
         n_eval_nodes_per_graph: int = 32,
+
+        l2_coef: Union[float, None] = 0.0,
+        l1_coef: Union[float, None] = 0.0,
         use_source_type: bool = True,
         use_domain: bool = False,
+        scale_node_size: bool = False,
         output_layer: str = "linear",
         **kwargs
     ):
@@ -157,9 +172,12 @@ class EstimatorLinear(Estimator):
                 self.n_node_covariates,  # categ_condition_dim
                 self.n_domains,  # domain_dim
             ),
+            l1_coef=l1_coef,
+            l2_coef=l2_coef,
             use_source_type=use_source_type,
             use_domain=use_domain,
-            output_layer=output_layer,
+            scale_node_size=scale_node_size,
+            output_layer=output_layer
         )
         optimizer = tf.keras.optimizers.get(optimizer)
         tf.keras.backend.set_value(optimizer.lr, learning_rate)

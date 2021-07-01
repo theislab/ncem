@@ -14,9 +14,9 @@ class ModelInteractions:
         l1_coef: Union[float, None] = 0.0,
         use_interactions: bool = False,
         use_domain: bool = False,
-        use_node_degree: bool = False,
         scale_node_size: bool = False,
         output_layer: str = "linear",
+        **kwargs
     ):
         super().__init__()
         self.args = {
@@ -25,7 +25,6 @@ class ModelInteractions:
             "l1_coef": l1_coef,
             "use_interactions": use_interactions,
             "use_domain": use_domain,
-            "use_node_degree": use_node_degree,
             "scale_node_size": scale_node_size,
             "output_layer": output_layer,
         }
@@ -65,17 +64,8 @@ class ModelInteractions:
             x = tf.concat([input_target, categ_condition], axis=-1, name="input_concat")
         x = tf.reshape(x, [-1, x.shape[-1]], name="input_reshape")  # bs * n x (neighbour_embedding + categ_cond)
 
-        if isinstance(l1_coef, float) and isinstance(l2_coef, float):
-            kernel_regularizer = tf.keras.regularizers.l1_l2(l1=l1_coef, l2=l2_coef)
-        elif isinstance(l1_coef, float) and l2_coef is None:
-            kernel_regularizer = tf.keras.regularizers.l1(l1=l1_coef)
-        elif l1_coef is None and isinstance(l2_coef, float):
-            kernel_regularizer = tf.keras.regularizers.l2(l2=l2_coef)
-        else:
-            kernel_regularizer = None
-
         output = tf.keras.layers.Dense(
-            units=out_node_feature_dim, activation="linear", kernel_regularizer=kernel_regularizer, name="LinearLayer"
+            units=out_node_feature_dim, activation="linear", kernel_regularizer=tf.keras.regularizers.l1_l2(l1=l1_coef, l2=l2_coef), name="LinearLayer"
         )(
             x
         )  # bs * n x genes
@@ -97,4 +87,3 @@ class ModelInteractions:
             outputs=output_concat,
             name="interaction_linear_model",
         )
-        self.training_model.summary()

@@ -1,6 +1,0 @@
-scanpy
-squidpy
-tensorflow==2.4.1
-numpy
-anndata
-pandas
