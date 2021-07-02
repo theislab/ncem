@@ -9,8 +9,8 @@ class ModelLinear:
     def __init__(
         self,
         input_shapes,
-        l2_coef: Union[float, None] = 0.0,
-        l1_coef: Union[float, None] = 0.0,
+        l2_coef: float = 0.0,
+        l1_coef: float = 0.0,
         use_source_type: bool = False,
         use_domain: bool = False,
         scale_node_size: bool = False,
