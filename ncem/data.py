@@ -1,5 +1,6 @@
 import abc
 import warnings
+from collections import OrderedDict
 from typing import Dict, List, Optional, Sequence, Tuple, Union
 
 import matplotlib.colors as colors
@@ -10,10 +11,13 @@ import scanpy as sc
 import seaborn as sns
 import squidpy as sq
 from anndata import AnnData, read_h5ad
+from diffxpy.testing.correction import correct
 from matplotlib.ticker import FormatStrFormatter
 from matplotlib.tri import Triangulation
+from omnipath.interactions import import_intercell_network
 from pandas import read_csv, read_excel
-from scipy import sparse
+from scipy import sparse, stats
+from tqdm import tqdm
 
 
 class GraphTools:
@@ -27,8 +31,6 @@ class GraphTools:
         :param transform:
         :return:
         """
-        from tqdm import tqdm
-
         pbar_total = len(self.img_celldata.keys())
         with tqdm(total=pbar_total) as pbar:
             for k, adata in self.img_celldata.items():
@@ -161,8 +163,6 @@ class PlottingTools:
         save: Optional[str] = None,
         suffix: str = "_celldata_interaction_matrix.pdf",
     ):
-        from tqdm import tqdm
-
         interaction_matrix = []
         cluster_key = self.celldata.uns["metadata"]["cluster_col_preprocessed"]
         with tqdm(total=len(self.img_celldata.keys())) as pbar:
@@ -200,8 +200,6 @@ class PlottingTools:
         save: Optional[str] = None,
         suffix: str = "_celldata_nhood_enrichment.pdf",
     ):
-        from tqdm import tqdm
-
         zscores = []
         counts = []
         cluster_key = self.celldata.uns["metadata"]["cluster_col_preprocessed"]
@@ -488,10 +486,6 @@ class PlottingTools:
         n_pcs: Optional[int] = None,
         clip_pvalues: Optional[int] = -5,
     ):
-        import scipy.stats as stats
-        from diffxpy.testing.correction import correct
-        from tqdm import tqdm
-
         titles = list(self.celldata.uns["node_type_names"].values())
         sorce_type_names = [f"source type {x.replace('_', ' ')}" for x in titles]
 
@@ -805,8 +799,6 @@ class PlottingTools:
         show: bool = True,
         copy: bool = True,
     ):
-        from omnipath.interactions import import_intercell_network
-
         interactions = import_intercell_network(
             transmitter_params={"categories": "ligand"}, receiver_params={"categories": "receptor"}
         )
@@ -912,8 +904,6 @@ class PlottingTools:
         self,
         undefined_type: Optional[str] = None,
     ):
-        from tqdm import tqdm
-
         temp_adata = self.celldata.copy()
         cluster_id = temp_adata.uns["metadata"]["cluster_col_preprocessed"]
         img_col = temp_adata.uns["metadata"]["image_col"]
@@ -983,8 +973,6 @@ class PlottingTools:
         show: bool = True,
         return_axs: bool = False,
     ):
-        from collections import OrderedDict
-
         if fontsize:
             sc.set_figure_params(scanpy=True, fontsize=fontsize)
 
