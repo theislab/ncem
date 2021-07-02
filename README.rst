@@ -35,7 +35,7 @@ ncem
 Features
 --------
 
-Repository for the manuscript Fischer, D. S., Schaar, A. C. and Theis, F. Learning cell communication from spatial graphs of cells.
+Repository for the manuscript *Fischer, D. S., Schaar, A. C. and Theis, F. Learning cell communication from spatial graphs of cells. 2021.*
 
 
 Installation
