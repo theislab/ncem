@@ -170,6 +170,8 @@ class Estimator:
         self.complete_img_keys = list(self.data.img_celldata.keys())
 
         self.a = {k: adata.obsp["adjacency_matrix_connectivities"] for k, adata in self.data.img_celldata.items()}
+        if self.adj_type == "scaled":
+            self.a = self.data._transform_all_a(self.a)
         if node_label_space_id == "standard":
             self.h_0 = {k: adata.X for k, adata in self.data.img_celldata.items()}
         elif node_label_space_id == "type":

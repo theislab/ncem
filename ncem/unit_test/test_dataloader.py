@@ -26,6 +26,11 @@ class TestDataLoader(unittest.TestCase):
 
             radius = 100
             label_selection = []
+        elif self.data_origin == "schuerch":
+            from ncem.data import DataLoaderSchuerch as DataLoader
+
+            radius = 100
+            label_selection = ["Group"]
         else:
             from ncem.data import DataLoaderZhang as DataLoader
 
@@ -33,7 +38,6 @@ class TestDataLoader(unittest.TestCase):
             label_selection = []
 
         self.data = DataLoader(data_path=self.data_path, radius=radius, label_selection=label_selection)
-        self.data.merge_types_predefined()
 
 
 class TestDataLoaderZang(TestDataLoader, unittest.TestCase):
@@ -63,6 +67,14 @@ class TestDataLoaderHartmann(TestDataLoader, unittest.TestCase):
 class TestDataLoaderPascualReguant(TestDataLoader, unittest.TestCase):
     data_path = "/Users/anna.schaar/phd/datasets/pascualreguant/"
     data_origin = "pascualreguant"
+
+    def test_data_types(self):
+        self.get_dataloader()
+
+
+class TestDataLoaderSchuerch(TestDataLoader, unittest.TestCase):
+    data_path = "/Users/anna.schaar/phd/datasets/schuerch/"
+    data_origin = "schuerch"
 
     def test_data_types(self):
         self.get_dataloader()

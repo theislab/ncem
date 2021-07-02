@@ -1,4 +1,5 @@
 import abc
+import warnings
 from typing import Dict, List, Optional, Sequence, Tuple, Union
 
 import matplotlib.colors as colors
@@ -12,8 +13,7 @@ from anndata import AnnData, read_h5ad
 from matplotlib.ticker import FormatStrFormatter
 from matplotlib.tri import Triangulation
 from pandas import read_csv, read_excel
-
-# ToDo add graph covariates for schuerch
+from scipy import sparse
 
 
 class GraphTools:
@@ -34,6 +34,33 @@ class GraphTools:
             for k, adata in self.img_celldata.items():
                 sq.gr.spatial_neighbors(adata=adata, radius=radius, transform=transform, key_added="adjacency_matrix")
                 pbar.update(1)
+
+    @staticmethod
+    def _transform_a(a):
+        """
+        Computes D^(-1) * (A+I), with A an adjacency matrix, I the identity matrix
+        and D the degree matrix.
+        :param a: (scipy.sparse.csr_matrix) sparse adjacency matrix
+        :return: (scipy.sparse.csr_matrix) degree transformed sparse adjacency matrix
+        """
+        warnings.filterwarnings("ignore", message="divide by zero encountered in true_divide")
+        degrees = 1 / a.sum(axis=0)
+        degrees[a.sum(axis=0) == 0] = 0
+        degrees = np.squeeze(np.asarray(degrees))
+        deg_matrix = sparse.diags(degrees)
+        a_out = deg_matrix * a
+        return a_out
+
+    def _transform_all_a(self, a_dict: dict):
+        """
+        Computes D^(-1) * (A+I), with A an adjacency matrix, I the identity matrix
+        and D the degree matrix for all matrices in a dictionary.
+
+        :param a_dict: Dict[str, scipy.sparse.csr_matrix] dictionary of sparse adjacency matrices
+        :return: Dict[str, scipy.sparse.csr_matrix] dictionary of degree transformed sparse adjacency matrices
+        """
+        a_transformed = {i: self._transform_a(a) for i, a in a_dict.items()}
+        return a_transformed
 
     @staticmethod
     def _compute_distance_matrix(pos_matrix):
@@ -1179,6 +1206,7 @@ class DataLoaderZhang(DataLoader):
             for i, x in enumerate(celldata.obs[metadata["image_col"]].values)
         }
         celldata.uns["img_to_patient_dict"] = img_to_patient_dict
+        self.img_to_patient_dict = img_to_patient_dict
 
         # register x and y coordinates into obsm
         celldata.obsm["spatial"] = celldata.obs[metadata["pos_cols"]]
@@ -1281,6 +1309,7 @@ class DataLoaderJarosch(DataLoader):
 
         img_to_patient_dict = {k: "p_1" for k in img_keys}
         celldata.uns["img_to_patient_dict"] = img_to_patient_dict
+        self.img_to_patient_dict = img_to_patient_dict
 
         # add clean cluster column which removes regular expression from cluster_col
         celldata.obs[metadata["cluster_col_preprocessed"]] = list(
@@ -1839,8 +1868,8 @@ class DataLoaderSchuerch(DataLoader):
             str(x): celldata_df[metadata["patient_col"]].values[i]
             for i, x in enumerate(celldata_df[metadata["image_col"]].values)
         }
-        # img_to_patient_dict = {k: "p_1" for k in img_keys}
         celldata.uns["img_to_patient_dict"] = img_to_patient_dict
+        self.img_to_patient_dict = img_to_patient_dict
 
         # add clean cluster column which removes regular expression from cluster_col
         celldata.obs[metadata["cluster_col_preprocessed"]] = list(
@@ -1879,23 +1908,196 @@ class DataLoaderSchuerch(DataLoader):
         self.img_celldata = img_celldata
 
     def _register_graph_features(self, label_selection):
+        # Graph features are based on TMA spot and not patient, thus patient_col is technically wrong.
+        # For aspects where patients are needed (e.g. train-val-test split) the correct patients that are
+        # loaded in _register_images() are used
+        patient_col = "TMA spot / region"
+        disease_features = {}
+        patient_features = {"Sex": "categorical", "Age": "continuous"}
+        survival_features = {"DFS": "survival"}
+        tumor_features = {
+            # not sure where these features belong
+            "Group": "categorical",
+            "LA": "percentage",
+            "Diffuse": "percentage",
+            "Klintrup_Makinen": "categorical",
+            "CLR_Graham_Appelman": "categorical",
+        }
+        treatment_features = {}
+        col_renaming = {}
+
+        label_cols = {}
+        label_cols.update(disease_features)
+        label_cols.update(patient_features)
+        label_cols.update(survival_features)
+        label_cols.update(tumor_features)
+        label_cols.update(treatment_features)
+
+        if label_selection is None:
+            label_selection = set(label_cols.keys())
+        else:
+            label_selection = set(label_selection)
+        label_cols_toread = list(label_selection.intersection(set(list(label_cols.keys()))))
+        if "DFS" in label_selection:
+            censor_col = "DFS_Censor"
+            label_cols_toread = label_cols_toread + [censor_col]
+        # there are two LA and Diffuse columns for the two cores that are represented by one patient row
+        if "LA" in label_cols_toread:
+            label_cols_toread = label_cols_toread + ["LA.1"]
+        if "Diffuse" in label_cols_toread:
+            label_cols_toread = label_cols_toread + ["Diffuse.1"]
+        label_cols_toread_csv = [
+            col_renaming[col] if col in list(col_renaming.keys()) else col for col in label_cols_toread
+        ]
+
+        usecols = label_cols_toread_csv + [patient_col]
+        tissue_meta_data = read_csv(
+            self.data_path + "CRC_TMAs_patient_annotations.csv",
+            # sep='\t',
+            usecols=usecols,
+        )[usecols]
+        tissue_meta_data.columns = label_cols_toread + [patient_col]
+
+        # preprocess the loaded csv data:
+        # the rows after the first 35 are just descriptions that were included in the excel file
+        # for easier work with the data, we expand the data to have two columns per patient representing the two cores
+        # that have different LA and Diffuse labels
+        patient_data = tissue_meta_data[:35]
+        long_patient_data = pd.DataFrame(np.repeat(patient_data.values, 2, axis=0))
+        long_patient_data.columns = patient_data.columns
+        long_patient_data["copy"] = ["A", "B"] * 35
+        if "Diffuse" in label_cols_toread:
+            long_patient_data = long_patient_data.rename(columns={"Diffuse": "DiffuseA", "Diffuse.1": "DiffuseB"})
+            long_patient_data["Diffuse"] = np.zeros((70,))
+            long_patient_data.loc[long_patient_data["copy"] == "A", "Diffuse"] = long_patient_data[
+                long_patient_data["copy"] == "A"
+            ]["DiffuseA"]
+            long_patient_data.loc[long_patient_data["copy"] == "B", "Diffuse"] = long_patient_data[
+                long_patient_data["copy"] == "B"
+            ]["DiffuseB"]
+            long_patient_data.loc[long_patient_data["Diffuse"].isnull(), "Diffuse"] = 0
+            # use the proportion of diffuse cores within this spot as probability of being diffuse
+            long_patient_data["Diffuse"] = long_patient_data["Diffuse"].astype(float) / 2
+            long_patient_data = long_patient_data.drop("DiffuseA", axis=1)
+            long_patient_data = long_patient_data.drop("DiffuseB", axis=1)
+        if "LA" in label_cols_toread:
+            long_patient_data = long_patient_data.rename(columns={"LA": "LAA", "LA.1": "LAB"})
+            long_patient_data["LA"] = np.zeros((70,))
+            long_patient_data.loc[long_patient_data["copy"] == "A", "LA"] = long_patient_data[
+                long_patient_data["copy"] == "A"
+            ]["LAA"]
+            long_patient_data.loc[long_patient_data["copy"] == "B", "LA"] = long_patient_data[
+                long_patient_data["copy"] == "B"
+            ]["LAB"]
+            long_patient_data.loc[long_patient_data["LA"].isnull(), "LA"] = 0
+            # use the proportion of LA cores within this spot as probability of being LA
+            long_patient_data["LA"] = long_patient_data["LA"].astype(float) / 2
+            long_patient_data = long_patient_data.drop("LAA", axis=1)
+            long_patient_data = long_patient_data.drop("LAB", axis=1)
+        tissue_meta_data = long_patient_data
+
+        # BUILD LABEL VECTORS FROM LABEL COLUMNS
+        # The columns contain unprocessed numeric and categorical entries that are now processed to prediction-ready
+        # numeric tensors. Here we first generate a dictionary of tensors for each label (label_tensors). We then
+        # transform this to have as output of this section dictionary by image with a dictionary by labels as values
+        # which can be easily queried by image in a data generator.
+        # Subset labels and label types:
+        label_cols = {label: type for label, type in label_cols.items() if label in label_selection}
+        label_tensors = {}
+        label_names = {}  # Names of individual variables in each label vector (eg. categories in onehot-encoding).
+        # 1. Standardize continuous labels to z-scores:
+        continuous_mean = {
+            feature: tissue_meta_data[feature].mean(skipna=True)
+            for feature in list(label_cols.keys())
+            if label_cols[feature] == "continuous"
+        }
+        continuous_std = {
+            feature: tissue_meta_data[feature].std(skipna=True)
+            for feature in list(label_cols.keys())
+            if label_cols[feature] == "continuous"
+        }
+        for i, feature in enumerate(list(label_cols.keys())):
+            if label_cols[feature] == "continuous":
+                label_tensors[feature] = (tissue_meta_data[feature].values - continuous_mean[feature]) / continuous_std[
+                    feature
+                ]
+                label_names[feature] = [feature]
+        for i, feature in enumerate(list(label_cols.keys())):
+            if label_cols[feature] == "percentage":
+                label_tensors[feature] = tissue_meta_data[feature]
+                label_names[feature] = [feature]
+        # 2. One-hot encode categorical columns
+        # Force all entries in categorical columns to be string so that GLM-like formula processing can be performed.
+        for i, feature in enumerate(list(label_cols.keys())):
+            if label_cols[feature] == "categorical":
+                tissue_meta_data[feature] = tissue_meta_data[feature].astype("str")
+        # One-hot encode each string label vector:
+        for i, feature in enumerate(list(label_cols.keys())):
+            if label_cols[feature] == "categorical":
+                oh = pd.get_dummies(tissue_meta_data[feature], prefix=feature, prefix_sep=">", drop_first=False)
+                # Change all entries of corresponding observation to np.nan instead.
+                idx_nan_col = np.array([i for i, x in enumerate(oh.columns) if x.endswith(">nan")])
+                if len(idx_nan_col) > 0:
+                    assert len(idx_nan_col) == 1, "fatal processing error"
+                    nan_rows = np.where(oh.iloc[:, idx_nan_col[0]].values == 1.0)[0]
+                    oh.loc[nan_rows, :] = np.nan
+                # Drop nan element column.
+                oh = oh.loc[:, [x for x in oh.columns if not x.endswith(">nan")]]
+                label_tensors[feature] = oh.values
+                label_names[feature] = oh.columns
+        # 3. Add censoring information to survival
+        survival_mean = {
+            feature: tissue_meta_data[feature].mean(skipna=True)
+            for feature in list(label_cols.keys())
+            if label_cols[feature] == "survival"
+        }
+        for i, feature in enumerate(list(label_cols.keys())):
+            if label_cols[feature] == "survival":
+                label_tensors[feature] = np.concatenate(
+                    [
+                        np.expand_dims(tissue_meta_data[feature].values / survival_mean[feature], axis=1),
+                        np.expand_dims(tissue_meta_data[censor_col].values, axis=1),
+                    ],
+                    axis=1,
+                )
+                label_names[feature] = [feature]
+        # Make sure all tensors are 2D for indexing:
+        for feature in list(label_tensors.keys()):
+            if len(label_tensors[feature].shape) == 1:
+                label_tensors[feature] = np.expand_dims(label_tensors[feature], axis=1)
+        # The dictionary of tensor is nested in slices in a dictionary by image which is easier to query with a
+        # generator.
+        tissue_meta_data_patients = tissue_meta_data[patient_col].values.tolist()
+        # image keys are of the form reg0xx_A or reg0xx_B with xx going from 01 to 70
+        # label tensors have entries (1+2)_A, (1+2)_B, (2+3)_A, (2+3)_B, ...
+        img_to_index = {
+            img: 2 * ((int(img[4:6]) - 1) // 2) if img[7] == "A" else 2 * ((int(img[4:6]) - 1) // 2) + 1
+            for img in self.img_to_patient_dict.keys()
+        }
+        label_tensors = {
+            img: {
+                feature_name: np.array(features[index, :], ndmin=1) for feature_name, features in label_tensors.items()
+            }
+            for img, index in img_to_index.items()
+        }
+
         # Save processed data to attributes.
         for k, adata in self.img_celldata.items():
             graph_covariates = {
-                "label_names": {},
-                "label_tensors": {},
-                "label_selection": [],
-                "continuous_mean": {},
-                "continuous_std": {},
-                "label_data_types": {},
+                "label_names": label_names,
+                "label_tensors": label_tensors[k],
+                "label_selection": list(label_cols.keys()),
+                "continuous_mean": continuous_mean,
+                "continuous_std": continuous_std,
+                "label_data_types": label_cols,
             }
             adata.uns["graph_covariates"] = graph_covariates
 
         graph_covariates = {
-            "label_names": {},
-            "label_selection": [],
-            "continuous_mean": {},
-            "continuous_std": {},
-            "label_data_types": {},
+            "label_names": label_names,
+            "label_selection": list(label_cols.keys()),
+            "continuous_mean": continuous_mean,
+            "continuous_std": continuous_std,
+            "label_data_types": label_cols,
         }
         self.celldata.uns["graph_covariates"] = graph_covariates
