@@ -1,5 +1,3 @@
-from typing import Union
-
 import tensorflow as tf
 
 from ncem.estimators import EstimatorNoGraph
@@ -24,12 +22,10 @@ class EstimatorED(EstimatorNoGraph):
         self,
         optimizer: str = "adam",
         learning_rate: float = 0.0001,
-
         latent_dim: int = 10,
         dropout_rate: float = 0.1,
         l2_coef: float = 0.0,
         l1_coef: float = 0.0,
-
         enc_intermediate_dim: int = 128,
         enc_depth: int = 2,
         dec_intermediate_dim: int = 128,

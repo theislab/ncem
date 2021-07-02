@@ -32,7 +32,7 @@ class ModelEDncem:
         scale_node_size: bool = False,
         output_layer: str = "gaussian",
         log_transform: bool = False,
-        **kwargs
+        **kwargs,
     ):
         super().__init__()
         self.args = {

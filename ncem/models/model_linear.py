@@ -61,7 +61,10 @@ class ModelLinear:
         x = tf.reshape(x, [-1, x.shape[-1]], name="input_reshape")  # bs * n x (neighbour_embedding + categ_cond)
 
         output = tf.keras.layers.Dense(
-            units=out_node_feature_dim, activation="linear", kernel_regularizer=tf.keras.regularizers.l1_l2(l1=l1_coef, l2=l2_coef), name="LinearLayer"
+            units=out_node_feature_dim,
+            activation="linear",
+            kernel_regularizer=tf.keras.regularizers.l1_l2(l1=l1_coef, l2=l2_coef),
+            name="LinearLayer",
         )(
             x
         )  # bs * n x genes

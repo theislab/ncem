@@ -1,3 +1,4 @@
-from ncem.train.train_model import TrainModelLinear, TrainModelInteractions, TrainModelED, TrainModelEDncem, \
-    TrainModelCVAE, TrainModelCVAEncem
 from ncem.train.summaries import GridSearchContainer
+from ncem.train.train_model import (TrainModelCVAE, TrainModelCVAEncem,
+                                    TrainModelED, TrainModelEDncem,
+                                    TrainModelInteractions, TrainModelLinear)

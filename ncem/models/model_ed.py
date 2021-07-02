@@ -32,7 +32,6 @@ class ModelED:
             "l1_coef": l1_coef,
             "enc_intermediate_dim": enc_intermediate_dim,
             "enc_depth": enc_depth,
-            "bottleneck_activation": bottleneck_activation,
             "dec_intermediate_dim": dec_intermediate_dim,
             "dec_depth": dec_depth,
             "use_domain": use_domain,

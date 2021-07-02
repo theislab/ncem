@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Optional, Union
 
 import numpy as np
 import tensorflow as tf
@@ -31,9 +31,9 @@ class EstimatorInteractions(Estimator):
         batch_size: int,
         shuffle_buffer_size: int,
         train: bool,
-        seed: Union[int, None],
+        seed: Optional[int],
         prefetch: int = 100,
-        reinit_n_eval: Union[int, None] = None,
+        reinit_n_eval: Optional[int] = None,
     ):
         np.random.seed(seed)
         if reinit_n_eval is not None and reinit_n_eval != self.n_eval_nodes_per_graph:
@@ -159,7 +159,7 @@ class EstimatorInteractions(Estimator):
         image_keys: np.ndarray,
         nodes_idx: dict,
         batch_size: int,
-        seed: Union[int, None] = None,
+        seed: Optional[int] = None,
         prefetch: int = 100,
     ):
         pass
@@ -169,9 +169,8 @@ class EstimatorInteractions(Estimator):
         optimizer: str = "adam",
         learning_rate: float = 0.0001,
         n_eval_nodes_per_graph: int = 32,
-
-        l2_coef: Union[float, None] = 0.0,
-        l1_coef: Union[float, None] = 0.0,
+        l2_coef: float = 0.0,
+        l1_coef: float = 0.0,
         use_interactions: bool = True,
         use_domain: bool = False,
         scale_node_size: bool = False,
@@ -193,7 +192,7 @@ class EstimatorInteractions(Estimator):
             use_interactions=use_interactions,
             use_domain=use_domain,
             scale_node_size=scale_node_size,
-            output_layer=output_layer
+            output_layer=output_layer,
         )
         optimizer = tf.keras.optimizers.get(optimizer)
         tf.keras.backend.set_value(optimizer.lr, learning_rate)

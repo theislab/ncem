@@ -4,10 +4,11 @@ import ncem.api as ncem
 
 
 class TestEstimator(unittest.TestCase):
-    data_path_zhang = "/Users/anna.schaar/phd/datasets/zhang/"
-    data_path_jarosch = "/Users/anna.schaar/phd/datasets/busch/"
-    data_path_hartmann = "/Users/anna.schaar/phd/datasets/hartmann/"
-    data_path_schuerch = "/Users/anna.schaar/phd/datasets/schuerch/buffer/"
+    base_path = "/Users/anna.schaar/phd/datasets/"
+    data_path_zhang = base_path + "zhang/"
+    data_path_jarosch = base_path + "busch/"
+    data_path_hartmann = base_path + "hartmann/"
+    data_path_schuerch = base_path + "buffer/"
 
     def get_estimator(
         self,

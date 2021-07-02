@@ -2,6 +2,9 @@ import unittest
 
 
 class TestDataLoader(unittest.TestCase):
+    data_origin: str
+    data_path: str
+
     def get_dataloader(self):
         if self.data_origin == "zhang":
             from ncem.data import DataLoaderZhang as DataLoader
@@ -20,6 +23,11 @@ class TestDataLoader(unittest.TestCase):
             label_selection = ["Diagnosis", "Age", "Sex"]
         elif self.data_origin == "pascualreguant":
             from ncem.data import DataLoaderPascualReguant as DataLoader
+
+            radius = 100
+            label_selection = []
+        else:
+            from ncem.data import DataLoaderZhang as DataLoader
 
             radius = 100
             label_selection = []

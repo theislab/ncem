@@ -1,6 +1,7 @@
 import abc
 import time
-from typing import List, Tuple, Union, Dict
+import warnings
+from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import tensorflow as tf
@@ -19,6 +20,7 @@ class Estimator:
     Estimator class for models Contains all necessary methods for data loading, model initialization, training,
     evaluation and prediction.
     """
+
     img_to_patient_dict: Dict[str, str]
     complete_img_keys: List[str]
 
@@ -44,6 +46,7 @@ class Estimator:
     n_graph_covariates: int
     n_node_covariates: int
     n_domains: int
+    max_nodes: int
     n_eval_nodes_per_graph: int
 
     vi_model: bool
@@ -53,6 +56,14 @@ class Estimator:
     cond_type: str
     cond_depth: int
     output_layer: str
+
+    img_keys_test = list
+    img_keys_eval = list
+    img_keys_train = list
+
+    nodes_idx_test = Dict[str, list]
+    nodes_idx_eval = Dict[str, list]
+    nodes_idx_train = Dict[str, list]
 
     steps_per_epoch: int
     validation_steps: int
@@ -69,14 +80,6 @@ class Estimator:
         self.history = {}
         self.pretrain_history = {}
 
-        self.img_keys_test = None
-        self.img_keys_eval = None
-        self.img_keys_train = None
-
-        self.nodes_idx_test = None
-        self.nodes_idx_eval = None
-        self.nodes_idx_train = None
-
         self.train_dataset = None
         self.eval_dataset = None
 
@@ -84,9 +87,8 @@ class Estimator:
         self,
         data_origin: str,
         data_path: str,
-        # feature_transformation: str,
         radius: int,
-        label_selection: Union[List[str], None] = None,
+        label_selection: Optional[List[str]] = None,
     ):
         """
         Initializes a DataLoader object.
@@ -97,43 +99,46 @@ class Estimator:
         """
         if data_origin == "zhang":
             from ncem.data import DataLoaderZhang as DataLoader
+
             self.undefined_node_types = ["other"]
         elif data_origin == "jarosch":
             from ncem.data import DataLoaderJarosch as DataLoader
+
             self.undefined_node_types = None
         elif data_origin == "hartmann":
             from ncem.data import DataLoaderHartmann as DataLoader
+
             self.undefined_node_types = None
         elif data_origin == "pascualreguant":
             from ncem.data import DataLoaderPascualReguant as DataLoader
+
             self.undefined_node_types = ["other"]
         elif data_origin == "schuerch":
             from ncem.data import DataLoaderSchuerch as DataLoader
+
             self.undefined_node_types = [
                 "dirt",
                 "undefined",
                 "tumor cells / immune cells",
-                "immune cells / vasculature"
+                "immune cells / vasculature",
             ]
         else:
             raise ValueError(f"data_origin {data_origin} not recognized")
 
         self.data = DataLoader(data_path, radius=radius, label_selection=label_selection)
-        # self.data.process_node_features(feature_transformation=feature_transformation)
 
     def get_data(
         self,
         data_origin: str,
         data_path: str,
         radius: int,
-        graph_covar_selection: Union[List[str], Tuple[str], None] = None,
+        graph_covar_selection: Optional[Union[List[str], Tuple[str]]] = None,
         node_label_space_id: str = "type",
         node_feature_space_id: str = "standard",
         use_covar_node_position: bool = False,
         use_covar_node_label: bool = False,
         use_covar_graph_covar: bool = False,
         domain_type: str = "image",
-        merge_node_types_predefined: bool = False,
     ):
         if self.adj_type is None:
             raise ValueError("set adj_type by init_estim() first")
@@ -258,9 +263,9 @@ class Estimator:
         batch_size: int,
         shuffle_buffer_size: int,
         train: bool,
-        seed: Union[int, None],
+        seed: Optional[int],
         prefetch: int = 100,
-        reinit_n_eval: Union[int, None] = None,
+        reinit_n_eval: Optional[int] = None,
     ):
         pass
 
@@ -270,7 +275,7 @@ class Estimator:
         image_keys: np.ndarray,
         nodes_idx: dict,
         batch_size: int,
-        seed: Union[int, None] = None,
+        seed: Optional[int] = None,
         prefetch: int = 100,
     ):
         pass
@@ -314,7 +319,8 @@ class Estimator:
             ]
         )
 
-    def _prepare_sf(self, x):
+    @staticmethod
+    def _prepare_sf(x):
         if len(x.shape) == 2:
             sf = np.asarray(x.sum(axis=1)).flatten()
         elif len(x.shape) == 1:
@@ -663,10 +669,10 @@ class Estimator:
         self,
         epochs: int = 1000,
         epochs_warmup: int = 0,
-        max_steps_per_epoch: Union[int, None] = 20,
+        max_steps_per_epoch: Optional[int] = 20,
         batch_size: int = 16,
         validation_batch_size: int = 16,
-        max_validation_steps: Union[int, None] = 10,
+        max_validation_steps: Optional[int] = 10,
         shuffle_buffer_size: int = int(1e4),
         patience: int = 20,
         lr_schedule_min_lr: float = 1e-5,
@@ -675,14 +681,14 @@ class Estimator:
         initial_epoch: int = 0,
         monitor_partition: str = "val",
         monitor_metric: str = "loss",
-        log_dir: Union[str, None] = None,
-        callbacks: Union[list, None] = None,
+        log_dir: Optional[str] = None,
+        callbacks: Optional[list] = None,
         early_stopping: bool = True,
         reduce_lr_plateau: bool = True,
         pretrain_decoder: bool = False,
         decoder_epochs: bool = 1000,
         decoder_patience: bool = 20,
-        decoder_callbacks: Union[list, None] = None,
+        decoder_callbacks: Optional[list] = None,
         aggressive: bool = False,
         aggressive_enc_patience: int = 10,
         aggressive_epochs: int = 5,
@@ -746,7 +752,7 @@ class Estimator:
                 callbacks=decoder_callbacks,
                 early_stopping=early_stopping,
                 reduce_lr_plateau=reduce_lr_plateau,
-                **kwargs
+                **kwargs,
             )
         if aggressive:
             self.train_aggressive(aggressive_enc_patience=aggressive_enc_patience, aggressive_epochs=aggressive_epochs)
@@ -765,7 +771,7 @@ class Estimator:
                 callbacks=callbacks,
                 early_stopping=False,
                 reduce_lr_plateau=reduce_lr_plateau,
-                **kwargs
+                **kwargs,
             )
             initial_epoch += epochs_warmup
 
@@ -782,7 +788,7 @@ class Estimator:
             callbacks=callbacks,
             early_stopping=early_stopping,
             reduce_lr_plateau=reduce_lr_plateau,
-            **kwargs
+            **kwargs,
         )
 
     def train_normal(
@@ -795,11 +801,11 @@ class Estimator:
         initial_epoch: int = 0,
         monitor_partition: str = "val",
         monitor_metric: str = "loss",
-        log_dir: Union[str, None] = None,
-        callbacks: Union[list, None] = None,
+        log_dir: Optional[str] = None,
+        callbacks: Optional[list] = None,
         early_stopping: bool = True,
         reduce_lr_plateau: bool = True,
-        **kwargs
+        **kwargs,
     ):
 
         """
@@ -866,7 +872,7 @@ class Estimator:
             validation_data=self.eval_dataset,
             validation_steps=self.validation_steps,
             verbose=2,
-            **kwargs
+            **kwargs,
         ).history
         for k, v in history.items():  # append to history if train() has been called before.
             if k in self.history.keys():
@@ -884,11 +890,11 @@ class Estimator:
         initial_epoch: int = 0,
         monitor_partition: str = "val",
         monitor_metric: str = "loss",
-        log_dir: Union[str, None] = None,
-        callbacks: Union[list, None] = None,
+        log_dir: Optional[str] = None,
+        callbacks: Optional[list] = None,
         early_stopping: bool = True,
         reduce_lr_plateau: bool = True,
-        **kwargs
+        **kwargs,
     ):
         # Set callbacks.
         cbs = []
@@ -935,7 +941,7 @@ class Estimator:
             validation_data=self.eval_dataset,
             validation_steps=self.validation_steps,
             verbose=2,
-            **kwargs
+            **kwargs,
         ).history
         for k, v in history.items():  # append to history if train() has been called before.
             if k in self.history.keys():
@@ -972,35 +978,42 @@ class Estimator:
         """
         # @tf.function
         def train_iter(
-            x_batch,
-            y_batch,
+            x_batch_aggressive,
+            y_batch_aggressive,
             train_dec,
             train_enc,
         ):
             with tf.GradientTape() as g:
-                output_decoder_concat, latent_space = self.model.training_model(x_batch)
-                losses = {
-                    "reconstruction_loss": self.loss[0](y_batch[0], output_decoder_concat),
-                    "bottleneck_loss": self.loss[1](y_batch[1], latent_space),
+                output_decoder_concat, latent_space = self.model.training_model(x_batch_aggressive)
+                losses_aggressive = {
+                    "reconstruction_loss": self.loss[0](y_batch_aggressive[0], output_decoder_concat),
+                    "bottleneck_loss": self.loss[1](y_batch_aggressive[1], latent_space),
                 }
-                losses["loss"] = losses["reconstruction_loss"] + losses["bottleneck_loss"]
+                losses_aggressive["loss"] = (
+                    losses_aggressive["reconstruction_loss"] + losses_aggressive["bottleneck_loss"]
+                )
 
             if train_enc:
-                grad_enc = g.gradient(target=losses["loss"], sources=self.model.encoder_model.trainable_variables)
+                grad_enc = g.gradient(
+                    target=losses_aggressive["loss"], sources=self.model.encoder_model.trainable_variables
+                )
                 self.optimizer.apply_gradients(zip(grad_enc, self.model.encoder_model.trainable_variables))
             if train_dec:
-                grad_dec = g.gradient(target=losses["loss"], sources=self.model.decoder_model.trainable_variables)
+                grad_dec = g.gradient(
+                    target=losses_aggressive["loss"], sources=self.model.decoder_model.trainable_variables
+                )
                 self.optimizer.apply_gradients(zip(grad_dec, self.model.decoder_model.trainable_variables))
 
             metrics_values_output = {
-                "reconstruction_" + metric.__name__: metric(y_batch[0], output_decoder_concat)
+                "reconstruction_" + metric.__name__: metric(y_batch_aggressive[0], output_decoder_concat)
                 for metric in self.metrics[0]
             }
             metrics_values_latent = {
-                "bottleneck_" + metric.__name__: metric(y_batch[1], latent_space) for metric in self.metrics[1]
+                "bottleneck_" + metric.__name__: metric(y_batch_aggressive[1], latent_space)
+                for metric in self.metrics[1]
             }
-            losses.update(metrics_values_output)
-            losses.update(metrics_values_latent)
+            losses_aggressive.update(metrics_values_output)
+            losses_aggressive.update(metrics_values_latent)
 
             # Add non-scaled ELBO to model as metric (ie no annealing or beta-VAE scaling):
             log2pi = tf.math.log(2.0 * np.pi)
@@ -1009,7 +1022,7 @@ class Estimator:
             logpz = -0.5 * tf.reduce_mean(tf.square(z) + log2pi)
             d_kl = logqz_x - logpz
             loc, scale = tf.split(output_decoder_concat, num_or_size_splits=2, axis=2)
-            input_x = x_batch[0]
+            input_x = x_batch_aggressive[0]
             if self.output_layer == "gaussian" or self.output_layer == "gaussian_const_disp":
                 neg_ll = tf.math.log(tf.sqrt(2 * np.math.pi) * scale) + 0.5 * tf.math.square(
                     loc - input_x
@@ -1033,9 +1046,9 @@ class Estimator:
             else:
                 neg_ll = None
             neg_ll = tf.reduce_mean(tf.reduce_sum(neg_ll, axis=-1))
-            losses["elbo"] = neg_ll + d_kl
+            losses_aggressive["elbo"] = neg_ll + d_kl
 
-            return losses
+            return losses_aggressive
 
         aggressive = True
         history = {}
@@ -1056,8 +1069,8 @@ class Estimator:
                     if step >= self.steps_per_epoch:
                         break
                     _ = train_iter(
-                        x_batch=x_batch,
-                        y_batch=y_batch,
+                        x_batch_aggressive=x_batch,
+                        y_batch_aggressive=y_batch,
                         train_enc=True,
                         train_dec=False,
                     )
@@ -1067,8 +1080,8 @@ class Estimator:
                     if step >= self.validation_steps:
                         break
                     losses = train_iter(
-                        x_batch=x_batch,
-                        y_batch=y_batch,
+                        x_batch_aggressive=x_batch,
+                        y_batch_aggressive=y_batch,
                         train_enc=False,
                         train_dec=False,
                     )
@@ -1091,8 +1104,8 @@ class Estimator:
                 if step >= self.steps_per_epoch:
                     break
                 losses = train_iter(
-                    x_batch=x_batch,
-                    y_batch=y_batch,
+                    x_batch_aggressive=x_batch,
+                    y_batch_aggressive=y_batch,
                     train_enc=False,
                     train_dec=True,
                 )
@@ -1114,8 +1127,8 @@ class Estimator:
                 if step >= self.validation_steps:
                     break
                 losses = train_iter(
-                    x_batch=x_batch,
-                    y_batch=y_batch,
+                    x_batch_aggressive=x_batch,
+                    y_batch_aggressive=y_batch,
                     train_enc=False,
                     train_dec=False,
                 )
@@ -1148,6 +1161,36 @@ class Estimator:
                 self.history[k].extend(v)
             else:
                 self.history[k] = v
+
+    def _get_dataset_test(self, batch_size: int = 1):
+        if self.img_keys_test is not None and len(self.img_keys_test) != 0:
+            image_keys = self.img_keys_test
+        else:
+            warnings.warn("Image keys for test set empty. Evaluating on all images in whole dataset!")
+            image_keys = list(self.complete_img_keys)
+        if self.nodes_idx_test is not None:
+            nodes_idx = self.nodes_idx_test
+        else:
+            warnings.warn("Node idx for test set empty. Evaluating on all nodes in whole dataset!")
+            nodes_idx = "all"
+
+        return self._get_dataset(
+            image_keys=image_keys,
+            nodes_idx=nodes_idx,
+            batch_size=batch_size,
+            shuffle_buffer_size=1,
+            train=False,
+            seed=None,
+            reinit_n_eval=None,
+        )
+
+    def predict(self, batch_size: int = 1) -> Tuple[Dict[str, np.ndarray], Dict[str, np.ndarray]]:
+        """
+        Return observed labels and full predictions (including scale model) grouped exactly as in nodes_idx_test.
+        :return:
+        """
+        ds = self._get_dataset_test(batch_size=batch_size)
+        return self.model.training_model.predict(ds)
 
     def evaluate_any(self, img_keys, node_idx, batch_size: int = 1):
         """
@@ -1203,7 +1246,6 @@ class Estimator:
         return split_per_node_type, evaluation_per_node_type
 
 
-
 class EstimatorGraph(Estimator):
     def init_model(self, **kwargs):
         pass
@@ -1257,11 +1299,11 @@ class EstimatorGraph(Estimator):
         image_keys: List[str],
         nodes_idx: Dict[str, np.ndarray],
         batch_size: int,
-        shuffle_buffer_size: Union[int, None],
+        shuffle_buffer_size: Optional[int],
         train: bool = True,
-        seed: Union[int, None] = None,
+        seed: Optional[int] = None,
         prefetch: int = 100,
-        reinit_n_eval: Union[int, None] = None,
+        reinit_n_eval: Optional[int] = None,
     ):
         """
 
@@ -1303,7 +1345,7 @@ class EstimatorGraph(Estimator):
                     # dropping
                     index_list = [
                         np.asarray(
-                            nodes_idx[key][self.n_eval_nodes_per_graph * i: self.n_eval_nodes_per_graph * (i + 1)],
+                            nodes_idx[key][self.n_eval_nodes_per_graph * i : self.n_eval_nodes_per_graph * (i + 1)],
                             dtype=np.int32,
                         )
                         for i in range(len(nodes_idx[key]) // self.n_eval_nodes_per_graph)
@@ -1381,9 +1423,9 @@ class EstimatorGraph(Estimator):
         image_keys: np.ndarray,
         nodes_idx: dict,
         batch_size: int,
-        seed: Union[int, None] = None,
+        seed: Optional[int] = None,
         prefetch: int = 100,
-        reinit_n_eval: Union[int, None] = None,
+        reinit_n_eval: Optional[int] = None,
     ):
         """
 
@@ -1410,7 +1452,7 @@ class EstimatorGraph(Estimator):
 
                 index_list = [
                     np.asarray(
-                        nodes_idx[key][self.n_eval_nodes_per_graph * i: self.n_eval_nodes_per_graph * (i + 1)],
+                        nodes_idx[key][self.n_eval_nodes_per_graph * i : self.n_eval_nodes_per_graph * (i + 1)],
                         dtype=np.int32,
                     )
                     for i in range(len(nodes_idx[key]) // self.n_eval_nodes_per_graph)
@@ -1522,8 +1564,8 @@ class EstimatorGraph(Estimator):
         dataset = dataset.batch(batch_size)
         dataset = dataset.prefetch(prefetch)
         return dataset
-    
-    
+
+
 class EstimatorNoGraph(Estimator):
     def init_model(self, **kwargs):
         pass
@@ -1571,9 +1613,9 @@ class EstimatorNoGraph(Estimator):
         batch_size: int,
         shuffle_buffer_size: int,
         train: bool = True,
-        seed: Union[int, None] = None,
+        seed: Optional[int] = None,
         prefetch: int = 100,
-        reinit_n_eval: Union[int, None] = None,
+        reinit_n_eval: Optional[int] = None,
     ):
         """
         Prepares a dataset.
@@ -1616,7 +1658,7 @@ class EstimatorNoGraph(Estimator):
                     # dropping
                     index_list = [
                         np.asarray(
-                            nodes_idx[key][self.n_eval_nodes_per_graph * i: self.n_eval_nodes_per_graph * (i + 1)],
+                            nodes_idx[key][self.n_eval_nodes_per_graph * i : self.n_eval_nodes_per_graph * (i + 1)],
                             dtype=np.int32,
                         )
                         for i in range(len(nodes_idx[key]) // self.n_eval_nodes_per_graph)
@@ -1669,9 +1711,9 @@ class EstimatorNoGraph(Estimator):
         image_keys: np.ndarray,
         nodes_idx: dict,
         batch_size: int,
-        seed: Union[int, None] = None,
+        seed: Optional[int] = None,
         prefetch: int = 100,
-        reinit_n_eval: Union[int, None] = None,
+        reinit_n_eval: Optional[int] = None,
     ):
         """
 
@@ -1698,7 +1740,7 @@ class EstimatorNoGraph(Estimator):
 
                 index_list = [
                     np.asarray(
-                        nodes_idx[key][self.n_eval_nodes_per_graph * i: self.n_eval_nodes_per_graph * (i + 1)],
+                        nodes_idx[key][self.n_eval_nodes_per_graph * i : self.n_eval_nodes_per_graph * (i + 1)],
                         dtype=np.int32,
                     )
                     for i in range(len(nodes_idx[key]) // self.n_eval_nodes_per_graph)

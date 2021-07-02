@@ -1,9 +1,8 @@
 import abc
-from typing import Dict, List, Tuple, Union, Optional, Sequence
+from typing import Dict, List, Optional, Sequence, Tuple, Union
 
-import matplotlib.pyplot as plt
 import matplotlib.colors as colors
-
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import scanpy as sc
@@ -15,7 +14,6 @@ from matplotlib.tri import Triangulation
 from pandas import read_csv, read_excel
 
 # ToDo add graph covariates for schuerch
-# ToDo fix node degree
 
 
 class GraphTools:
@@ -30,24 +28,23 @@ class GraphTools:
         :return:
         """
         from tqdm import tqdm
+
         pbar_total = len(self.img_celldata.keys())
         with tqdm(total=pbar_total) as pbar:
             for k, adata in self.img_celldata.items():
                 sq.gr.spatial_neighbors(adata=adata, radius=radius, transform=transform, key_added="adjacency_matrix")
                 pbar.update(1)
-                
-    def _compute_distance_matrix(self, pos_matrix):
+
+    @staticmethod
+    def _compute_distance_matrix(pos_matrix):
         diff = pos_matrix[:, :, None] - pos_matrix[:, :, None].T
         return (diff * diff).sum(1)
-                
-    def _get_degrees(
-        self,
-        max_distances: list
-    ):
+
+    def _get_degrees(self, max_distances: list):
         degs = {}
         degrees = {}
         for i, adata in self.img_celldata.items():
-            pm = np.array(adata.obsm['spatial'])
+            pm = np.array(adata.obsm["spatial"])
             dist_matrix = self._compute_distance_matrix(pm)
             degs[i] = {dist: np.sum(dist_matrix < dist * dist, axis=0) for dist in max_distances}
         for dist in max_distances:
@@ -126,30 +123,28 @@ class GraphTools:
 
 
 class PlottingTools:
+    celldata: AnnData
+    img_celldata: Dict[str, AnnData]
+
     def celldata_interaction_matrix(
         self,
         fontsize: int = 13,
-        figsize: Tuple[float, float] = (5,5),
+        figsize: Tuple[float, float] = (5, 5),
         title: Optional[str] = None,
         save: Optional[str] = None,
         suffix: str = "_celldata_interaction_matrix.pdf",
     ):
         from tqdm import tqdm
+
         interaction_matrix = []
-        cluster_key = self.celldata.uns['metadata']['cluster_col_preprocessed']
+        cluster_key = self.celldata.uns["metadata"]["cluster_col_preprocessed"]
         with tqdm(total=len(self.img_celldata.keys())) as pbar:
             for k, adata in self.img_celldata.items():
                 im = sq.gr.interaction_matrix(
-                    adata,
-                    cluster_key=cluster_key,
-                    connectivity_key='adjacency_matrix',
-                    normalized=True,
-                    copy=True
+                    adata, cluster_key=cluster_key, connectivity_key="adjacency_matrix", normalized=True, copy=True
                 )
                 im = pd.DataFrame(
-                    im, 
-                    columns=list(np.unique(adata.obs[cluster_key])), 
-                    index=list(np.unique(adata.obs[cluster_key]))
+                    im, columns=list(np.unique(adata.obs[cluster_key])), index=list(np.unique(adata.obs[cluster_key]))
                 )
                 interaction_matrix.append(im)
                 pbar.update(1)
@@ -157,49 +152,50 @@ class PlottingTools:
         by_row_index = df_concat.groupby(df_concat.index)
         df_means = by_row_index.mean().sort_index(axis=1)
         self.celldata.uns[f"{cluster_key}_interactions"] = np.array(df_means).T
-        
+
         sc.set_figure_params(scanpy=True, fontsize=fontsize)
         if save:
             save = save + suffix
         sq.pl.interaction_matrix(
             self.celldata,
             cluster_key=cluster_key,
-            connectivity_key='adjacency_matrix',
+            connectivity_key="adjacency_matrix",
             figsize=figsize,
             title=title,
-            save=save
+            save=save,
         )
-        
+
     def celldata_nhood_enrichment(
         self,
         fontsize: int = 13,
-        figsize: Tuple[float, float] = (5,5),
+        figsize: Tuple[float, float] = (5, 5),
         title: Optional[str] = None,
         save: Optional[str] = None,
         suffix: str = "_celldata_nhood_enrichment.pdf",
     ):
         from tqdm import tqdm
+
         zscores = []
         counts = []
-        cluster_key = self.celldata.uns['metadata']['cluster_col_preprocessed']
+        cluster_key = self.celldata.uns["metadata"]["cluster_col_preprocessed"]
         with tqdm(total=len(self.img_celldata.keys())) as pbar:
             for k, adata in self.img_celldata.items():
                 im = sq.gr.nhood_enrichment(
                     adata,
                     cluster_key=cluster_key,
-                    connectivity_key='adjacency_matrix',
+                    connectivity_key="adjacency_matrix",
                     copy=True,
-                    show_progress_bar=False
+                    show_progress_bar=False,
                 )
                 zscore = pd.DataFrame(
-                    im[0], 
-                    columns=list(np.unique(adata.obs[cluster_key])), 
-                    index=list(np.unique(adata.obs[cluster_key]))
+                    im[0],
+                    columns=list(np.unique(adata.obs[cluster_key])),
+                    index=list(np.unique(adata.obs[cluster_key])),
                 )
                 count = pd.DataFrame(
-                    im[1], 
-                    columns=list(np.unique(adata.obs[cluster_key])), 
-                    index=list(np.unique(adata.obs[cluster_key]))
+                    im[1],
+                    columns=list(np.unique(adata.obs[cluster_key])),
+                    index=list(np.unique(adata.obs[cluster_key])),
                 )
                 zscores.append(zscore)
                 counts.append(count)
@@ -207,28 +203,28 @@ class PlottingTools:
         df_zscores = pd.concat(zscores)
         by_row_index = df_zscores.groupby(df_zscores.index)
         df_zscores = by_row_index.mean().sort_index(axis=1)
-        
+
         df_counts = pd.concat(counts)
         by_row_index = df_counts.groupby(df_counts.index)
         df_counts = by_row_index.sum().sort_index(axis=1)
-        
+
         self.celldata.uns[f"{cluster_key}_nhood_enrichment"] = {
-            'zscore': np.array(df_zscores).T,
-            'count': np.array(df_counts).T,
+            "zscore": np.array(df_zscores).T,
+            "count": np.array(df_counts).T,
         }
-        
+
         sc.set_figure_params(scanpy=True, fontsize=fontsize)
         if save:
             save = save + suffix
         sq.pl.nhood_enrichment(
             self.celldata,
             cluster_key=cluster_key,
-            connectivity_key='adjacency_matrix',
+            connectivity_key="adjacency_matrix",
             figsize=figsize,
             title=title,
-            save=save
+            save=save,
         )
-    
+
     def celltype_frequencies(
         self,
         figsize: Tuple[float, float] = (5.0, 6.0),
@@ -239,16 +235,16 @@ class PlottingTools:
         return_axs: bool = False,
     ):
         plt.ioff()
-        cluster_id = self.celldata.uns['metadata']['cluster_col_preprocessed']
+        cluster_id = self.celldata.uns["metadata"]["cluster_col_preprocessed"]
         if fontsize:
             sc.set_figure_params(scanpy=True, fontsize=fontsize)
-            
+
         fig, ax = plt.subplots(nrows=1, ncols=1, figsize=figsize)
         sns.barplot(
             y=self.celldata.obs[cluster_id].value_counts().index,
             x=list(self.celldata.obs[cluster_id].value_counts()),
-            color='steelblue',
-            ax=ax
+            color="steelblue",
+            ax=ax,
         )
         ax.grid(False)
         # Save, show and return figure.
@@ -266,8 +262,7 @@ class PlottingTools:
             return ax
         else:
             return None
-        
-        
+
     def noise_structure(
         self,
         undefined_type: Optional[str] = None,
@@ -358,7 +353,7 @@ class PlottingTools:
         undefined_type: Optional[str] = None,
         n_neighbors: Optional[int] = 10,
         n_pcs: Optional[int] = None,
-        figsize: Tuple[float, float] = (4., 4.),
+        figsize: Tuple[float, float] = (4.0, 4.0),
         fontsize: Optional[int] = None,
         size: Optional[int] = None,
         palette: Optional[str] = None,
@@ -368,7 +363,7 @@ class PlottingTools:
         copy: bool = True,
     ):
         temp_adata = self.img_celldata[image_key].copy()
-        cluster_id = temp_adata.uns['metadata']['cluster_col_preprocessed']
+        cluster_id = temp_adata.uns["metadata"]["cluster_col_preprocessed"]
         if undefined_type:
             temp_adata = temp_adata[temp_adata.obs[cluster_id] != undefined_type]
         if target_cell_type:
@@ -376,10 +371,14 @@ class PlottingTools:
         sc.pp.neighbors(temp_adata, n_neighbors=n_neighbors, n_pcs=n_pcs)
         sc.tl.louvain(temp_adata)
         sc.tl.umap(temp_adata)
-        print('n cells: ', temp_adata.shape[0])
+        print("n cells: ", temp_adata.shape[0])
         if target_cell_type:
-            temp_adata.obs[f"{target_cell_type} substates"] = target_cell_type + ' ' + temp_adata.obs.louvain.astype(str)
-            temp_adata.obs[f"{target_cell_type} substates"] = temp_adata.obs[f"{target_cell_type} substates"].astype("category")
+            temp_adata.obs[f"{target_cell_type} substates"] = (
+                target_cell_type + " " + temp_adata.obs.louvain.astype(str)
+            )
+            temp_adata.obs[f"{target_cell_type} substates"] = temp_adata.obs[f"{target_cell_type} substates"].astype(
+                "category"
+            )
             print(temp_adata.obs[f"{target_cell_type} substates"].value_counts())
             color = [f"{target_cell_type} substates"]
         else:
@@ -389,15 +388,11 @@ class PlottingTools:
         if fontsize:
             sc.set_figure_params(scanpy=True, fontsize=fontsize)
         fig, ax = plt.subplots(
-            nrows=1, ncols=1, figsize=figsize, )
-        sc.pl.umap(
-            temp_adata,
-            color=color,
-            ax=ax,
-            show=False,
-            size=size,
-            palette=palette,
-            title='')
+            nrows=1,
+            ncols=1,
+            figsize=figsize,
+        )
+        sc.pl.umap(temp_adata, color=color, ax=ax, show=False, size=size, palette=palette, title="")
         # Save, show and return figure.
         if save is not None:
             plt.savefig(save + image_key + suffix)
@@ -415,10 +410,10 @@ class PlottingTools:
         self,
         image_key: str,
         undefined_type: Optional[str] = None,
-        figsize: Tuple[float, float] = (7., 7.),
+        figsize: Tuple[float, float] = (7.0, 7.0),
         spot_size: int = 30,
         fontsize: Optional[int] = None,
-        legend_loc: str = 'right margin',
+        legend_loc: str = "right margin",
         save: Union[str, None] = None,
         suffix: str = "_spatial.pdf",
         clean_view: bool = False,
@@ -426,28 +421,22 @@ class PlottingTools:
         copy: bool = True,
     ):
         temp_adata = self.img_celldata[image_key].copy()
-        cluster_id = temp_adata.uns['metadata']['cluster_col_preprocessed']
+        cluster_id = temp_adata.uns["metadata"]["cluster_col_preprocessed"]
         if undefined_type:
             temp_adata = temp_adata[temp_adata.obs[cluster_id] != undefined_type]
 
         if clean_view:
-            temp_adata = temp_adata[np.argwhere(np.array(temp_adata.obsm['spatial'])[:, 1] < 0).squeeze()]
+            temp_adata = temp_adata[np.argwhere(np.array(temp_adata.obsm["spatial"])[:, 1] < 0).squeeze()]
 
         plt.ioff()
         if fontsize:
             sc.set_figure_params(scanpy=True, fontsize=fontsize)
         fig, ax = plt.subplots(nrows=1, ncols=1, figsize=figsize)
         sc.pl.spatial(
-            temp_adata,
-            color=cluster_id,
-            spot_size=spot_size,
-            legend_loc=legend_loc,
-            ax=ax,
-            show=False,
-            title=''
+            temp_adata, color=cluster_id, spot_size=spot_size, legend_loc=legend_loc, ax=ax, show=False, title=""
         )
-        ax.set_xlabel('')
-        ax.set_ylabel('')
+        ax.set_xlabel("")
+        ax.set_ylabel("")
         # Save, show and return figure.
         plt.tight_layout()
         if save is not None:
@@ -472,42 +461,38 @@ class PlottingTools:
         n_pcs: Optional[int] = None,
         clip_pvalues: Optional[int] = -5,
     ):
-        from tqdm import tqdm
         import scipy.stats as stats
         from diffxpy.testing.correction import correct
+        from tqdm import tqdm
 
-        titles = list(self.celldata.uns['node_type_names'].values())
+        titles = list(self.celldata.uns["node_type_names"].values())
         sorce_type_names = [f"source type {x.replace('_', ' ')}" for x in titles]
 
-        pbar_total = len(self.img_celldata.keys())+len(self.img_celldata.keys())+len(titles)
+        pbar_total = len(self.img_celldata.keys()) + len(self.img_celldata.keys()) + len(titles)
         with tqdm(total=pbar_total) as pbar:
-            h_1 = []
-            h_0 = []
-            fov = []
-            a = []
-            pm = []
-            img_size = []
             for k, adata in self.img_celldata.items():
                 source_type = np.matmul(
-                    np.asarray(adata.obsp['adjacency_matrix_connectivities'].todense() > 0, dtype="int"),
-                    adata.obsm['node_types']
+                    np.asarray(adata.obsp["adjacency_matrix_connectivities"].todense() > 0, dtype="int"),
+                    adata.obsm["node_types"],
                 )
-                source_type = pd.DataFrame(
-                    (source_type > 0).astype(str), columns=sorce_type_names
-                ).replace({'True': 'in neighbourhood', 'False': 'not in neighbourhood'}, regex=True).astype("category")
-                
+                source_type = (
+                    pd.DataFrame((source_type > 0).astype(str), columns=sorce_type_names)
+                    .replace({"True": "in neighbourhood", "False": "not in neighbourhood"}, regex=True)
+                    .astype("category")
+                )
+
                 for col in source_type.columns:
                     adata.obs[col] = list(source_type[col])
                     adata.obs[col] = adata.obs[col].astype("category")
-                
+
                 pbar.update(1)
                 pbar.update(1)
 
             adata_list = list(self.img_celldata.values())
             adata = adata_list[0].concatenate(adata_list[1:], uns_merge="same")
-            
-            cluster_col = self.celldata.uns['metadata']['cluster_col_preprocessed']
-            image_col = self.celldata.uns['metadata']['image_col']
+
+            cluster_col = self.celldata.uns["metadata"]["cluster_col_preprocessed"]
+            image_col = self.celldata.uns["metadata"]["image_col"]
             if undefined_type:
                 adata = adata[adata.obs[cluster_col] != undefined_type]
 
@@ -517,9 +502,13 @@ class PlottingTools:
             sc.pp.neighbors(adata_substates, n_neighbors=n_neighbors, n_pcs=n_pcs)
             sc.tl.louvain(adata_substates)
             sc.tl.umap(adata_substates)
-            adata_substates.obs[f"{target_cell_type} substates"] = f"{target_cell_type} " + adata_substates.obs.louvain.astype(str)
-            adata_substates.obs[f"{target_cell_type} substates"] = adata_substates.obs[f"{target_cell_type} substates"].astype("category")
-            
+            adata_substates.obs[
+                f"{target_cell_type} substates"
+            ] = f"{target_cell_type} " + adata_substates.obs.louvain.astype(str)
+            adata_substates.obs[f"{target_cell_type} substates"] = adata_substates.obs[
+                f"{target_cell_type} substates"
+            ].astype("category")
+
             one_hot = pd.get_dummies(adata_substates.obs.louvain, dtype=np.bool)
             # Join the encoded df
             df = adata_substates.obs.join(one_hot)
@@ -538,52 +527,42 @@ class PlottingTools:
                 pval_source_type.append(pval_cluster)
                 pbar.update(1)
 
-        print('n cells: ', adata_substates.shape[0])
+        print("n cells: ", adata_substates.shape[0])
         substate_counts = adata_substates.obs[f"{target_cell_type} substates"].value_counts()
         print(substate_counts)
 
         columns = [f"{target_cell_type} {x}" for x in np.unique(adata_substates.obs.louvain)]
         pval = pd.DataFrame(
-            np.array(pval_source_type).squeeze(),
-            index=[x.replace('_', ' ') for x in titles],
-            columns=columns
+            np.array(pval_source_type).squeeze(), index=[x.replace("_", " ") for x in titles], columns=columns
         )
         log_pval = np.log10(pval)
 
         if filter_titles:
-            log_pval = log_pval.sort_values(columns, ascending=True).filter(
-                items=filter_titles,
-                axis=0
-            )
+            log_pval = log_pval.sort_values(columns, ascending=True).filter(items=filter_titles, axis=0)
         if clip_pvalues:
             log_pval[log_pval < clip_pvalues] = clip_pvalues
-        fold_change_df = adata_substates.obs[
-            [cluster_col, f"{target_cell_type} substates"] + sorce_type_names
-            ]
+        fold_change_df = adata_substates.obs[[cluster_col, f"{target_cell_type} substates"] + sorce_type_names]
         counts = pd.pivot_table(
-            fold_change_df.replace({'in neighbourhood': 1, 'not in neighbourhood': 0}),
+            fold_change_df.replace({"in neighbourhood": 1, "not in neighbourhood": 0}),
             index=[f"{target_cell_type} substates"],
             aggfunc=np.sum,
-            margins=True
+            margins=True,
         ).T
-        counts['new_index'] = [x.replace('source type ', '') for x in counts.index]
-        counts = counts.set_index('new_index')
+        counts["new_index"] = [x.replace("source type ", "") for x in counts.index]
+        counts = counts.set_index("new_index")
 
         fold_change = counts.loc[:, columns].div(np.array(substate_counts), axis=1)
-        fold_change = fold_change.subtract(np.array(counts['All'] / adata_substates.shape[0]), axis=0)
+        fold_change = fold_change.subtract(np.array(counts["All"] / adata_substates.shape[0]), axis=0)
 
         if filter_titles:
-            fold_change = fold_change.fillna(0).filter(
-                items=filter_titles,
-                axis=0
-            )
+            fold_change = fold_change.fillna(0).filter(items=filter_titles, axis=0)
         return adata.copy(), adata_substates.copy(), log_pval, fold_change
 
     def cluster_enrichment(
         self,
         pvalues,
         fold_change,
-        figsize: Tuple[float, float] = (4., 10.),
+        figsize: Tuple[float, float] = (4.0, 10.0),
         fontsize: Optional[int] = None,
         pad: float = 0.15,
         pvalues_cmap=None,
@@ -592,7 +571,6 @@ class PlottingTools:
         suffix: str = "_cluster_enrichment.pdf",
         show: bool = True,
     ):
-
         class MidpointNormalize(colors.Normalize):
             def __init__(self, vmin=None, vmax=None, midpoint=None, clip=False):
                 self.midpoint = midpoint
@@ -601,49 +579,50 @@ class PlottingTools:
             def __call__(self, value, clip=None):
                 x, y = [self.vmin, self.midpoint, self.vmax], [0, 0.5, 1]
                 return np.ma.masked_array(np.interp(value, x, y))
-            
+
         if fontsize:
             sc.set_figure_params(scanpy=True, fontsize=fontsize)
         fig, ax = plt.subplots(nrows=1, ncols=1, figsize=figsize)
-        M = pvalues.shape[1]
-        N = pvalues.shape[0]
-        y = np.arange(N + 1)
-        x = np.arange(M + 1)
+        m = pvalues.shape[1]
+        n = pvalues.shape[0]
+        y = np.arange(n + 1)
+        x = np.arange(m + 1)
         xs, ys = np.meshgrid(x, y)
 
-        triangles1 = [(i + j * (M + 1), i + 1 + j * (M + 1), i + (j + 1) * (M + 1)) for j in range(N) for i in range(M)]
-        triangles2 = [(i + 1 + j * (M + 1), i + 1 + (j + 1) * (M + 1), i + (j + 1) * (M + 1)) for j in range(N) for i in
-                      range(M)]
+        triangles1 = [(i + j * (m + 1), i + 1 + j * (m + 1), i + (j + 1) * (m + 1)) for j in range(n) for i in range(m)]
+        triangles2 = [
+            (i + 1 + j * (m + 1), i + 1 + (j + 1) * (m + 1), i + (j + 1) * (m + 1)) for j in range(n) for i in range(m)
+        ]
         triang1 = Triangulation(xs.ravel() - 0.5, ys.ravel() - 0.5, triangles1)
         triang2 = Triangulation(xs.ravel() - 0.5, ys.ravel() - 0.5, triangles2)
         if not pvalues_cmap:
-            pvalues_cmap = plt.get_cmap('Greys_r')
+            pvalues_cmap = plt.get_cmap("Greys_r")
         img1 = plt.tripcolor(
             triang1,
             np.array(pvalues).ravel(),
             cmap=pvalues_cmap,
         )
         img2 = plt.tripcolor(
-            triang2,
-            np.array(fold_change).ravel(),
-            cmap=plt.get_cmap('seismic'),
-            norm=MidpointNormalize(midpoint=0.)
+            triang2, np.array(fold_change).ravel(), cmap=plt.get_cmap("seismic"), norm=MidpointNormalize(midpoint=0.0)
         )
 
         if linspace:
             ticks = np.linspace(linspace[0], linspace[1], linspace[2], endpoint=True)
-            cbar = plt.colorbar(
+            plt.colorbar(
                 img2,
                 ticks=ticks,
                 pad=pad,
                 orientation="horizontal",
             ).set_label(f"fold change")
         else:
-            cbar = plt.colorbar(
+            plt.colorbar(
                 img2,
-                pad=pad, orientation="horizontal",
+                pad=pad,
+                orientation="horizontal",
             ).set_label(f"fold change")
-        plt.colorbar(img1, ).set_label("$\log_{10}$ FDR-corrected pvalues")
+        plt.colorbar(
+            img1,
+        ).set_label("$log_{10}$ FDR-corrected pvalues")
         plt.xlim(x[0] - 0.5, x[-1] - 0.5)
         plt.ylim(y[0] - 0.5, y[-1] - 0.5)
         plt.yticks(y[:-1])
@@ -662,8 +641,8 @@ class PlottingTools:
         plt.close(fig)
         plt.ion()
 
+    @staticmethod
     def umaps_cluster_enrichment(
-        self,
         adata,
         filter_titles,
         nrows: int = 4,
@@ -676,41 +655,37 @@ class PlottingTools:
         show: bool = True,
     ):
         for i, x in enumerate(filter_titles):
-            adata.uns[f"source type {x}_colors"] = ['darkgreen', 'lightgrey']
+            adata.uns[f"source type {x}_colors"] = ["darkgreen", "lightgrey"]
         if fontsize:
             sc.set_figure_params(scanpy=True, fontsize=fontsize)
         plt.ioff()
-        fig, axs = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize, )
-        N = len(filter_titles)
+        fig, axs = plt.subplots(
+            nrows=nrows,
+            ncols=ncols,
+            figsize=figsize,
+        )
+        n = len(filter_titles)
         axs = axs.flat
-        for ax in axs[N:]:
+        for ax in axs[n:]:
             ax.remove()
-        ax = axs[:N]
+        ax = axs[:n]
 
         for i, x in enumerate(filter_titles[:-1]):
-            sc.pl.umap(
-                adata,
-                color=f"source type {x}",
-                title=x,
-                show=False,
-                size=size,
-                legend_loc='None',
-                ax=ax[i]
-            )
-            ax[i].set_xlabel('')
-            ax[i].set_ylabel('')
+            sc.pl.umap(adata, color=f"source type {x}", title=x, show=False, size=size, legend_loc="None", ax=ax[i])
+            ax[i].set_xlabel("")
+            ax[i].set_ylabel("")
         sc.pl.umap(
             adata,
             color=f"source type {filter_titles[-1]}",
             title=filter_titles[-1],
             size=size,
             show=False,
-            ax=ax[N-1]
+            ax=ax[n - 1],
         )
-        ax[N-1].set_xlabel('')
-        ax[N-1].set_ylabel('')
+        ax[n - 1].set_xlabel("")
+        ax[n - 1].set_ylabel("")
         # Save, show and return figure.
-        #plt.tight_layout()
+        # plt.tight_layout()
         if save is not None:
             plt.savefig(save + suffix)
 
@@ -726,32 +701,38 @@ class PlottingTools:
         image_key: str,
         target_cell_type: str,
         clean_view: bool = False,
-        figsize: Tuple[float, float] = (7., 7.),
+        figsize: Tuple[float, float] = (7.0, 7.0),
         spot_size: Optional[int] = 40,
         fontsize: Optional[int] = None,
-        legend_loc: str = 'right margin',
-        palette: Union[str, list] = 'tab10',
+        legend_loc: str = "right margin",
+        palette: Union[str, list] = "tab10",
         save: Union[str, None] = None,
         suffix: str = "_spatial_substates.pdf",
         show: bool = True,
-        copy: bool = False
+        copy: bool = False,
     ):
         temp_adata = self.img_celldata[image_key].copy()
-        cluster_id = temp_adata.uns['metadata']['cluster_col_preprocessed']
+        cluster_id = temp_adata.uns["metadata"]["cluster_col_preprocessed"]
         if clean_view:
-            temp_adata = temp_adata[np.argwhere(np.array(temp_adata.obsm['spatial'])[:, 1] < 0).squeeze()]
-            adata_substates = adata_substates[np.argwhere(np.array(adata_substates.obsm['spatial'])[:, 1] < 0).squeeze()]
+            temp_adata = temp_adata[np.argwhere(np.array(temp_adata.obsm["spatial"])[:, 1] < 0).squeeze()]
+            adata_substates = adata_substates[
+                np.argwhere(np.array(adata_substates.obsm["spatial"])[:, 1] < 0).squeeze()
+            ]
         if fontsize:
             sc.set_figure_params(scanpy=True, fontsize=fontsize)
-        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=figsize, )
+        fig, ax = plt.subplots(
+            nrows=1,
+            ncols=1,
+            figsize=figsize,
+        )
         sc.pl.spatial(
             # adata,
             temp_adata[temp_adata.obs[cluster_id] != target_cell_type],
             spot_size=spot_size,
             ax=ax,
             show=False,
-            na_color='whitesmoke',
-            title=''
+            na_color="whitesmoke",
+            title="",
         )
         sc.pl.spatial(
             adata_substates,
@@ -760,12 +741,12 @@ class PlottingTools:
             ax=ax,
             show=False,
             legend_loc=legend_loc,
-            title='',
-            #palette=palette
+            title="",
+            palette=palette,
         )
         ax.invert_yaxis()
-        ax.set_xlabel('')
-        ax.set_ylabel('')
+        ax.set_xlabel("")
+        ax.set_ylabel("")
         # Save, show and return figure.
         plt.tight_layout()
         if save is not None:
@@ -788,26 +769,26 @@ class PlottingTools:
         hgnc_names: Optional[List[str]] = None,
         fraction: Optional[float] = None,
         pvalue_threshold: float = 0.3,
-        width: float = 3.,
+        width: float = 3.0,
         seed: int = 10,
         random_state: int = 0,
         fontsize: Optional[int] = None,
         save: Union[str, None] = None,
         suffix: str = "_ligrec.pdf",
         show: bool = True,
-        copy: bool = True
+        copy: bool = True,
     ):
         from omnipath.interactions import import_intercell_network
+
         interactions = import_intercell_network(
-            transmitter_params={"categories": "ligand"},
-            receiver_params={"categories": "receptor"}
+            transmitter_params={"categories": "ligand"}, receiver_params={"categories": "receptor"}
         )
-        if 'source' in interactions.columns:
-            interactions.pop('source')
-        if 'target' in interactions.columns:
-            interactions.pop('target')
+        if "source" in interactions.columns:
+            interactions.pop("source")
+        if "target" in interactions.columns:
+            interactions.pop("target")
         interactions.rename(
-            columns={"genesymbol_intercell_source": 'source', "genesymbol_intercell_target": 'target'}, inplace=True
+            columns={"genesymbol_intercell_source": "source", "genesymbol_intercell_target": "target"}, inplace=True
         )
         if image_key:
             temp_adata = self.img_celldata[image_key]
@@ -817,39 +798,37 @@ class PlottingTools:
             else:
                 temp_adata = self.celldata.copy()
 
-        cluster_id = temp_adata.uns['metadata']['cluster_col_preprocessed']
+        cluster_id = temp_adata.uns["metadata"]["cluster_col_preprocessed"]
         if undefined_type:
             temp_adata = temp_adata[temp_adata.obs[cluster_id] != undefined_type]
 
-        print('n cells:', temp_adata.shape[0])
+        print("n cells:", temp_adata.shape[0])
         temp_adata = temp_adata.copy()
 
         if hgnc_names:
-            hgcn_X = pd.DataFrame(temp_adata.X, columns=hgnc_names)
+            hgcn_x = pd.DataFrame(temp_adata.X, columns=hgnc_names)
             temp_adata = AnnData(
-                X=hgcn_X, obs=temp_adata.obs.astype('category'), obsm=temp_adata.obsm, obsp=temp_adata.obsp, uns=temp_adata.uns
+                X=hgcn_x,
+                obs=temp_adata.obs.astype("category"),
+                obsm=temp_adata.obsm,
+                obsp=temp_adata.obsp,
+                uns=temp_adata.uns,
             )
 
-        sq.gr.ligrec(
-            temp_adata,
-            interactions=interactions,
-            cluster_key=cluster_id,
-            use_raw=False,
-            seed=seed
-        )
+        sq.gr.ligrec(temp_adata, interactions=interactions, cluster_key=cluster_id, use_raw=False, seed=seed)
         if save is not None:
             save = save + image_key + suffix
-            
+
         if fontsize:
             sc.set_figure_params(scanpy=True, fontsize=fontsize)
         sq.pl.ligrec(
             temp_adata,
             cluster_key=cluster_id,
-            title='',
+            title="",
             source_groups=source_groups,
             pvalue_threshold=pvalue_threshold,
             width=width,
-            save=save
+            save=save,
         )
         if show:
             plt.show()
@@ -860,11 +839,11 @@ class PlottingTools:
         if copy:
             return temp_adata.copy()
 
+    @staticmethod
     def ligrec_barplot(
-        self,
         adata: AnnData,
         source_group: str,
-        figsize: Tuple[float, float] = (5., 4.),
+        figsize: Tuple[float, float] = (5.0, 4.0),
         fontsize: Optional[int] = None,
         pvalue_threshold: float = 0.05,
         save: Union[str, None] = None,
@@ -872,8 +851,8 @@ class PlottingTools:
         show: bool = True,
         return_axs: bool = False,
     ):
-        cluster_id = adata.uns['metadata']['cluster_col_preprocessed']
-        pvals = adata.uns[f"{cluster_id}_ligrec"]['pvalues'].xs((source_group), axis=1)
+        cluster_id = adata.uns["metadata"]["cluster_col_preprocessed"]
+        pvals = adata.uns[f"{cluster_id}_ligrec"]["pvalues"].xs(source_group, axis=1)
         if fontsize:
             sc.set_figure_params(scanpy=True, fontsize=fontsize)
         fig, ax = plt.subplots(nrows=1, ncols=1, figsize=figsize)
@@ -881,10 +860,10 @@ class PlottingTools:
             x=list(np.sum(pvals < pvalue_threshold, axis=0).index),
             y=list(np.sum(pvals < pvalue_threshold, axis=0)),
             ax=ax,
-            color='steelblue'
+            color="steelblue",
         )
         ax.grid(False)
-        ax.tick_params(axis='x', labelrotation=90)
+        ax.tick_params(axis="x", labelrotation=90)
 
         # Save, show and return figure.
         plt.tight_layout()
@@ -909,69 +888,67 @@ class PlottingTools:
         from tqdm import tqdm
 
         temp_adata = self.celldata.copy()
-        cluster_id = temp_adata.uns['metadata']['cluster_col_preprocessed']
-        img_col = temp_adata.uns['metadata']['image_col']
+        cluster_id = temp_adata.uns["metadata"]["cluster_col_preprocessed"]
+        img_col = temp_adata.uns["metadata"]["image_col"]
         if undefined_type:
             temp_adata = temp_adata[temp_adata.obs[cluster_id] != undefined_type]
 
-        df = pd.DataFrame(
-            temp_adata.X, columns=temp_adata.var_names
-        )
-        df['image_col'] = pd.Series(list(temp_adata.obs[img_col]), dtype="category")
-        df['cluster_col_preprocessed'] = pd.Series(list(temp_adata.obs[cluster_id]), dtype="category")
-        images = np.unique(df['image_col'])
+        df = pd.DataFrame(temp_adata.X, columns=temp_adata.var_names)
+        df["image_col"] = pd.Series(list(temp_adata.obs[img_col]), dtype="category")
+        df["cluster_col_preprocessed"] = pd.Series(list(temp_adata.obs[cluster_id]), dtype="category")
+        images = np.unique(df["image_col"])
         variance_decomposition = []
         with tqdm(total=len(images)) as pbar:
             for img in images:
-                mean_img_genes = np.mean(df[df['image_col'] == img], axis=0)
+                mean_img_genes = np.mean(df[df["image_col"] == img], axis=0)
                 mean_img_global = np.mean(mean_img_genes)
 
                 intra_ct_var = []
                 inter_ct_var = []
                 gene_var = []
-                for ct in np.unique(df['cluster_col_preprocessed']):
-                    img_celltype = np.array(
-                        df[(df['image_col'] == img) & (df['cluster_col_preprocessed'] == ct)]
-                    )[:, :-2]
+                for ct in np.unique(df["cluster_col_preprocessed"]):
+                    img_celltype = np.array(df[(df["image_col"] == img) & (df["cluster_col_preprocessed"] == ct)])[
+                        :, :-2
+                    ]
                     if img_celltype.shape[0] == 0:
                         continue
                     mean_image_celltype = np.mean(img_celltype, axis=0)
 
                     for i in range(img_celltype.shape[0]):
-                        intra_ct_var.append(
-                            (img_celltype[i, :] - mean_image_celltype) ** 2
-                        )
-                        inter_ct_var.append(
-                            (mean_image_celltype - mean_img_genes) ** 2
-                        )
-                        gene_var.append(
-                            (mean_img_genes - mean_img_global) ** 2
-                        )
+                        intra_ct_var.append((img_celltype[i, :] - mean_image_celltype) ** 2)
+                        inter_ct_var.append((mean_image_celltype - mean_img_genes) ** 2)
+                        gene_var.append((mean_img_genes - mean_img_global) ** 2)
 
                 intra_ct_var = np.sum(intra_ct_var)
                 inter_ct_var = np.sum(inter_ct_var)
                 gene_var = np.sum(gene_var)
-                variance_decomposition.append(
-                    np.array([img, intra_ct_var, inter_ct_var, gene_var])
-                )
+                variance_decomposition.append(np.array([img, intra_ct_var, inter_ct_var, gene_var]))
                 pbar.update(1)
-        df = pd.DataFrame(
-            variance_decomposition,
-            columns=['image_col', 'intra_celltype_var', 'inter_celltype_var', 'gene_var']
-        ).astype(
-            {'image_col': str, 'intra_celltype_var': 'float32', 'inter_celltype_var': 'float32', 'gene_var': 'float32'}
-        ).set_index('image_col')
+        df = (
+            pd.DataFrame(
+                variance_decomposition, columns=["image_col", "intra_celltype_var", "inter_celltype_var", "gene_var"]
+            )
+            .astype(
+                {
+                    "image_col": str,
+                    "intra_celltype_var": "float32",
+                    "inter_celltype_var": "float32",
+                    "gene_var": "float32",
+                }
+            )
+            .set_index("image_col")
+        )
 
-        df['total'] = df.intra_celltype_var + df.inter_celltype_var + df.gene_var
-        df['intra cell type variance'] = df.intra_celltype_var / df.total
-        df['inter cell type variance'] = df.inter_celltype_var / df.total
-        df['gene variance'] = df.gene_var / df.total
+        df["total"] = df.intra_celltype_var + df.inter_celltype_var + df.gene_var
+        df["intra cell type variance"] = df.intra_celltype_var / df.total
+        df["inter cell type variance"] = df.inter_celltype_var / df.total
+        df["gene variance"] = df.gene_var / df.total
         return df
 
+    @staticmethod
     def variance_decomposition(
-        self,
         df,
-        figsize: Tuple[float, float] = (16., 3.5),
+        figsize: Tuple[float, float] = (16.0, 3.5),
         fontsize: Optional[int] = None,
         multiindex: bool = False,
         save: Union[str, None] = None,
@@ -980,26 +957,28 @@ class PlottingTools:
         return_axs: bool = False,
     ):
         from collections import OrderedDict
+
         if fontsize:
             sc.set_figure_params(scanpy=True, fontsize=fontsize)
 
         fig, ax = plt.subplots(1, 1, figsize=figsize)
         df.plot(
-            y=['intra cell type variance', 'inter cell type variance', 'gene variance'],
-            kind='bar',
+            y=["intra cell type variance", "inter cell type variance", "gene variance"],
+            kind="bar",
             stacked=True,
             figsize=figsize,
             ax=ax,
-            colormap='Blues_r'
+            colormap="Blues_r",
         )
         if multiindex:
+
             def process_index(k):
                 return tuple(k.split("_"))
 
-            df['index1'], df['index2'] = zip(*map(process_index, df.index))
-            df = df.set_index(['index1', 'index2'])
+            df["index1"], df["index2"] = zip(*map(process_index, df.index))
+            df = df.set_index(["index1", "index2"])
 
-            ax.set_xlabel('')
+            ax.set_xlabel("")
             xlabel_mapping = OrderedDict()
             for index1, index2 in df.index:
                 xlabel_mapping.setdefault(index1, [])
@@ -1016,12 +995,9 @@ class PlottingTools:
                     hline.append(len(index2_list) + hline[-1])
                 else:
                     hline.append(len(index2_list))
-
-            # new_xlabels.remove('20')
-            # ax.hlines(hline, xmin=-1, xmax=4, color="white", linewidth=5)
             ax.set_xticklabels(new_xlabels)
-        ax.set_xlabel('')
-        ax.legend(bbox_to_anchor=(1, 1), loc='upper left')
+        ax.set_xlabel("")
+        ax.legend(bbox_to_anchor=(1, 1), loc="upper left")
         # Save, show and return figure.
         plt.tight_layout()
         if save is not None:
@@ -1175,8 +1151,9 @@ class DataLoaderZhang(DataLoader):
         "Sst_Chodl": "Sst Chodl",
         "VLMC": "VLMC",
         "Vip": "Vip",
-        "other": "other"
+        "other": "other",
     }
+
     def _register_celldata(self):
         """
         Registers an Anndata object over all images and collects all necessary information.
@@ -1207,17 +1184,21 @@ class DataLoaderZhang(DataLoader):
         celldata.obsm["spatial"] = celldata.obs[metadata["pos_cols"]]
 
         # add clean cluster column which removes regular expression from cluster_col
-        celldata.obs[metadata["cluster_col_preprocessed"]] = list(pd.Series(
-            list(celldata.obs[metadata["cluster_col"]]), dtype="category"
-        ).map(self.cell_type_merge_dict))
-        celldata.obs[metadata["cluster_col_preprocessed"]] = celldata.obs[metadata["cluster_col_preprocessed"]].astype("category")
+        celldata.obs[metadata["cluster_col_preprocessed"]] = list(
+            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="category").map(self.cell_type_merge_dict)
+        )
+        celldata.obs[metadata["cluster_col_preprocessed"]] = celldata.obs[metadata["cluster_col_preprocessed"]].astype(
+            "category"
+        )
 
         # register node type names
         node_type_names = list(np.unique(celldata.obs[metadata["cluster_col_preprocessed"]]))
         celldata.uns["node_type_names"] = {x: x for x in node_type_names}
         node_types = np.zeros((celldata.shape[0], len(node_type_names)))
         node_type_idx = np.array(
-            [node_type_names.index(x) for x in celldata.obs[metadata["cluster_col_preprocessed"]].values]  # index in encoding vector
+            [
+                node_type_names.index(x) for x in celldata.obs[metadata["cluster_col_preprocessed"]].values
+            ]  # index in encoding vector
         )
         node_types[np.arange(0, node_type_idx.shape[0]), node_type_idx] = 1
         celldata.obsm["node_types"] = node_types
@@ -1302,18 +1283,21 @@ class DataLoaderJarosch(DataLoader):
         celldata.uns["img_to_patient_dict"] = img_to_patient_dict
 
         # add clean cluster column which removes regular expression from cluster_col
-        celldata.obs[metadata["cluster_col_preprocessed"]] = list(pd.Series(
-            list(celldata.obs[metadata["cluster_col"]]), dtype="category"
-        ).map(self.cell_type_merge_dict))
+        celldata.obs[metadata["cluster_col_preprocessed"]] = list(
+            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="category").map(self.cell_type_merge_dict)
+        )
         celldata.obs[metadata["cluster_col_preprocessed"]] = celldata.obs[metadata["cluster_col_preprocessed"]].astype(
-            "category")
+            "category"
+        )
 
         # register node type names
         node_type_names = list(np.unique(celldata.obs[metadata["cluster_col_preprocessed"]]))
         celldata.uns["node_type_names"] = {x: x for x in node_type_names}
         node_types = np.zeros((celldata.shape[0], len(node_type_names)))
         node_type_idx = np.array(
-            [node_type_names.index(x) for x in celldata.obs[metadata["cluster_col_preprocessed"]].values]  # index in encoding vector
+            [
+                node_type_names.index(x) for x in celldata.obs[metadata["cluster_col_preprocessed"]].values
+            ]  # index in encoding vector
         )
         node_types[np.arange(0, node_type_idx.shape[0]), node_type_idx] = 1
         celldata.obsm["node_types"] = node_types
@@ -1362,7 +1346,7 @@ class DataLoaderHartmann(DataLoader):
         "Fibroblast": "Fibroblast",
         "Tcell_CD8": "CD8 T cells",
         "Endothelial": "Endothelial",
-        "Myeloid_CD11c": "CD11c Myeloid"
+        "Myeloid_CD11c": "CD11c Myeloid",
     }
 
     def _register_celldata(self):
@@ -1382,7 +1366,7 @@ class DataLoaderHartmann(DataLoader):
         celldata_df = read_csv(self.data_path + metadata["fn"][0])
         celldata_df["point"] = [f"scMEP_point_{str(x)}" for x in celldata_df["point"]]
         celldata_df = celldata_df.fillna(0)
-        #celldata_df = celldata_df.dropna(inplace=False).reset_index()
+        # celldata_df = celldata_df.dropna(inplace=False).reset_index()
         feature_cols = [
             "H3",
             "vimentin",
@@ -1427,8 +1411,10 @@ class DataLoaderHartmann(DataLoader):
             # "Cluster",
         ]
 
-        celldata = AnnData(X=celldata_df[feature_cols], obs=celldata_df[["point", "cell_id", "donor", "Cluster"]].astype("category"))
-        
+        celldata = AnnData(
+            X=celldata_df[feature_cols], obs=celldata_df[["point", "cell_id", "donor", "Cluster"]].astype("category")
+        )
+
         celldata.uns["metadata"] = metadata
         img_keys = list(np.unique(celldata_df[metadata["image_col"]]))
         celldata.uns["img_keys"] = img_keys
@@ -1445,18 +1431,21 @@ class DataLoaderHartmann(DataLoader):
         self.img_to_patient_dict = img_to_patient_dict
 
         # add clean cluster column which removes regular expression from cluster_col
-        celldata.obs[metadata["cluster_col_preprocessed"]] = list(pd.Series(
-            list(celldata.obs[metadata["cluster_col"]]), dtype="category"
-        ).map(self.cell_type_merge_dict))
+        celldata.obs[metadata["cluster_col_preprocessed"]] = list(
+            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="category").map(self.cell_type_merge_dict)
+        )
         celldata.obs[metadata["cluster_col_preprocessed"]] = celldata.obs[metadata["cluster_col_preprocessed"]].astype(
-            "category")
+            "category"
+        )
 
         # register node type names
         node_type_names = list(np.unique(celldata.obs[metadata["cluster_col_preprocessed"]]))
         celldata.uns["node_type_names"] = {x: x for x in node_type_names}
         node_types = np.zeros((celldata.shape[0], len(node_type_names)))
         node_type_idx = np.array(
-            [node_type_names.index(x) for x in celldata.obs[metadata["cluster_col_preprocessed"]].values]  # index in encoding vector
+            [
+                node_type_names.index(x) for x in celldata.obs[metadata["cluster_col_preprocessed"]].values
+            ]  # index in encoding vector
         )
         node_types[np.arange(0, node_type_idx.shape[0]), node_type_idx] = 1
         celldata.obsm["node_types"] = node_types
@@ -1590,8 +1579,9 @@ class DataLoaderPascualReguant(DataLoader):
         "Plasma cell": "Plasma cells CD8",
         "T cytotoxic cell": "T cytotoxic cells",
         "T helper cell": "T helper cells",
-        "other": "other"
+        "other": "other",
     }
+
     def _register_celldata(self):
         """
         Registers an Anndata object over all images and collects all necessary information.
@@ -1675,17 +1665,20 @@ class DataLoaderPascualReguant(DataLoader):
         celldata.uns["img_to_patient_dict"] = {"tonsil_image": "tonsil_patient"}
 
         # add clean cluster column which removes regular expression from cluster_col
-        celldata.obs[metadata["cluster_col_preprocessed"]] = list(pd.Series(
-            list(celldata.obs[metadata["cluster_col"]]), dtype="category"
-        ).map(self.cell_type_merge_dict))
+        celldata.obs[metadata["cluster_col_preprocessed"]] = list(
+            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="category").map(self.cell_type_merge_dict)
+        )
         celldata.obs[metadata["cluster_col_preprocessed"]] = celldata.obs[metadata["cluster_col_preprocessed"]].astype(
-            "category")
+            "category"
+        )
         # register node type names
         node_type_names = list(np.unique(celldata.obs[metadata["cluster_col_preprocessed"]]))
         celldata.uns["node_type_names"] = {x: x for x in node_type_names}
         node_types = np.zeros((celldata.shape[0], len(node_type_names)))
         node_type_idx = np.array(
-            [node_type_names.index(x) for x in celldata.obs[metadata["cluster_col_preprocessed"]].values]  # index in encoding vector
+            [
+                node_type_names.index(x) for x in celldata.obs[metadata["cluster_col_preprocessed"]].values
+            ]  # index in encoding vector
         )
         node_types[np.arange(0, node_type_idx.shape[0]), node_type_idx] = 1
         celldata.obsm["node_types"] = node_types
@@ -1850,18 +1843,21 @@ class DataLoaderSchuerch(DataLoader):
         celldata.uns["img_to_patient_dict"] = img_to_patient_dict
 
         # add clean cluster column which removes regular expression from cluster_col
-        celldata.obs[metadata["cluster_col_preprocessed"]] = list(pd.Series(
-            list(celldata.obs[metadata["cluster_col"]]), dtype="category"
-        ).map(self.cell_type_merge_dict))
+        celldata.obs[metadata["cluster_col_preprocessed"]] = list(
+            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="category").map(self.cell_type_merge_dict)
+        )
         celldata.obs[metadata["cluster_col_preprocessed"]] = celldata.obs[metadata["cluster_col_preprocessed"]].astype(
-            "category")
+            "category"
+        )
 
         # register node type names
         node_type_names = list(np.unique(celldata.obs[metadata["cluster_col_preprocessed"]]))
         celldata.uns["node_type_names"] = {x: x for x in node_type_names}
         node_types = np.zeros((celldata.shape[0], len(node_type_names)))
         node_type_idx = np.array(
-            [node_type_names.index(x) for x in celldata.obs[metadata["cluster_col_preprocessed"]].values]  # index in encoding vector
+            [
+                node_type_names.index(x) for x in celldata.obs[metadata["cluster_col_preprocessed"]].values
+            ]  # index in encoding vector
         )
         node_types[np.arange(0, node_type_idx.shape[0]), node_type_idx] = 1
         celldata.obsm["node_types"] = node_types

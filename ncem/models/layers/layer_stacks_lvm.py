@@ -111,10 +111,10 @@ class Encoder(tf.keras.layers.Layer):
 
         # final layer
         self.dense_mean = tf.keras.layers.Dense(
-            units=self.latent_dim, activation='linear'
+            units=self.latent_dim, activation="linear"
         )  # last dense layer if not if self.probabilistic
         if self.probabilistic:
-            self.dense_log_var = tf.keras.layers.Dense(units=self.latent_dim, activation='linear')
+            self.dense_log_var = tf.keras.layers.Dense(units=self.latent_dim, activation="linear")
             self.sampling = Sampling()
 
     def call(self, inputs, **kwargs):

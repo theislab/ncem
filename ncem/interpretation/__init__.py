@@ -1,1 +1,5 @@
-from ncem.interpretation.interpreter import InterpreterLinear, InterpreterInteraction, InterpreterGraph, InterpreterEDncem, InterpreterCVAEncem
+from ncem.interpretation.interpreter import (InterpreterCVAEncem,
+                                             InterpreterEDncem,
+                                             InterpreterGraph,
+                                             InterpreterInteraction,
+                                             InterpreterLinear)

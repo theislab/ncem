@@ -30,23 +30,19 @@ class EstimatorCVAEncem(EstimatorGraph):
         optimizer: str = "adam",
         learning_rate: float = 0.0001,
         latent_dim: int = 8,
-
         intermediate_dim_enc: int = 128,
         intermediate_dim_dec: int = 128,
         depth_enc: int = 1,
         depth_dec: int = 1,
-
         dropout_rate: float = 0.1,
         l2_coef: float = 0.0,
         l1_coef: float = 0.0,
-
         cond_depth: int = 1,
         cond_dim: int = 8,
         cond_dropout_rate: float = 0.1,
         cond_activation: str = "relu",
         cond_l2_reg: float = 0.0,
         cond_use_bias: bool = False,
-
         n_eval_nodes_per_graph: int = 32,
         use_domain: bool = False,
         use_batch_norm: bool = False,
@@ -102,7 +98,7 @@ class EstimatorCVAEncem(EstimatorGraph):
     def evaluate_any_posterior_sampling(self, img_keys, node_idx, batch_size: int = 1):
         # generating a resampled dataset for neighbourhood transfer evaluation
         ds = self._get_resampled_dataset(image_keys=img_keys, nodes_idx=node_idx, batch_size=batch_size, seed=None)
-        eval = []
+        eval_posterior = []
         true = []
         pred = []
 
@@ -137,16 +133,23 @@ class EstimatorCVAEncem(EstimatorGraph):
             prediction = self.model.decoder.predict(
                 (z, sf_resampled, h_0_resampled, h_0_full, a_resampled, a_full, node_covar_resampled, g)
             )[0]
-            eval.append(results)
+            eval_posterior.append(results)
             true.append(h_1_resampled.numpy().squeeze())
             pred.append(prediction.squeeze())
 
-        eval = np.concatenate(np.expand_dims(eval, axis=0), axis=0)
-        eval = np.mean(eval, axis=0)
+        eval_posterior = np.concatenate(np.expand_dims(eval_posterior, axis=0), axis=0)
+        eval_posterior = np.mean(eval_posterior, axis=0)
         true = np.concatenate(true, axis=0)
         pred = np.split(np.concatenate(pred, axis=0), indices_or_sections=2, axis=-1)[0]
 
         latent_z = np.concatenate(latent_z, axis=0)
         latent_z_mean = np.concatenate(latent_z_mean, axis=0)
         latent_z_log_var = np.concatenate(latent_z_log_var, axis=0)
-        return dict(zip(self.model.decoder.metrics_names, eval)), true, pred, latent_z, latent_z_mean, latent_z_log_var
+        return (
+            dict(zip(self.model.decoder.metrics_names, eval_posterior)),
+            true,
+            pred,
+            latent_z,
+            latent_z_mean,
+            latent_z_log_var,
+        )

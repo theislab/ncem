@@ -1,5 +1,3 @@
-from typing import Union
-
 import numpy as np
 import tensorflow as tf
 
@@ -83,7 +81,7 @@ class EstimatorCVAE(EstimatorNoGraph):
     ):
         # generating a resampled dataset for neighbourhood transfer evaluation
         ds = self._get_resampled_dataset(image_keys=img_keys, nodes_idx=node_idx, batch_size=batch_size, seed=None)
-        eval = []
+        eval_posterior = []
         true = []
         pred = []
         latent_z = []
@@ -105,16 +103,23 @@ class EstimatorCVAE(EstimatorNoGraph):
             )
 
             prediction = self.model.decoder.predict((z, sf_resampled, node_covar_resampled, g))[0]
-            eval.append(results)
+            eval_posterior.append(results)
             true.append(h_resampled.numpy().squeeze())
             pred.append(prediction.squeeze())
 
-        eval = np.concatenate(np.expand_dims(eval, axis=0), axis=0)
-        eval = np.mean(eval, axis=0)
+        eval_posterior = np.concatenate(np.expand_dims(eval_posterior, axis=0), axis=0)
+        eval_posterior = np.mean(eval_posterior, axis=0)
         true = np.concatenate(true, axis=0)
         pred = np.split(np.concatenate(pred, axis=0), indices_or_sections=2, axis=-1)[0]
 
         latent_z = np.concatenate(latent_z, axis=0)
         latent_z_mean = np.concatenate(latent_z_mean, axis=0)
         latent_z_log_var = np.concatenate(latent_z_log_var, axis=0)
-        return dict(zip(self.model.decoder.metrics_names, eval)), true, pred, latent_z, latent_z_mean, latent_z_log_var
+        return (
+            dict(zip(self.model.decoder.metrics_names, eval_posterior)),
+            true,
+            pred,
+            latent_z,
+            latent_z_mean,
+            latent_z_log_var,
+        )
