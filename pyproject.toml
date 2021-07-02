@@ -2,7 +2,7 @@
 name = "ncem"
 version = "0.1.0"  # <<COOKIETEMPLE_FORCE_BUMP>>
 description = "ncem. A cookietemple based ."
-authors = ["Anna Schaar <anna.schaar@helmholtz-muenchen.de>"]
+authors = ["Anna C. Schaar <anna.schaar@helmholtz-muenchen.de>"]
 license = "BSD"
 readme = "README.rst"
 homepage = "https://github.com/theislab/ncem"
