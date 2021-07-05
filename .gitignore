@@ -51,6 +51,8 @@ coverage.xml
 *.py,cover
 .hypothesis/
 .pytest_cache/
+.ncem/unit_test/test_dataloader_local.py
+.ncem/unit_test/test_estimator_local.py
 
 # Translations
 *.mo
