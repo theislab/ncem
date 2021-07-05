@@ -1,3 +1,4 @@
+"""Importing estimator classes."""
 from ncem.estimators.base_estimator import (Estimator, EstimatorGraph,
                                             EstimatorNoGraph)
 from ncem.estimators.estimator_cvae import EstimatorCVAE

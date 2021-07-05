@@ -4,10 +4,26 @@ from ncem.utils.sparse import sparse_dense_matmult_batch
 
 
 class MaxLayer(tf.keras.layers.Layer):
+    """Initialize MaxLayer."""
+
     def __init__(self, **kwargs):
+        """Initialize MaxLayer.
+
+        Args:
+            **kwargs: Arbitrary keyword arguments.
+        """
         super().__init__(**kwargs)
 
     def call(self, inputs, **kwargs):
+        """MAX/IND layer call function.
+
+        Args:
+            inputs: Inputs.
+            **kwargs: Arbitrary keyword arguments.
+
+        Returns:
+            output of MAX/IND layer
+        """
         x = inputs[0]
         a = inputs[1]
 
@@ -21,23 +37,41 @@ class MaxLayer(tf.keras.layers.Layer):
 
 
 class GCNLayer(tf.keras.layers.Layer):
-    def __init__(
-        self, output_dim, dropout_rate, activation, l2_reg, use_bias: bool = False, padded: bool = True, **kwargs
-    ):
+    """Initialize GCNLayer.
 
+    Arguments:
+        output_dim (int): Output dimension.
+        dropout_rate (float): Dropout rate.
+        activation: Activation.
+        l2_reg (float): l2 regularization coefficient.
+        use_bias (bool): Whether to use bias.
+        kernel: Kernel.
+        bias: Bias.
+    """
+
+    def __init__(self, output_dim, dropout_rate, activation, l2_reg, use_bias: bool = False, **kwargs):
+        """Initialize GCNLayer.
+
+        Args:
+            output_dim (str): Output dimension.
+            dropout_rate (float): Dropout rate.
+            activation: Activation.
+            l2_reg (float): l2 regularization coefficient.
+            use_bias (bool): Use bias.
+            **kwargs: Arbitrary keyword arguments.
+        """
         super().__init__(**kwargs)
-
         self.output_dim = output_dim
         self.dropout_rate = dropout_rate
         self.activation = tf.keras.activations.get(activation)
         self.l2_reg = l2_reg
         self.use_bias = use_bias
-        self.padded = padded
 
         self.kernel = None
         self.bias = None
 
     def get_config(self):
+        """GCN layer get_config function."""
         config = super().get_config().copy()
         config.update(
             {
@@ -51,8 +85,12 @@ class GCNLayer(tf.keras.layers.Layer):
         return config
 
     def build(self, input_shapes):
-        input_shape = input_shapes[0]
+        """GCN layer build function.
 
+        Args:
+            input_shapes (Tuple): Input shapes.
+        """
+        input_shape = input_shapes[0]
         # Layer kernel
         self.kernel = self.add_weight(
             name="kernel",
@@ -65,6 +103,15 @@ class GCNLayer(tf.keras.layers.Layer):
             self.bias = self.add_weight(name="bias", shape=(self.output_dim,))
 
     def call(self, inputs, **kwargs):
+        """GCN layer call function.
+
+        Args:
+            inputs: Inputs.
+            **kwargs: Arbitrary keyword arguments.
+
+        Returns:
+            output of GCN layer
+        """
         x = inputs[0]
         a = inputs[1]
 
@@ -79,9 +126,5 @@ class GCNLayer(tf.keras.layers.Layer):
             output = tf.add(output, self.bias)
         if self.activation is not None:
             output = self.activation(output)
-
-        if self.padded:
-            mask = tf.cast(tf.reduce_sum(tf.cast(x != 0, tf.float32), axis=-1, keepdims=True) > 0, tf.float32)
-            output *= mask
 
         return output

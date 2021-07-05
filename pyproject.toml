@@ -33,6 +33,7 @@ seaborn = "^0.11.1"
 matplotlib = "^3.4.2"
 louvain = "^0.7.0"
 diffxpy = "^0.7.4"
+docrep = "^0.3.2"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.3"

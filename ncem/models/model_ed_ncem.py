@@ -8,6 +8,17 @@ from ncem.models.layers import (Decoder, Encoder, GaussianOutput, GCNLayer,
 
 
 class ModelEDncem:
+    """Model class for NCEM encoder-decoder with graph layer IND (MAX) or GCN.
+
+    Attributes:
+        args (dict):
+        encoder_model:
+        decoder_model:
+        encoder:
+        decoder:
+        training_model:
+    """
+
     def __init__(
         self,
         input_shapes,
@@ -31,9 +42,37 @@ class ModelEDncem:
         use_node_degree: bool = False,
         scale_node_size: bool = False,
         output_layer: str = "gaussian",
-        log_transform: bool = False,
         **kwargs,
     ):
+        """Initialize encoder-decoder NCEM model.
+
+        Args:
+            input_shapes (Tuple): Input shapes.
+            latent_dim (int): Latent dimension.
+            dropout_rate (float): Dropout rate.
+            l2_coef (float): l2 regularization coefficient.
+            l1_coef (float): l1 regularization coefficient.
+            enc_intermediate_dim (int): Encoder intermediate dimension.
+            enc_depth (int): Encoder depth.
+            dec_intermediate_dim (int): Decoder intermediate dimension.
+            dec_depth (int): Decoder depth.
+            cond_type (str): Graph conditional type.
+            cond_depth (int): Graph conditional depth.
+            cond_dim (int): Graph conditional dimension.
+            cond_dropout_rate (float): Graph conditional dropout rate.
+            cond_activation: Graph conditional activation.
+            cond_l2_reg (float): Graph conditional l2 regularization coefficient.
+            cond_use_bias (bool): Graph conditional use bias.
+            use_domain (bool): Whether to use domain inormation.
+            use_type_cond (bool): whether to use the categorical cell type label in conditional.
+            use_node_degree (bool): whether to use node degree in conditional.
+            scale_node_size (bool) Whether to scale output layer by node sizes.
+            output_layer (str): Output layer.
+            **kwargs: Arbitrary keyword arguments.
+        Raises:
+            ValueError: If `cond_type` is not recognized.
+            ValueError: If `output_layer` is not recognized.
+        """
         super().__init__()
         self.args = {
             "input_shapes": input_shapes,
@@ -59,7 +98,6 @@ class ModelEDncem:
             "use_node_degree": use_node_degree,
             "scale_node_size": scale_node_size,
             "output_layer": output_layer,
-            "log_transform": log_transform,
         }
         in_node_feature_dim = input_shapes[0]
         out_node_feature_dim = input_shapes[1]
@@ -118,7 +156,6 @@ class ModelEDncem:
                     activation=cond_activation,
                     l2_reg=cond_l2_reg,
                     use_bias=cond_use_bias,
-                    padded=False,
                     name=f"conditional_layer_stack_{i}",
                 )
                 x_neighbour_embedding = cond_layer([x_neighbour_embedding, input_afull])
@@ -129,7 +166,6 @@ class ModelEDncem:
                 activation=cond_activation,
                 l2_reg=cond_l2_reg,
                 use_bias=cond_use_bias,
-                padded=False,
                 name=f"conditional_layer_stack_{cond_depth}",
             )
             x_neighbour_embedding = cond_layer([x_neighbour_embedding, input_a])

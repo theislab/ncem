@@ -10,10 +10,25 @@ from ncem.models import ModelLinear
 
 
 class EstimatorLinear(Estimator):
+    """Estimator class for linear models. Subclass of Estimator.
+
+    Attributes:
+        model_type (str):
+        adj_type (str):
+        log_transform (bool):
+        metrics (dict):
+        n_eval_nodes_per_graph:
+    """
+
     def __init__(
         self,
         log_transform: bool = False,
     ):
+        """Initializes a EstimatorLinear object.
+
+        Args:
+            log_transform (boolean): Whether to log transform h_1.
+        """
         super(EstimatorLinear, self).__init__()
         self.model_type = "linear"
         self.adj_type = "full"
@@ -35,6 +50,21 @@ class EstimatorLinear(Estimator):
         prefetch: int = 100,
         reinit_n_eval: Optional[int] = None,
     ):
+        """Prepares a dataset.
+
+        Args:
+            image_keys (list): Image keys in partition.
+            nodes_idx (dict): Dictionary of nodes per image in partition.
+            batch_size (int): Batch size.
+            shuffle_buffer_size (int): Shuffle buffer size.
+            train (bool): Whether dataset is used for training or not (influences shuffling of nodes).
+            seed (int): Random seed.
+            prefetch (int): Prefetch of dataset.
+            reinit_n_eval (int): Used if model is reinitialized to different number of nodes per graph.
+
+        Returns:
+            A tensorflow dataset.
+        """
         np.random.seed(seed)
         if reinit_n_eval is not None and reinit_n_eval != self.n_eval_nodes_per_graph:
             print(
@@ -146,6 +176,16 @@ class EstimatorLinear(Estimator):
         seed: Optional[int] = None,
         prefetch: int = 100,
     ):
+        """Evaluates model based on resampled dataset for posterior resampling: node_1 + domain_1 -> encoder -> z_1 + domain_2 -> decoder -> reconstruction_2
+
+        Args:
+            image_keys (list): Image keys in partition.
+            nodes_idx (dict): Dictionary of nodes per image in partition.
+            batch_size (int): Batch size.
+
+        Returns:
+            (Tuple): Tuple of dictionary of evaluated metrics and latent space arrays (z, z_mean, z_log_var).
+        """
         pass
 
     def init_model(
@@ -161,6 +201,25 @@ class EstimatorLinear(Estimator):
         output_layer: str = "linear",
         **kwargs
     ):
+        """Initializes a ModelInteractions object.
+
+        Args:
+            optimizer (str): Optimizer.
+            learning_rate (float): Learning rate.
+            n_eval_nodes_per_graph (int): Number of nodes per graph.
+            l2_coef (float): l2 regularization coefficient.
+            l1_coef (float): l1 regularization coefficient.
+            use_source_type (bool): Whether to use source type information. If False, this will trigger the non-spatial baseline model.
+            use_domain (bool): Whether to use domain inormation.
+            scale_node_size (bool) Whether to scale output layer by node sizes.
+            output_layer (str): Output layer.
+            **kwargs: Arbitrary keyword arguments.
+
+        Attributes:
+            n_eval_nodes_per_graph (int):
+            model:
+
+        """
         self.n_eval_nodes_per_graph = n_eval_nodes_per_graph
         self.model = ModelLinear(
             input_shapes=(

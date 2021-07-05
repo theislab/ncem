@@ -12,6 +12,7 @@ class BetaScheduler(tf.keras.callbacks.Callback):
     """
 
     def __init__(self, verbose=1):
+        """Initialize BetaScheduler."""
         super(BetaScheduler, self).__init__()
         self.verbose = verbose
         self.beta = None

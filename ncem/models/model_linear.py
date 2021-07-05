@@ -1,11 +1,19 @@
-from typing import Union
-
 import tensorflow as tf
 
 from ncem.models.layers import LinearConstDispOutput, LinearOutput
 
 
 class ModelLinear:
+    """Model class for linear model, baseline and spatial model.
+
+    Attributes:
+        args (dict):
+        training_model:
+
+    Raises:
+        ValueError: If `output_layer` is not recognized.
+    """
+
     def __init__(
         self,
         input_shapes,
@@ -17,6 +25,21 @@ class ModelLinear:
         output_layer: str = "linear",
         **kwargs
     ):
+        """Initialize linear model.
+
+        Args:
+            input_shapes (Tuple): Input shapes.
+            l2_coef (float): l2 regularization coefficient.
+            l1_coef (float): l1 regularization coefficient.
+            use_source_type (bool): Whether to use source type information.
+            use_domain (bool): Whether to use domain information.
+            scale_node_size (bool): Whether to scale output layer by node sizes.
+            output_layer (str): Output layer.
+            **kwargs: Arbitrary keyword arguments.
+
+        Raises:
+            ValueError: If `output_layer` is not recognized.
+        """
         super().__init__()
         self.args = {
             "input_shapes": input_shapes,
