@@ -39,7 +39,7 @@ Or download the `tarball`_:
 
 .. code-block:: console
 
-    $ curl -OJL https://github.com/theislab/ncem/tarball/master
+    $ curl -OJL https://github.com/theislab/ncem/tarball/main
 
 Once you have a copy of the source, you can install it with:
 
