@@ -100,7 +100,18 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="readme.html">ncem</a></li>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Usage</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Usage</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#api">API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-ncem.estimators">Estimator classes: <cite>estimators</cite></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-ncem.models">Model classes: <cite>models</cite></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-ncem.train">Train: <cite>train</cite></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#trainer-classes">Trainer classes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#grid-search-summaries">Grid search summaries</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#tutorials">Tutorials</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="reference.html">Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributor Guide</a></li>
 <li class="toctree-l1"><a class="reference internal" href="authors.html">Credits</a></li>
@@ -174,6 +185,42 @@
             
   <div class="section" id="usage">
 <h1>Usage<a class="headerlink" href="#usage" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="api">
+<h2>API<a class="headerlink" href="#api" title="Permalink to this headline">¶</a></h2>
+<p>Import ncem as:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">ncem</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="module-ncem.estimators">
+<span id="estimator-classes-estimators"></span><h2>Estimator classes: <cite>estimators</cite><a class="headerlink" href="#module-ncem.estimators" title="Permalink to this headline">¶</a></h2>
+<p>Estimator classes from ncem for advanced use.</p>
+</div>
+<div class="section" id="module-ncem.models">
+<span id="model-classes-models"></span><h2>Model classes: <cite>models</cite><a class="headerlink" href="#module-ncem.models" title="Permalink to this headline">¶</a></h2>
+<p>Model classes from ncem for advanced use.</p>
+<p>Classes that wrap tensorflow models.</p>
+</div>
+<div class="section" id="module-ncem.train">
+<span id="train-train"></span><h2>Train: <cite>train</cite><a class="headerlink" href="#module-ncem.train" title="Permalink to this headline">¶</a></h2>
+<p>The interface for training ncem compatible models.</p>
+<div class="section" id="trainer-classes">
+<h3>Trainer classes<a class="headerlink" href="#trainer-classes" title="Permalink to this headline">¶</a></h3>
+<p>Classes that wrap estimator classes to use in grid search training.</p>
+</div>
+<div class="section" id="grid-search-summaries">
+<h3>Grid search summaries<a class="headerlink" href="#grid-search-summaries" title="Permalink to this headline">¶</a></h3>
+<p>Classes to pool evaluation metrics across fits in a grid search.</p>
+</div>
+</div>
+<div class="section" id="tutorials">
+<h2>Tutorials<a class="headerlink" href="#tutorials" title="Permalink to this headline">¶</a></h2>
+<p>We provide tutorials in separate <a class="reference external" href="https://github.com/theislab/ncem_tutorials/">repository</a>.</p>
+<ul class="simple">
+<li><p>A tutorial for fitting and evaluating a interactions model on the MERFISH - brain dataset (<a class="reference external" href="https://github.com/theislab/ncem_tutorials/blob/main/tutorials/model_tutorial_interactions.ipynb">interactions</a>).</p></li>
+</ul>
+<p>If you would like to add more tutorials, feel free to contibute or open an issue.</p>
+</div>
 </div>
 
 
