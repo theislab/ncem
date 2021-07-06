@@ -22,16 +22,26 @@ from ncem.utils.wald_test import wald_test
 
 
 class InterpreterBase(estimators.Estimator):
+    """InterpreterBase class.
+
+    Attributes:
+        data_path (str): Data path.
+        results_path (str): Results path.
+        model_class (str): Model class.
+        data_set (str): Dataset.
+        radius (int): Radius.
+        cell_names (list): List of cell names.
+    """
+
     data_path: str
     results_path: str
-
     model_class: str
     data_set: str
     radius: int
-
     cell_names: list
 
     def __init__(self):
+        """Initialize InterpreterBase."""
         super().__init__()
         self.cell_type = None
         self.position_matrix = None
@@ -59,17 +69,17 @@ class InterpreterBase(estimators.Estimator):
         expected_pickle: Optional[list] = None,
         lateral_resolution: float = 1.0,
     ):
-        """
-        Load best or selected model from grid search directory.
+        """Load best or selected model from grid search directory.
 
-        :param results_path:
-        :param gs_id:
-        :param cv_idx:
-        :param subset_hyperparameters:
-        :param model_id:
-        :param expected_pickle:
-        :param lateral_resolution:
-        :return:
+        Args:
+            results_path (str): Path to results.
+            gs_id (str): Grid search identifier.
+            cv_idx (int): Cross-validation index.
+            subset_hyperparameters: Subset of hyperparameters.
+            model_id (str): Model identifier.
+            expected_pickle (list): List of expected pickle files, default "evaluation", "history", "hyperparam",
+                "model_args", "time"
+            lateral_resolution (float): Lateral resolution.
         """
         if subset_hyperparameters is None:
             subset_hyperparameters = []
@@ -111,20 +121,48 @@ class InterpreterBase(estimators.Estimator):
         prefetch: int = 100,
         reinit_n_eval: Optional[int] = None,
     ):
+        """Prepares a dataset.
+
+        Args:
+            image_keys (list): Image keys in partition.
+            nodes_idx (dict): Dictionary of nodes per image in partition.
+            batch_size (int): Batch size.
+            shuffle_buffer_size (int): Shuffle buffer size.
+            train (bool): Whether dataset is used for training or not (influences shuffling of nodes).
+            seed (int): Random seed.
+            prefetch (int): Prefetch of dataset.
+            reinit_n_eval (int): Used if model is reinitialized to different number of nodes per graph.
+
+        Returns:
+            A tensorflow dataset.
+        """
         pass
 
     def _get_resampled_dataset(
         self, image_keys: np.ndarray, nodes_idx: dict, batch_size: int, seed: Optional[int] = None, prefetch: int = 100
     ):
+        """Evaluates model based on resampled dataset for posterior resampling.
+        node_1 + domain_1 -> encoder -> z_1 + domain_2 -> decoder -> reconstruction_2
+
+        Args:
+            image_keys (list): Image keys in partition.
+            nodes_idx (dict): Dictionary of nodes per image in partition.
+            batch_size (int): Batch size.
+
+        Returns:
+            (Tuple): Tuple of dictionary of evaluated metrics and latent space arrays (z, z_mean, z_log_var).
+        """
         pass
 
     def get_data_again(self, data_path: str, data_origin: str):
-        """
-        Loads data as previously done during model training.
+        """Loads data as previously done during model training.
 
-        :param data_path:
-        :param data_origin:
-        :return:
+        Args:
+            data_path (str): Data path.
+            data_origin (str): Data origin.
+
+        Raises:
+            ValueError: If `cond_type` is not recognized.
         """
         self.cond_type = self.gscontainer_runparams["cond_type"] if "cond_type" in self.gscontainer_runparams else None
         if self.cond_type == "gcn":
@@ -158,11 +196,10 @@ class InterpreterBase(estimators.Estimator):
         self.cell_names = list(self.node_type_names.values())
 
     def split_data_byidx_again(self, cv_idx: int):
-        """
-        Split data into partitions as done during model training.
+        """Split data into partitions as done during model training.
 
-        :param cv_idx: Index of cross-validation to plot confusion matrix for.
-        :return:
+        Args:
+            cv_idx (int): Index of cross-validation to plot confusion matrix for.
         """
         cv = self.gscontainer.select_cv(cv_idx=cv_idx)
         fn = f"{self.results_path}{self.gs_id}/results/{self.model_id}_{cv}_indices.pickle"
@@ -203,6 +240,12 @@ class InterpreterBase(estimators.Estimator):
         self.model.training_model.load_weights(self._fn_model_weights)
 
     def reinitialize_model(self, changed_model_kwargs: dict, print_summary: bool = False):
+        """Reinitialize model with changed model kwargs.
+
+        Args:
+            changed_model_kwargs (dict): Dictionary over changed model kwargs.
+            print_summary (bool): Whether to print summary.
+        """
         assert self.model is not None, "no model loaded, run init_model_again() first"
         # updating new model kwargs
         new_model_kwargs = self._model_kwargs.copy()
@@ -233,6 +276,18 @@ class InterpreterBase(estimators.Estimator):
     def _pp_saliencies(
         self, gradients, h_0, h_0_full, remove_own_gradient: bool = True, absolute_saliencies: bool = True
     ):
+        """Preprocessing of saliencies.
+
+        Args:
+            gradients (np.array): Array of gradients.
+            h_0 (np.array): h_0.
+            h_0_full (np.array): h_0_full.
+            remove_own_gradient (bool): Whether to remove own gradient.
+            absolute_saliencies (bool): Whether absolute saliencies should be aggregated.
+
+        Returns:
+            (np.array): Preprocessed saliencies.
+        """
         if self.cond_type == "max":
             gradients = np.nan_to_num(gradients)
         # removing gradient self node type
@@ -250,6 +305,16 @@ class InterpreterBase(estimators.Estimator):
         return sal
 
     def _neighbourhood_frequencies(self, a, h_0_full, discretize_adjacency: bool = True):
+        """Computes neighbourhood frequencies.
+
+        Args:
+            a (list):  List of adjacency matrices.
+            h_0_full (list): List of h_0_full matrices.
+            discretize_adjacency (bool): Whether to discretize the adjacency matrices.
+
+        Returns:
+            (np.array): Neighbourhood frequencies.
+        """
         neighbourhood = []
         for i, adj in enumerate(a):
             if discretize_adjacency:
@@ -260,20 +325,23 @@ class InterpreterBase(estimators.Estimator):
 
 
 class InterpreterLinear(estimators.EstimatorLinear, InterpreterBase):
-    """
-    Inherits all relevant functions specific to EstimatorLinear estimators
-    """
+    """Inherits all relevant functions specific to EstimatorLinear estimators."""
 
     def __init__(self):
+        """Initialize InterpreterLinear."""
         super().__init__()
 
     def _get_np_data(
         self, image_keys: Union[np.ndarray, str], nodes_idx: Union[dict, str]
     ) -> Tuple[Tuple[list, list, list, list, list], list]:
-        """
-        :param image_keys: Observation images indices.
-        :param nodes_idx: Observation nodes indices.
-        :return: Tuple of list of raw data, one list entry per image / graph
+        """Collects numpy objects from tensorflow dataset.
+
+        Args:
+            image_keys: Observation images indices.
+            nodes_idx: Observation nodes indices.
+
+        Returns:
+            Tuple of list of raw data, one list entry per image / graph
         """
         if isinstance(image_keys, (int, np.int32, np.int64)):
             image_keys = [image_keys]
@@ -288,7 +356,7 @@ class InterpreterLinear(estimators.EstimatorLinear, InterpreterBase):
         g = []
         h_obs = []
 
-        for step, (x_batch, y_batch) in enumerate(ds):
+        for _step, (x_batch, y_batch) in enumerate(ds):
             target_batch, source_batch, sf_batch, node_covar_batch, g_batch = x_batch
             target.append(target_batch.numpy().squeeze())
             source.append(source_batch.numpy().squeeze())
@@ -300,20 +368,23 @@ class InterpreterLinear(estimators.EstimatorLinear, InterpreterBase):
 
 
 class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
-    """
-    Inherits all relevant functions specific to EstimatorInteractions estimators
-    """
+    """Inherits all relevant functions specific to EstimatorInteractions estimators."""
 
     def __init__(self):
+        """Initialize InterepreterInteraction."""
         super().__init__()
 
     def _get_np_data(
         self, image_keys: Union[np.ndarray, str], nodes_idx: Union[dict, str]
     ) -> Tuple[Tuple[list, List[csr_matrix], list, list, list], list]:
-        """
-        :param image_keys: Observation images indices.
-        :param nodes_idx: Observation nodes indices.
-        :return: Tuple of list of raw data, one list entry per image / graph
+        """Collects numpy objects from tensorflow dataset.
+
+        Args:
+            image_keys: Observation images indices.
+            nodes_idx: Observation nodes indices.
+
+        Returns:
+            Tuple of list of raw data, one list entry per image / graph
         """
         if isinstance(image_keys, (int, np.int32, np.int64)):
             image_keys = [image_keys]
@@ -328,7 +399,7 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
         g = []
         h_obs = []
 
-        for step, (x_batch, y_batch) in enumerate(ds):
+        for _step, (x_batch, y_batch) in enumerate(ds):
             target_batch, interaction_batch, sf_batch, node_covar_batch, g_batch = x_batch
             target.append(target_batch.numpy().squeeze())
             interactions.append(
@@ -352,9 +423,23 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
         baseline_model,
         target_cell_type: str,
         undefined_type: Optional[str] = None,
-        n_neighbors: Optional[int] = None,
+        n_neighbors: int = 15,
         n_pcs: Optional[int] = None,
     ):
+        """Compute relative performance of spatial model compared to baseline model and subset to target cell type.
+
+        Args:
+            image_key (str): Image key.
+            baseline_model: Non-spatial baseline model.
+            target_cell_type (str): Target cell type.
+            undefined_type (str): Undefined type.
+            n_neighbors (int): The size of local neighborhood (in terms of number of neighboring data points) used
+                for manifold approximation.
+            n_pcs (int): Use this many PCs.
+
+        Returns:
+            (Tuple): AnnData object of image and AnnData object subsetted to only target cells.
+        """
         cluster_col = self.data.celldata.uns["metadata"]["cluster_col_preprocessed"]
         if isinstance(image_key, str):
             image_key = [image_key]
@@ -376,7 +461,7 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
                 )
                 graph = []
                 baseline = []
-                for step, (x_batch, y_batch) in enumerate(ds):
+                for _step, (x_batch, y_batch) in enumerate(ds):
                     out_graph = self.reinit_model.training_model(x_batch)
                     out_graph = np.split(ary=out_graph.numpy().squeeze(), indices_or_sections=2, axis=-1)[0]
 
@@ -422,6 +507,23 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
         show: bool = True,
         return_axs: bool = False,
     ):
+        """Plots the relative the substate performance of a target cell type.
+
+        Args:
+            adata (AnnData): AnnData object. Output of `target_cell_relative_performance`.
+            target_cell_type (str): Target cell type.
+            relative_performance_key (str): Key for relative performance.
+            fontsize (int): Fontsize.
+            figsize (Tuple): Figure size.
+            palette (list): Palette.
+            save (str): Path to save directory.
+            suffix (str): Saving suffix.
+            show (bool): Whether to show figure.
+            return_axs (bool): Whether to return axes.
+
+        Returns:
+            Optionally returns axes or nothing.
+        """
         if palette is None:
             palette = ["#1f77b4", "#2ca02c", "#8c564b", "#7f7f7f", "#17becf"]
         if fontsize:
@@ -470,6 +572,25 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
         show: bool = True,
         return_axs: bool = False,
     ):
+        """Plots relative performance of spatial versus non-spatial model on spatial allocation of nodes.
+
+        Args:
+            adata (AnnData): AnnData object. Output of `target_cell_relative_performance`.
+            target_cell_type (str): Target cell type.
+            relative_performance_key (str): Key for relative performance.
+            figsize (Tuple): Figure size.
+            fontsize (int): Fontsize.
+            spot_size (int): Spot size.
+            clean_view (bool): Whether to remove cells outside of range from plotting.
+            save (str): Path to save directory.
+            suffix (str): Saving suffix.
+            show (bool): Whether to show figure.
+            return_axs (bool): Whether to return axes.
+
+        Returns:
+            Optionally returns axes or nothing.
+        """
+
         class MidpointNormalize(colors.Normalize):
             def __init__(self, vmin=None, vmax=None, midpoint=None, clip=False):
                 self.midpoint = midpoint
@@ -720,10 +841,14 @@ class InterpreterGraph(estimators.EstimatorGraph, InterpreterBase):
     def _get_np_data(
         self, image_keys: Union[np.ndarray, str], nodes_idx: Union[dict, str]
     ) -> Tuple[Tuple[list, list, list, list, List[csr_matrix], List[csr_matrix], list, list], list]:
-        """
-        :param image_keys: Observation images indices.
-        :param nodes_idx: Observation nodes indices.
-        :return: Tuple of list of raw data, one list entry per image / graph
+        """Collects numpy objects from tensorflow dataset.
+
+        Args:
+            image_keys: Observation images indices.
+            nodes_idx: Observation nodes indices.
+
+        Returns:
+            Tuple of list of raw data, one list entry per image / graph
         """
         if isinstance(image_keys, (int, np.int32, np.int64)):
             image_keys = [image_keys]

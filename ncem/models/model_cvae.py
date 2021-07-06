@@ -8,6 +8,10 @@ from ncem.models.layers import (Decoder, Encoder, GaussianConstDispOutput,
 
 
 class ModelCVAE:
+    """
+    Model class for conditional variational autoencoder.
+    """
+
     def __init__(
         self,
         input_shapes,
@@ -27,6 +31,7 @@ class ModelCVAE:
         output_layer="gaussian",
         **kwargs
     ):
+        """Initialize conditional variational autoencoder model."""
         super().__init__()
         self.args = {
             "input_shapes": input_shapes,

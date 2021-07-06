@@ -1,3 +1,4 @@
+"""Importing custom layers for different model classes."""
 from ncem.models.layers.gnn_layers import GCNLayer, MaxLayer
 from ncem.models.layers.layer_stacks_lvm import (CondDecoder, CondEncoder,
                                                  Decoder, Encoder,

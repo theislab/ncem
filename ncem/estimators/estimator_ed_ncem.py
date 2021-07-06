@@ -5,12 +5,32 @@ from ncem.models import ModelEDncem
 
 
 class EstimatorEDncem(EstimatorGraph):
+    """Estimator class for encoder-decoder NCEM models. Subclass of EstimatorGraph.
+    Attributes:
+        model_type (str):
+        adj_type (str):
+        cond_type (str):
+        use_type_cond (bool):
+        log_transform (bool):
+        metrics (dict):
+        n_eval_nodes_per_graph:
+    """
+
     def __init__(
         self,
         cond_type: str = "gcn",
         use_type_cond: bool = True,
         log_transform: bool = False,
     ):
+        """Initializes a EstimatorEDncem object.
+
+        Args:
+            cond_type (int): max, ind or gcn, graph layer used in conditional.
+            use_type_cond (bool): whether to use the categorical cell type label in conditional.
+            log_transform (bool): Whether to log transform h_1.
+        Raises:
+            ValueError: If `cond_type` is not recognized.
+        """
         super(EstimatorEDncem, self).__init__()
         self.model_type = "ed_ncem"
         if cond_type == "gcn":
@@ -53,6 +73,42 @@ class EstimatorEDncem(EstimatorGraph):
         output_layer: str = "gaussian",
         **kwargs
     ):
+        """Initializes a ModelEDncem object.
+
+        Args:
+            optimizer (str): Optimizer.
+            learning_rate (float): Learning rate.
+            latent_dim (int): Latent dimension.
+            dropout_rate (float): Dropout rate.
+            l2_coef (float): l2 regularization coefficient.
+            l1_coef (float): l1 regularization coefficient.
+            enc_intermediate_dim (int): Encoder intermediate dimension.
+            enc_depth (int): Encoder depth.
+            dec_intermediate_dim (int): Decoder intermediate dimension.
+            dec_depth (int): Decoder depth.
+            cond_depth (int): Graph conditional depth.
+            cond_dim (int): Graph conditional dimension.
+            cond_dropout_rate (float): Graph conditional dropout rate.
+            cond_activation: Graph conditional activation.
+            cond_l2_reg (float): Graph conditional l2 regularization coefficient.
+            cond_use_bias (bool): Graph conditional use bias.
+            n_eval_nodes_per_graph (int): Number of nodes per graph.
+            use_domain (bool): Whether to use domain information.
+            scale_node_size (bool) Whether to scale output layer by node sizes.
+            beta (float): Beta used in BetaScheduler.
+            max_beta (float): Maximal beta used in BetaScheduler.
+            pre_warm_up (int): Number of epochs in pre warm up.
+            output_layer (str): Output layer.
+            **kwargs: Arbitrary keyword arguments.
+
+        Attributes:
+            n_eval_nodes_per_graph (int):
+            model:
+            cond_depth (int): Graph conditional depth.
+            beta (float): Beta used in BetaScheduler.
+            max_beta (float): Maximal beta used in BetaScheduler.
+            pre_warm_up (int): Number of epochs in pre warm up.
+        """
         self.n_eval_nodes_per_graph = n_eval_nodes_per_graph
         self.model = ModelEDncem(
             input_shapes=(

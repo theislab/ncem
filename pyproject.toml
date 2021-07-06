@@ -1,8 +1,8 @@
 [tool.poetry]
 name = "ncem"
 version = "0.1.0"  # <<COOKIETEMPLE_FORCE_BUMP>>
-description = "ncem. A cookietemple based ."
-authors = ["Anna C. Schaar <anna.schaar@helmholtz-muenchen.de>"]
+description = "ncem. Learning cell communication from spatial graphs of cells."
+authors = ["David S. Fischer <david.fischer@helmholtz-muenchen.de>", "Anna C. Schaar <anna.schaar@helmholtz-muenchen.de>"]
 license = "BSD"
 readme = "README.rst"
 homepage = "https://github.com/theislab/ncem"
@@ -33,6 +33,7 @@ seaborn = "^0.11.1"
 matplotlib = "^3.4.2"
 louvain = "^0.7.0"
 diffxpy = "^0.7.4"
+docrep = "^0.3.2"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.3"
