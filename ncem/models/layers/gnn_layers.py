@@ -9,19 +9,26 @@ class MaxLayer(tf.keras.layers.Layer):
     def __init__(self, **kwargs):
         """Initialize MaxLayer.
 
-        Args:
-            **kwargs: Arbitrary keyword arguments.
+        Parameters
+        ----------
+        kwargs
+            Arbitrary keyword arguments.
         """
         super().__init__(**kwargs)
 
     def call(self, inputs, **kwargs):
-        """MAX/IND layer call function.
+        """Call MAX/IND layer.
 
-        Args:
-            inputs: Inputs.
-            **kwargs: Arbitrary keyword arguments.
+        Parameters
+        ----------
+        inputs
+            Inputs.
+        kwargs
+            Arbitrary keyword arguments.
 
-        Returns:
+        Returns
+        -------
+        output
             output of MAX/IND layer
         """
         x = inputs[0]
@@ -37,28 +44,25 @@ class MaxLayer(tf.keras.layers.Layer):
 
 
 class GCNLayer(tf.keras.layers.Layer):
-    """Initialize GCNLayer.
-
-    Arguments:
-        output_dim (int): Output dimension.
-        dropout_rate (float): Dropout rate.
-        activation: Activation.
-        l2_reg (float): l2 regularization coefficient.
-        use_bias (bool): Whether to use bias.
-        kernel: Kernel.
-        bias: Bias.
-    """
+    """Initialize GCNLayer."""
 
     def __init__(self, output_dim, dropout_rate, activation, l2_reg, use_bias: bool = False, **kwargs):
         """Initialize GCNLayer.
 
-        Args:
-            output_dim (str): Output dimension.
-            dropout_rate (float): Dropout rate.
-            activation: Activation.
-            l2_reg (float): l2 regularization coefficient.
-            use_bias (bool): Use bias.
-            **kwargs: Arbitrary keyword arguments.
+        Parameters
+        ----------
+        output_dim
+            Output dimension.
+        dropout_rate
+            Dropout rate.
+        activation
+            Activation.
+        l2_reg
+            l2 regularization coefficient.
+        use_bias : bool
+            Use bias.
+        kwargs
+            Arbitrary keyword arguments.
         """
         super().__init__(**kwargs)
         self.output_dim = output_dim
@@ -71,7 +75,12 @@ class GCNLayer(tf.keras.layers.Layer):
         self.bias = None
 
     def get_config(self):
-        """GCN layer get_config function."""
+        """Get config GCN layer.
+
+        Returns
+        -------
+        config
+        """
         config = super().get_config().copy()
         config.update(
             {
@@ -85,10 +94,12 @@ class GCNLayer(tf.keras.layers.Layer):
         return config
 
     def build(self, input_shapes):
-        """GCN layer build function.
+        """Build GCN layer.
 
-        Args:
-            input_shapes (Tuple): Input shapes.
+        Parameters
+        ----------
+        input_shapes
+            Input shapes.
         """
         input_shape = input_shapes[0]
         # Layer kernel
@@ -105,11 +116,16 @@ class GCNLayer(tf.keras.layers.Layer):
     def call(self, inputs, **kwargs):
         """GCN layer call function.
 
-        Args:
-            inputs: Inputs.
-            **kwargs: Arbitrary keyword arguments.
+        Parameters
+        ----------
+        inputs
+            Inputs.
+        kwargs
+            Arbitrary keyword arguments.
 
-        Returns:
+        Returns
+        -------
+        output
             output of GCN layer
         """
         x = inputs[0]

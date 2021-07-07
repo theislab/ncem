@@ -10,24 +10,19 @@ from ncem.models import ModelInteractions
 
 
 class EstimatorInteractions(Estimator):
-    """Estimator class for interactions models. Subclass of Estimator.
-
-    Attributes:
-        model_type (str):
-        adj_type (str):
-        log_transform (bool):
-        metrics (dict):
-        n_eval_nodes_per_graph:
-    """
+    """Estimator class for interactions models. Subclass of Estimator."""
 
     def __init__(
         self,
         log_transform: bool = False,
     ):
-        """Initializes a EstimatorInteractions object.
+        """Initialize a EstimatorInteractions object.
 
-        Args:
-            log_transform (boolean): Whether to log transform h_1.
+        Parameters
+        ----------
+        log_transform : bool
+            Whether to log transform h_1.
+
         """
         super(EstimatorInteractions, self).__init__()
         self.model_type = "linear_interactions"
@@ -41,7 +36,7 @@ class EstimatorInteractions(Estimator):
 
     def _get_dataset(
         self,
-        image_keys: np.ndarray,
+        image_keys: np.array,
         nodes_idx: Union[dict, str],
         batch_size: int,
         shuffle_buffer_size: int,
@@ -50,20 +45,30 @@ class EstimatorInteractions(Estimator):
         prefetch: int = 100,
         reinit_n_eval: Optional[int] = None,
     ):
-        """Prepares a dataset.
+        """Prepare a dataset.
 
-        Args:
-            image_keys (list): Image keys in partition.
-            nodes_idx (dict): Dictionary of nodes per image in partition.
-            batch_size (int): Batch size.
-            shuffle_buffer_size (int): Shuffle buffer size.
-            train (bool): Whether dataset is used for training or not (influences shuffling of nodes).
-            seed (int): Random seed.
-            prefetch (int): Prefetch of dataset.
-            reinit_n_eval (int): Used if model is reinitialized to different number of nodes per graph.
+        Parameters
+        ----------
+        image_keys : np.array
+            Image keys in partition.
+        nodes_idx : dict, str
+            Dictionary of nodes per image in partition.
+        batch_size : int
+            Batch size.
+        shuffle_buffer_size : int
+            Shuffle buffer size.
+        train : bool
+            Whether dataset is used for training or not (influences shuffling of nodes).
+        seed : int, optional
+            Random seed.
+        prefetch: int
+            Prefetch of dataset.
+        reinit_n_eval : int, optional
+            Used if model is reinitialized to different number of nodes per graph.
 
-        Returns:
-            A tensorflow dataset.
+        Returns
+        -------
+        A tensorflow dataset.
         """
         np.random.seed(seed)
         if reinit_n_eval is not None and reinit_n_eval != self.n_eval_nodes_per_graph:
@@ -186,22 +191,28 @@ class EstimatorInteractions(Estimator):
 
     def _get_resampled_dataset(
         self,
-        image_keys: np.ndarray,
+        image_keys: np.array,
         nodes_idx: dict,
         batch_size: int,
         seed: Optional[int] = None,
         prefetch: int = 100,
     ):
-        """Evaluates model based on resampled dataset for posterior resampling:
-        node_1 + domain_1 -> encoder -> z_1 + domain_2 -> decoder -> reconstruction_2
+        """Evaluate model based on resampled dataset for posterior resampling.
 
-        Args:
-            image_keys (list): Image keys in partition.
-            nodes_idx (dict): Dictionary of nodes per image in partition.
-            batch_size (int): Batch size.
+        node_1 + domain_1 -> encoder -> z_1 + domain_2 -> decoder -> reconstruction_2.
 
-        Returns:
-            (Tuple): Tuple of dictionary of evaluated metrics and latent space arrays (z, z_mean, z_log_var).
+        Parameters
+        ----------
+        image_keys: np.array
+            Image keys in partition.
+        nodes_idx : dict
+            Dictionary of nodes per image in partition.
+        batch_size : int
+            Batch size.
+        seed : int, optional
+            Seed.
+        prefetch : int
+            Prefetch.
         """
         pass
 
@@ -218,24 +229,30 @@ class EstimatorInteractions(Estimator):
         output_layer: str = "linear",
         **kwargs
     ):
-        """Initializes a ModelInteractions object.
+        """Initialize a ModelInteractions object.
 
-        Args:
-            optimizer (str): Optimizer.
-            learning_rate (float): Learning rate.
-            n_eval_nodes_per_graph (int): Number of nodes per graph.
-            l2_coef (float): l2 regularization coefficient.
-            l1_coef (float): l1 regularization coefficient.
-            use_interactions (bool): Whether to use interactions. If False, this will trigger the non-spatial baseline model.
-            use_domain (bool): Whether to use domain inormation.
-            scale_node_size (bool) Whether to scale output layer by node sizes.
-            output_layer (str): Output layer.
-            **kwargs: Arbitrary keyword arguments.
-
-        Attributes:
-            n_eval_nodes_per_graph (int):
-            model:
-
+        Parameters
+        ----------
+        optimizer : str
+            Optimizer.
+        learning_rate : float
+            Learning rate.
+        l2_coef : float
+            l2 regularization coefficient.
+        l1_coef : float
+            l1 regularization coefficient.
+        n_eval_nodes_per_graph : int
+            Number of nodes per graph.
+        use_interactions : bool
+            Whether to use source type.
+        use_domain : bool
+            Whether to use domain information.
+        scale_node_size : bool
+            Whether to scale output layer by node sizes.
+        output_layer : str
+            Output layer.
+        kwargs
+            Arbitrary keyword arguments.
         """
         self.n_eval_nodes_per_graph = n_eval_nodes_per_graph
         self.model = ModelInteractions(

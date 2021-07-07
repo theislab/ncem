@@ -5,8 +5,18 @@ import tensorflow as tf
 
 
 class NegBinLoss(tf.keras.losses.Loss):
+    """Custom negative binomial loss."""
+
     def call(self, y_true, y_pred):
-        """Implements the negative log likelihood loss as reconstruction loss"""
+        """Implements the negative log likelihood loss as reconstruction loss.
+
+        Args:
+        y_true: y_true.
+        y_pred: y_pred.
+
+        Returns:
+            negative log likelihood loss as reconstruction loss.
+        """
         x = y_true
         loc, scale = tf.split(y_pred, num_or_size_splits=2, axis=2)
 
@@ -26,8 +36,18 @@ class NegBinLoss(tf.keras.losses.Loss):
 
 
 class GaussianLoss(tf.keras.losses.Loss):
+    """Custom gaussian loss."""
+
     def call(self, y_true, y_pred):
-        """Implements Gaussian loss as reconstruction loss"""
+        """Implements Gaussian loss as reconstruction loss.
+
+        Args:
+            y_true: y_true.
+            y_pred: y_pred.
+
+        Returns:
+            Gaussian loss as reconstruction loss.
+        """
         y_pred, sd = tf.split(y_pred, num_or_size_splits=2, axis=2, name="gaussian_loss_split")
         # sd = 1.  # change also in metric if this is changed
 
@@ -37,13 +57,31 @@ class GaussianLoss(tf.keras.losses.Loss):
 
 
 class KLLoss(tf.keras.losses.Loss):
+    """Custom gaussian loss."""
+
     def __init__(self, beta: float = 1.0, max_beta: float = 1.0, pre_warm_up: int = 0):
+        """Initialize Kullback Leibler divergence.
+
+        Args:
+            beta (float): Beta.
+            max_beta (float): Maximal beta.
+            pre_warm_up (int): Pre warm up.
+        """
         super().__init__()
         self.beta = tf.Variable(beta, dtype=tf.float32, trainable=False)
         self.max_beta = max_beta
         self.pre_warm_up = pre_warm_up
 
     def call(self, y_true, y_pred):
+        """Kullback-Leibler divergence.
+
+        Args:
+            y_true: y_true.
+            y_pred: y_pred.
+
+        Returns:
+            Kullback-Leibler divergence.
+        """
         z, z_mean, z_log_var = tf.split(y_pred, num_or_size_splits=3, axis=1)
         log2pi = tf.math.log(2.0 * np.pi)
         logqz_x = -0.5 * tf.reduce_sum(tf.square(z - z_mean) * tf.exp(-z_log_var) + z_log_var + log2pi, axis=-1)

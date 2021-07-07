@@ -7,12 +7,20 @@ import numpy as np
 import tensorflow as tf
 
 from ncem.utils.losses import GaussianLoss, KLLoss, NegBinLoss
-from ncem.utils.metrics import (custom_kl, custom_mae, custom_mean_sd,
-                                custom_mse, custom_mse_scaled,
-                                gaussian_reconstruction_loss, logp1_custom_mse,
-                                logp1_r_squared, logp1_r_squared_linreg,
-                                nb_reconstruction_loss, r_squared,
-                                r_squared_linreg)
+from ncem.utils.metrics import (
+    custom_kl,
+    custom_mae,
+    custom_mean_sd,
+    custom_mse,
+    custom_mse_scaled,
+    gaussian_reconstruction_loss,
+    logp1_custom_mse,
+    logp1_r_squared,
+    logp1_r_squared_linreg,
+    nb_reconstruction_loss,
+    r_squared,
+    r_squared_linreg,
+)
 
 
 class Estimator:

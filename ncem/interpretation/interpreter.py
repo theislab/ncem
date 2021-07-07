@@ -22,16 +22,7 @@ from ncem.utils.wald_test import wald_test
 
 
 class InterpreterBase(estimators.Estimator):
-    """InterpreterBase class.
-
-    Attributes:
-        data_path (str): Data path.
-        results_path (str): Results path.
-        model_class (str): Model class.
-        data_set (str): Dataset.
-        radius (int): Radius.
-        cell_names (list): List of cell names.
-    """
+    """InterpreterBase class."""
 
     data_path: str
     results_path: str
@@ -57,6 +48,11 @@ class InterpreterBase(estimators.Estimator):
         self.reinit_model = None
 
     def init_model(self):
+        """Init model function in interpreter class.
+
+        Raises:
+            ValueError: Models should not be initialized within interpreter class, use load_model().
+        """
         raise ValueError("models should not be initialized within interpreter class, use load_model()")
 
     def load_model(
@@ -132,9 +128,6 @@ class InterpreterBase(estimators.Estimator):
             seed (int): Random seed.
             prefetch (int): Prefetch of dataset.
             reinit_n_eval (int): Used if model is reinitialized to different number of nodes per graph.
-
-        Returns:
-            A tensorflow dataset.
         """
         pass
 
@@ -148,9 +141,8 @@ class InterpreterBase(estimators.Estimator):
             image_keys (list): Image keys in partition.
             nodes_idx (dict): Dictionary of nodes per image in partition.
             batch_size (int): Batch size.
-
-        Returns:
-            (Tuple): Tuple of dictionary of evaluated metrics and latent space arrays (z, z_mean, z_log_var).
+            seed (int): Random seed.
+            prefetch (int): Prefetch.
         """
         pass
 
@@ -216,6 +208,11 @@ class InterpreterBase(estimators.Estimator):
         )
 
     def init_model_again(self):
+        """Initialize model in interpreter class.
+
+        Raises:
+            ValueError: If model_class not recognized
+        """
         if self.model_class in ["vae"]:
             model = models.ModelCVAE(**self._model_kwargs)
         elif self.model_class in ["cvae", "cvae_ncem"]:
@@ -237,6 +234,7 @@ class InterpreterBase(estimators.Estimator):
             self.vi_model = True
 
     def load_weights_again(self):
+        """Load model weights again in interpreter class."""
         self.model.training_model.load_weights(self._fn_model_weights)
 
     def reinitialize_model(self, changed_model_kwargs: dict, print_summary: bool = False):
@@ -245,6 +243,9 @@ class InterpreterBase(estimators.Estimator):
         Args:
             changed_model_kwargs (dict): Dictionary over changed model kwargs.
             print_summary (bool): Whether to print summary.
+
+        Raises:
+            ValueError: If model_class not recognized
         """
         assert self.model is not None, "no model loaded, run init_model_again() first"
         # updating new model kwargs
@@ -655,6 +656,24 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
         suffix: str = "_expression_grid.pdf",
         show: bool = True,
     ):
+        """Plots a cell-cell grid of relative performance in terms of R2 or MAE.
+
+        Args:
+            image_keys (Union[np.array, str]): Image keys.
+            nodes_idx (Union[dict, str]): Node indices.
+            base_interpreter: Baseline model interpreter.
+            scale_node_frequencies (int): Value by which to scale the dots in the plot with.
+            metric (str): R2 or MAE.
+            mode (str): Mean or variance.
+            figsize (Tuple): figsize.
+            save (str): Path to save directory.
+            suffix (str): Saving suffix.
+            show (bool): Whether to show figure.
+
+        Raises:
+            ValueError: If metric or mode not recognized.
+        """
+
         class MidpointNormalize(colors.Normalize):
             def __init__(self, vmin=None, vmax=None, midpoint=None, clip=False):
                 self.midpoint = midpoint
@@ -678,7 +697,7 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
 
         base_pred = []
         graph_pred = []
-        for step, (x_batch, y_batch) in enumerate(ds):
+        for _step, (x_batch, y_batch) in enumerate(ds):
             target_batch, interactions_batch, sf_batch, node_covar_batch, g_batch = x_batch
 
             base_pred.append(np.squeeze(base_interpreter.model.training_model(x_batch)[0].numpy()))
@@ -703,7 +722,7 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
         plt.ioff()
         # function returns a n_features_type x n_features_type grid
         grid_summary = []
-        for i, k in enumerate(interaction_names):
+        for k in interaction_names:
             temp_interactions = interactions[interactions[k] > 0][k]
 
             if mode == "mean":
@@ -778,6 +797,16 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
         nodes_idx,
         significance_threshold: float = 0.01,
     ):
+        """Compute interaction parameter significance.
+
+        Args:
+            image_keys: Image keys.
+            nodes_idx: Node indices.
+            significance_threshold (float): Significance threshold for p-values.
+
+        Returns:
+            (Tuple): Interaction parameters of model, aaray of boolean significance, significance values.
+        """
         ds = self._get_dataset(
             image_keys=image_keys, nodes_idx=nodes_idx, batch_size=1, shuffle_buffer_size=1, train=False, seed=None
         )
@@ -795,7 +824,7 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
 
         interactions = []
         y = []
-        for step, (x_batch, y_batch) in enumerate(ds):
+        for _step, (x_batch, y_batch) in enumerate(ds):
             target_batch, interactions_batch, sf_batch, node_covar_batch, g_batch = x_batch
             interactions.append(
                 sparse.csr_matrix(
@@ -831,11 +860,10 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
 
 
 class InterpreterGraph(estimators.EstimatorGraph, InterpreterBase):
-    """
-    Inherits all relevant functions specific to EstimatorGraph estimators
-    """
+    """Inherits all relevant functions specific to EstimatorGraph estimators."""
 
     def __init__(self):
+        """Initialize InterpreterGraph."""
         super().__init__()
 
     def _get_np_data(
@@ -866,7 +894,7 @@ class InterpreterGraph(estimators.EstimatorGraph, InterpreterBase):
         g = []
         h_obs = []
 
-        for step, (x_batch, y_batch) in enumerate(ds):
+        for _step, (x_batch, y_batch) in enumerate(ds):
             h_1_batch, sf_batch, h_0_batch, h_0_full_batch, a_batch, a_full_batch, node_covar_batch, g_batch = x_batch
             h_1.append(h_1_batch.numpy().squeeze())
             sf.append(sf_batch.numpy().squeeze())
@@ -894,11 +922,10 @@ class InterpreterGraph(estimators.EstimatorGraph, InterpreterBase):
 
 
 class InterpreterEDncem(estimators.EstimatorEDncem, InterpreterGraph):
-    """
-    Inherits all relevant functions specific to EstimatorInteractions estimators
-    """
+    """Inherits all relevant functions specific to EstimatorInteractions estimators."""
 
     def __init__(self):
+        """Initialize InterepreterEDncem."""
         super().__init__()
 
     def target_cell_saliencies(
@@ -909,6 +936,17 @@ class InterpreterEDncem(estimators.EstimatorEDncem, InterpreterGraph):
         partition: str = "test",
         multicolumns: Optional[list] = None,
     ):
+        """Compute target cell saliencies.
+
+        Args:
+            target_cell_type (str): Target cell type.
+            drop_columns: List of columns to drop, i.e. neighbouring cell types.
+            dop_images: List of images to drop.
+            partition (str): All, train, test or val partition. Default is test.
+            multicolumns: List of items in multiindex annotation.
+        Returns:
+            Dataframe of target cell saliencies in partition.
+        """
         target_cell_idx = list(self.node_type_names.values()).index(target_cell_type)
 
         if partition == "test":
@@ -948,7 +986,7 @@ class InterpreterEDncem(estimators.EstimatorEDncem, InterpreterGraph):
                 h_0 = []
                 h_0_full = []
                 a = []
-                for step, (x_batch, y_batch) in enumerate(ds):
+                for _step, (x_batch, _y_batch) in enumerate(ds):
                     h_1_batch = x_batch[0].numpy().squeeze()
                     h_0_batch = x_batch[2].numpy().squeeze()  # 1 x 1 x node_types
                     h_0_full_batch = x_batch[3]  # 1 x max_nodes x node_types
@@ -1022,6 +1060,19 @@ class InterpreterEDncem(estimators.EstimatorEDncem, InterpreterGraph):
         show: bool = True,
         return_axs: bool = False,
     ):
+        """Plot target cell saliencies from dataframe.
+
+        Args:
+            saliencies: Precomputed saliencies from 'target_cell_saliencies'.
+            multiindex (bool): Whether saliencies have multiindex.
+            fontsize (int): Fontsize.
+            figsize (Tuple): Figsize.
+            width_ratios (list): Width ratios.
+            save (str): Path to save directory.
+            suffix (str): Saving suffix.
+            show (bool): Whether to show figure.
+            return_axs (bool): Whether to return axes.
+        """
         if width_ratios is None:
             width_ratios = [5, 1]
         if fontsize:
@@ -1040,7 +1091,7 @@ class InterpreterEDncem(estimators.EstimatorEDncem, InterpreterGraph):
 
             hline = []
             new_xlabels = []
-            for index1, index2_list in xlabel_mapping.items():
+            for _index1, index2_list in xlabel_mapping.items():
                 index2_list[0] = "{}".format(index2_list[0])
                 new_xlabels.extend(index2_list)
 
@@ -1065,23 +1116,35 @@ class InterpreterEDncem(estimators.EstimatorEDncem, InterpreterGraph):
 
 
 class InterpreterCVAEncem(estimators.EstimatorCVAEncem, InterpreterGraph):
-    """
-    Inherits all relevant functions specific to EstimatorInteractions estimators
-    """
+    """Inherits all relevant functions specific to EstimatorInteractions estimators."""
 
     def __init__(self):
+        """Initialize InterepreterCVAEncem."""
         super().__init__()
 
     def compute_latent_space_cluster_enrichment(
         self,
         image_key,
         target_cell_type: str,
-        n_neighbors: Optional[int] = None,
+        n_neighbors: int = 15,
         n_pcs: Optional[int] = None,
         filter_titles: Optional[List[str]] = None,
         clip_pvalues: Optional[int] = -5,
     ):
+        """Compute latent space cluster enrichment.
 
+        Args:
+            image_key: Image key.
+            target_cell_type (str): Target cell type.
+            n_neighbors (int): The size of local neighborhood (in terms of number of neighboring data points) used
+                for manifold approximation.
+            n_pcs (int): Use this many PCs.
+            filter_titles (list): Filter titles.
+            clip_pvalues (int): Clip p-values by values.
+
+        Returns:
+            (Tuple): Copy of latent space AnnData object, dataframe of log10 p-values, dataframe of fold_change
+        """
         node_type_names = list(self.data.celldata.uns["node_type_names"].values())
         ds = self._get_dataset(
             image_keys=[image_key],
@@ -1100,7 +1163,7 @@ class InterpreterCVAEncem(estimators.EstimatorCVAEncem, InterpreterGraph):
         h_0_full = []
         h_0 = []
         a = []
-        for step, (x_batch, y_batch) in enumerate(ds):
+        for _step, (x_batch, _y_batch) in enumerate(ds):
             h_1_batch, sf_batch, h_0_batch, h_0_full_batch, a_batch, a_full_batch, node_covar_batch, g_batch = x_batch
 
             cond_z, cond_z_mean, cond_z_log = cond_encoder(x_batch)
@@ -1131,7 +1194,7 @@ class InterpreterCVAEncem(estimators.EstimatorCVAEncem, InterpreterGraph):
         sc.tl.louvain(cond_adata)
         sc.tl.umap(cond_adata)
 
-        for i, x in enumerate(node_type_names):
+        for x in node_type_names:
             cond_adata.uns[f"{x}_colors"] = ["darkgreen", "lightgrey"]
 
         cond_adata.obs["substates"] = target_cell_type + " " + cond_adata.obs.louvain.astype(str)
@@ -1146,7 +1209,7 @@ class InterpreterCVAEncem(estimators.EstimatorCVAEncem, InterpreterGraph):
 
         distinct_louvain = len(np.unique(cond_adata.obs.louvain))
         pval_source_type = []
-        for i, st in enumerate(node_type_names):
+        for st in node_type_names:
             pval_cluster = []
             for j in range(distinct_louvain):
                 crosstab = np.array(pd.crosstab(df[f"{st}"], df[str(j)]))
@@ -1183,20 +1246,23 @@ class InterpreterCVAEncem(estimators.EstimatorCVAEncem, InterpreterGraph):
 
 
 class InterpreterNoGraph(estimators.EstimatorNoGraph, InterpreterBase):
-    """
-    Inherits all relevant functions specific to EstimatorEDncem estimators and InterpreterBase
-    """
+    """Inherits all relevant functions specific to EstimatorEDncem estimators and InterpreterBase."""
 
     def __init__(self):
+        """Initialize InterepreterNoGraph.."""
         super().__init__()
 
     def _get_np_data(
         self, image_keys: Union[np.ndarray, str], nodes_idx: Union[dict, str]
     ) -> Tuple[Tuple[list, list, list, list], list]:
-        """
-        :param image_keys: Observation images indices.
-        :param nodes_idx: Observation nodes indices.
-        :return: Tuple of list of raw data, one list entry per image / graph
+        """Collects numpy objects from tensorflow dataset.
+
+        Args:
+            image_keys: Observation images indices.
+            nodes_idx: Observation nodes indices.
+
+        Returns:
+            Tuple of list of raw data, one list entry per image / graph
         """
         if isinstance(image_keys, (int, np.int32, np.int64)):
             image_keys = [image_keys]
@@ -1210,7 +1276,7 @@ class InterpreterNoGraph(estimators.EstimatorNoGraph, InterpreterBase):
         g = []
         h_obs = []
 
-        for step, (x_batch, y_batch) in enumerate(ds):
+        for _step, (x_batch, y_batch) in enumerate(ds):
             h_1_batch, sf_batch, node_covar_batch, g_batch = x_batch
             h_1.append(h_1_batch.numpy().squeeze())
             sf.append(sf_batch.numpy().squeeze())

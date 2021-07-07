@@ -4,11 +4,36 @@ import tensorflow as tf
 class SamplingPrior(tf.keras.layers.Layer):
     """Uses input tensor to sample from bottleneck of defined size."""
 
-    def __init__(self, width, name="sampling_layer", **kwargs):
+    def __init__(self, width, name: str = "sampling_layer", **kwargs):
+        """Initialize SamplingPrior custom layer.
+
+        Parameters
+        ----------
+        width
+            Width.
+        name : str
+            Layer name.
+        kwargs
+            Arbitrary keyword arguments.
+        """
         super().__init__(name=name, **kwargs)
         self.width = width
 
     def call(self, inputs, **kwargs):
+        """Call SamplingPrior layer.
+
+        Parameters
+        ----------
+        inputs
+            Inputs.
+        kwargs
+            Arbitrary keyword arguments.
+
+        Returns
+        -------
+        epsilon
+            epsilon.
+        """
         x = inputs
         batch = tf.shape(x)[0]  # batch_size
         node_dim = tf.shape(x)[1]  # number of nodes per graph
@@ -21,15 +46,34 @@ class SamplingPrior(tf.keras.layers.Layer):
 class Sampling(tf.keras.layers.Layer):
     """Uses (z_mean, z_log_var) to sample z."""
 
-    def __init__(self, name="sampling_layer", **kwargs):
+    def __init__(self, name: str = "sampling_layer", **kwargs):
+        """Initialize SamplingPrior custom layer.
+
+        Parameters
+        ----------
+        name : str
+            Layer name.
+        kwargs
+            Arbitrary keyword arguments.
+        """
         super().__init__(name=name, **kwargs)
 
     def call(self, inputs, **kwargs):
-        """Reparameterization trick by sampling from an isotropic unit Gaussian.
-        # Arguments
-            inputs (tensor): mean and log of variance of Q(z|X)
-        # Returns
-            z (tensor): sampled latent vector
+        """Call Sampling layer.
+
+        Reparameterization trick by sampling from an isotropic unit Gaussian.
+
+        Parameters
+        ----------
+        inputs
+            mean and log of variance of Q(z|X).
+        kwargs
+            Arbitrary keyword arguments.
+
+        Returns
+        -------
+        z
+            sampled latent vector.
         """
         z_mean, z_log_var = inputs
         # z_mean - shape: (batch_size, latent_dim), z_log_var - shape: (batch_size, latent_dim)
@@ -43,7 +87,7 @@ class Sampling(tf.keras.layers.Layer):
 
 
 class Encoder(tf.keras.layers.Layer):
-    """Maps input to embedding space"""
+    """Maps input to embedding space."""
 
     def __init__(
         self,
@@ -59,7 +103,33 @@ class Encoder(tf.keras.layers.Layer):
         name="encoder",
         **kwargs
     ):
+        """Initialize Encoder custom layer.
 
+        Parameters
+        ----------
+        latent_dim : int
+            Latent dimension.
+        intermediate_dim : int
+            Intermediate dimension.
+        dropout_rate : float
+            Dropout rate.
+        n_hidden : int
+            Number of hidden layers.
+        l1_coef : float
+            l1 regularization coefficient.
+        l2_coef : float
+            l2 regularization coefficient.
+        use_type_cond : bool
+            Whether to use type conditional.
+        use_batch_norm : bool
+            Whether to use batch normalization.
+        probabilistic : bool
+            Whether sampling is done or not.
+        name : str
+            Layer name.
+        kwargs
+            Arbitrary keyword arguments.
+        """
         super().__init__(name=name, **kwargs)
         self.latent_dim = latent_dim
         self.intermediate_dim = intermediate_dim
@@ -79,6 +149,12 @@ class Encoder(tf.keras.layers.Layer):
         self.sampling = None
 
     def get_config(self):
+        """Get config Encoder layer.
+
+        Returns
+        -------
+        config
+        """
         config = super().get_config().copy()
         config.update(
             {
@@ -94,6 +170,13 @@ class Encoder(tf.keras.layers.Layer):
         return config
 
     def build(self, input_shapes):
+        """Build Encoder layer.
+
+        Parameters
+        ----------
+        input_shapes
+            Input shapes.
+        """
         self.fwd_pass = []
         for i in range(0, self.n_hidden):
             self.fwd_pass.append(
@@ -118,6 +201,21 @@ class Encoder(tf.keras.layers.Layer):
             self.sampling = Sampling()
 
     def call(self, inputs, **kwargs):
+        """Call Encoder layer.
+
+        Parameters
+        ----------
+        inputs
+            Inputs.
+        kwargs
+            Arbitrary keyword arguments.
+
+        Returns
+        -------
+        z
+        z_mean
+        z_var_log
+        """
         h, c = inputs
         # h - shape: (batch_size, N, F), c - shape: (batch_size, N, P)
         if self.use_type_cond:
@@ -141,21 +239,43 @@ class Encoder(tf.keras.layers.Layer):
 
 
 class Decoder(tf.keras.layers.Layer):
-    """Maps latent space sample back to output"""
+    """Maps latent space sample back to output."""
 
     def __init__(
         self,
-        intermediate_dim,
-        dropout_rate,
-        n_hidden,
+        intermediate_dim: int,
+        dropout_rate: float,
+        n_hidden: int,
         l1_coef: float,
         l2_coef: float,
         use_type_cond: bool = True,
         use_batch_norm: bool = False,
-        name="decoder",
+        name: str = "decoder",
         **kwargs
     ):
+        """Initialize Decoder custom layer.
 
+        Parameters
+        ----------
+        intermediate_dim : int
+            Intermediate dimension.
+        dropout_rate : float
+            Dropout rate.
+        n_hidden : int
+            Number of hidden layers.
+        l1_coef : float
+            l1 regularization coefficient.
+        l2_coef : float
+            l2 regularization coefficient.
+        use_type_cond : bool
+            Whether to use type conditional.
+        use_batch_norm : bool
+            Whether to use batch normalization.
+        name : str
+            Layer name.
+        kwargs
+            Arbitrary keyword arguments.
+        """
         super().__init__(name=name, **kwargs)
 
         self.intermediate_dim = intermediate_dim
@@ -166,18 +286,16 @@ class Decoder(tf.keras.layers.Layer):
         self.use_type_cond = use_type_cond
         self.use_batch_norm = use_batch_norm
 
-        if isinstance(l1_coef, float) and isinstance(l2_coef, float):
-            self.kernel_regularizer = tf.keras.regularizers.l1_l2(l1=self.l1_coef, l2=self.l2_coef)
-        elif isinstance(l1_coef, float) and l2_coef is None:
-            self.kernel_regularizer = tf.keras.regularizers.l1(l1=self.l1_coef)
-        elif l1_coef is None and isinstance(l2_coef, float):
-            self.kernel_regularizer = tf.keras.regularizers.l2(l2=self.l2_coef)
-        else:
-            self.kernel_regularizer = None
-
+        self.kernel_regularizer = tf.keras.regularizers.l1_l2(l1=self.l1_coef, l2=self.l2_coef)
         self.fwd_pass = None
 
     def get_config(self):
+        """Get config Decoder layer.
+
+        Returns
+        -------
+        config
+        """
         config = super().get_config().copy()
         config.update(
             {
@@ -193,6 +311,13 @@ class Decoder(tf.keras.layers.Layer):
         return config
 
     def build(self, input_shapes):
+        """Build Decoder layer.
+
+        Parameters
+        ----------
+        input_shapes
+            Input shapes.
+        """
         self.fwd_pass = []
         for i in range(0, self.n_hidden):
             self.fwd_pass.append(
@@ -209,6 +334,20 @@ class Decoder(tf.keras.layers.Layer):
                 self.fwd_pass.append(tf.keras.layers.Dropout(self.dropout_rate, noise_shape=None, seed=None))
 
     def call(self, inputs, **kwargs):
+        """Call Decoder layer.
+
+        Parameters
+        ----------
+        inputs
+            Inputs.
+        kwargs
+            Arbitrary keyword arguments.
+
+        Returns
+        -------
+        x
+            output of Decoder layer
+        """
         z, c = inputs
         in_node_dim = c.shape[1]
         # z - shape: (batch_size*N, latent_dim), c - shape: (batch_size, N, P)
@@ -228,14 +367,14 @@ class Decoder(tf.keras.layers.Layer):
 
 
 class CondEncoder(tf.keras.layers.Layer):
-    """Maps input to embedding space"""
+    """Maps input to embedding space."""
 
     def __init__(
         self,
-        latent_dim,
-        intermediate_dim,
-        dropout_rate,
-        n_hidden,
+        latent_dim: int,
+        intermediate_dim: int,
+        dropout_rate: float,
+        n_hidden: int,
         l1_coef: float,
         l2_coef: float,
         use_graph_conditional: bool = True,
@@ -245,8 +384,34 @@ class CondEncoder(tf.keras.layers.Layer):
         name: str = "cond_encoder",
         **kwargs
     ):
-        """
-        Build the encoder network as a layer object.
+        """Initialize CondEncoder custom layer.
+
+        Parameters
+        ----------
+        latent_dim : int
+            Latent dimension.
+        intermediate_dim : int
+            Intermediate dimension.
+        dropout_rate : float
+            Dropout rate.
+        n_hidden : int
+            Number of hidden layers.
+        l1_coef : float
+            l1 regularization coefficient.
+        l2_coef : float
+            l2 regularization coefficient.
+        use_graph_conditional : bool
+            Whether to use graph conditional.
+        use_type_cond : bool
+            Whether to use type conditional.
+        use_batch_norm : bool
+            Whether to use batch normalization.
+        probabilistic : bool
+            Whether sampling is done or not.
+        name : str
+            Layer name.
+        kwargs
+            Arbitrary keyword arguments.
         """
         super(CondEncoder, self).__init__(name=name, **kwargs)
         self.latent_dim = latent_dim
@@ -266,6 +431,12 @@ class CondEncoder(tf.keras.layers.Layer):
         self.sampling = None
 
     def get_config(self):
+        """Get config CondEncoder layer.
+
+        Returns
+        -------
+        config
+        """
         config = super().get_config().copy()
         config.update(
             {
@@ -283,6 +454,13 @@ class CondEncoder(tf.keras.layers.Layer):
         return config
 
     def build(self, input_shapes):
+        """Build CondEncoder layer.
+
+        Parameters
+        ----------
+        input_shapes
+            Input shapes.
+        """
         self.fwd_pass = []
         for i in range(0, self.n_hidden):
             self.fwd_pass.append(
@@ -308,6 +486,21 @@ class CondEncoder(tf.keras.layers.Layer):
 
     # Put encoder network in the context of input data and graph data in the latent layer.
     def call(self, inputs, **kwargs):
+        """Call CondEncoder layer.
+
+        Parameters
+        ----------
+        inputs
+            Inputs.
+        kwargs
+            Arbitrary keyword arguments.
+
+        Returns
+        -------
+        z
+        z_mean
+        z_log_var
+        """
         h_reconstruct, neighbour_embedding, c = inputs
         # h_reconstruct - shape: (batch_size, N, F), h_cond - shape: (batch_size, N, F)
         # a - shape: (batch_size, N, N), c - shape: (batch_size, N, P)
@@ -340,22 +533,46 @@ class CondEncoder(tf.keras.layers.Layer):
 
 
 class CondDecoder(tf.keras.layers.Layer):
-    """Maps latent space sample back to output"""
+    """Maps latent space sample back to output."""
 
     def __init__(
         self,
-        intermediate_dim,
-        dropout_rate,
-        n_hidden,
+        intermediate_dim: int,
+        dropout_rate: float,
+        n_hidden: int,
         l1_coef: float,
         l2_coef: float,
         use_graph_conditional: bool = True,
         use_type_cond: bool = True,
         use_batch_norm: bool = False,
-        name="cond_decoder",
+        name: str = "cond_decoder",
         **kwargs
     ):
+        """Initialize Decoder custom layer.
 
+        Parameters
+        ----------
+        intermediate_dim : int
+            Intermediate dimension.
+        dropout_rate : float
+            Dropout rate.
+        n_hidden : int
+            Number of hidden layers.
+        l1_coef : float
+            l1 regularization coefficient.
+        l2_coef : float
+            l2 regularization coefficient.
+        use_graph_conditional : bool
+            Whether to use graph conditional.
+        use_type_cond : bool
+            Whether to use type conditional.
+        use_batch_norm : bool
+            Whether to use batch normalization.
+        name : str
+            Layer name.
+        kwargs
+            Arbitrary keyword arguments.
+        """
         super(CondDecoder, self).__init__(name=name, **kwargs)
         self.intermediate_dim = intermediate_dim
         self.dropout_rate = dropout_rate
@@ -369,6 +586,12 @@ class CondDecoder(tf.keras.layers.Layer):
         self.fwd_pass = None
 
     def get_config(self):
+        """Get config of CondDecoder.
+
+        Returns
+        -------
+        config
+        """
         config = super().get_config().copy()
         config.update(
             {
@@ -385,6 +608,13 @@ class CondDecoder(tf.keras.layers.Layer):
         return config
 
     def build(self, input_shapes):
+        """Build CondDecoder layer.
+
+        Parameters
+        ----------
+        input_shapes
+            Input shapes.
+        """
         self.fwd_pass = []
         for i in range(0, self.n_hidden):
             self.fwd_pass.append(
@@ -401,7 +631,20 @@ class CondDecoder(tf.keras.layers.Layer):
                 self.fwd_pass.append(tf.keras.layers.Dropout(self.dropout_rate, noise_shape=None, seed=None))
 
     def call(self, inputs, **kwargs):
-        """ Forward pass to probabilities. """
+        """Call CondDecoder layer.
+
+        Parameters
+        ----------
+        inputs
+            Inputs.
+        kwargs
+            Arbitrary keyword arguments.
+
+        Returns
+        -------
+        x
+            output of CondDecoder layer
+        """
         z, neighbour_embedding, c = inputs
         in_node_dim = c.shape[1]
         # z - shape: (batch_size*N, latent_dim),

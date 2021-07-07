@@ -6,16 +6,7 @@ from ncem.models.layers import (Decoder, Encoder, GaussianOutput,
 
 
 class ModelED:
-    """Model class for non-spatial encoder-decoder.
-
-    Attributes:
-        args (dict):
-        encoder_model:
-        decoder_model:
-        encoder:
-        decoder:
-        training_model:
-    """
+    """Model class for non-spatial encoder-decoder."""
 
     def __init__(
         self,
@@ -35,23 +26,42 @@ class ModelED:
         **kwargs
     ):
         """Initialize encoder-decoder model.
-        Args:
-            input_shapes (Tuple): Input shapes.
-            latent_dim (int): Latent dimension.
-            dropout_rate (float): Dropout rate.
-            l2_coef (float): l2 regularization coefficient.
-            l1_coef (float): l1 regularization coefficient.
-            enc_intermediate_dim (int): Encoder intermediate dimension.
-            enc_depth (int): Encoder depth.
-            dec_intermediate_dim (int): Decoder intermediate dimension.
-            dec_depth (int): Decoder depth.
-            use_domain (bool): Whether to use domain inormation.
-            use_type_cond (bool): whether to use the categorical cell type label in conditional.
-            scale_node_size (bool) Whether to scale output layer by node sizes.
-            output_layer (str): Output layer.
-            **kwargs: Arbitrary keyword arguments.
-        Raises:
-            ValueError: If `output_layer` is not recognized.
+
+        Parameters
+        ----------
+        input_shapes
+            input_shapes.
+        latent_dim : int
+            Latent dimension.
+        dropout_rate : float
+            Dropout rate.
+        l2_coef : float
+            l2 regularization coefficient.
+        l1_coef : float
+            l1 regularization coefficient.
+        enc_intermediate_dim : int
+            Encoder intermediate dimension.
+        enc_depth : int
+            Encoder depth.
+        dec_intermediate_dim : int
+            Decoder intermediate dimension.
+        dec_depth : int
+            Decoder depth.
+        use_domain : bool
+            Whether to use domain information.
+        use_type_cond : bool
+            Whether to use type conditional.
+        scale_node_size : bool
+            Whether to scale output layer by node sizes.
+        output_layer : str
+            Output layer.
+        kwargs
+            Arbitrary keyword arguments.
+
+        Raises
+        ------
+        ValueError
+            If `output_layer` is not recognized.
         """
         super().__init__()
         self.args = {

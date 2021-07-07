@@ -3,21 +3,35 @@ import tensorflow as tf
 
 
 class BetaScheduler(tf.keras.callbacks.Callback):
-    """Beta parameter scheduler.
-    # Arguments
-        schedule: a function that takes an epoch index as input
-            (integer, indexed from 0) and current beta parameter
-            and returns a new beta parameter as output (float).
-        verbose: int. 0: quiet, 1: update messages.
-    """
+    """Beta parameter scheduler."""
 
-    def __init__(self, verbose=1):
-        """Initialize BetaScheduler."""
+    def __init__(self, verbose: int = 1):
+        """Initialize BetaScheduler.
+
+        Parameters
+        ----------
+        verbose : int
+            0 quiet, 1 update messages.
+        """
         super(BetaScheduler, self).__init__()
         self.verbose = verbose
         self.beta = None
 
     def on_epoch_begin(self, epoch, logs=None):
+        """Create callback function on_epoch_begin for for BetaScheduler.
+
+        Parameters
+        ----------
+        epoch
+            Epoch.
+        logs
+            Logs.
+
+        Raises
+        ------
+        ValueError
+            If `beta`, `max_beta` or `pre_warm_up` not found in attribute.
+        """
         if not hasattr(self.model.loss[1], "beta"):
             raise ValueError('Model must have a "beta" attribute.')
         if not hasattr(self.model.loss[1], "max_beta"):
@@ -38,5 +52,14 @@ class BetaScheduler(tf.keras.callbacks.Callback):
             )
 
     def on_epoch_end(self, epoch, logs=None):
+        """Create callback function on_epoch_begin for for BetaScheduler.
+
+        Parameters
+        ----------
+        epoch
+            Epoch.
+        logs
+            Logs.
+        """
         logs = logs or {}
         logs["beta"] = tf.keras.backend.get_value(self.model.loss[1].beta)

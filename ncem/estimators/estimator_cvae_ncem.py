@@ -6,15 +6,7 @@ from ncem.models import ModelCVAEncem
 
 
 class EstimatorCVAEncem(EstimatorGraph):
-    """Estimator class for conditional variational autoencoder NCEM models. Subclass of EstimatorGraph.
-
-    Attributes:
-        model_type (str):
-        adj_type (str):
-        cond_type (str):
-        use_type_cond (bool):
-        log_transform (bool):
-    """
+    """Estimator class for conditional variational autoencoder NCEM models. Subclass of EstimatorGraph."""
 
     def __init__(
         self,
@@ -22,15 +14,21 @@ class EstimatorCVAEncem(EstimatorGraph):
         use_type_cond: bool = True,
         log_transform: bool = False,
     ):
-        """Initializes a EstimatorCVAEncem object.
+        """Initialize a EstimatorCVAEncem object.
 
-        Args:
-            cond_type (str): max, ind or gcn, graph layer used in conditional.
-            use_type_cond (bool): whether to use the categorical cell type label in conditional.
-            log_transform (bool): Whether to log transform h_1.
+        Parameters
+        ----------
+        cond_type : str
+            Max, ind or gcn, graph layer used in conditional.
+        use_type_cond : bool
+            Whether to use the categorical cell type label in conditional.
+        log_transform : bool
+            Whether to log transform h_1.
 
-        Raises:
-            ValueError: If `cond_type` is not recognized.
+        Raises
+        ------
+        ValueError
+            If `cond_type` is not recognized.
         """
         super(EstimatorCVAEncem, self).__init__()
         self.model_type = "cvae_ncem"
@@ -73,35 +71,62 @@ class EstimatorCVAEncem(EstimatorGraph):
         output_layer: str = "gaussian",
         **kwargs
     ):
-        """Initializes a ModelCVAEncem object.
+        """Initialize a ModelCVAEncem object.
 
-        Args:
-            optimizer (str): Optimizer.
-            learning_rate (float): Learning rate.
-            latent_dim (int): Latent dimension.
-            dropout_rate (float): Dropout rate.
-            l2_coef (float): l2 regularization coefficient.
-            l1_coef (float): l1 regularization coefficient.
-            intermediate_dim_enc (int): Encoder intermediate dimension.
-            depth_enc (int): Encoder depth.
-            intermediate_dim_dec (int): Decoder intermediate dimension.
-            depth_dec (int): Decoder depth.
-            cond_depth (int): Graph conditional depth.
-            cond_dim (int): Graph conditional dimension.
-            cond_dropout_rate (float): Graph conditional dropout rate.
-            cond_activation: Graph conditional activation.
-            cond_l2_reg (float): Graph conditional l2 regularization coefficient.
-            cond_use_bias (bool): Graph conditional use bias.
-            n_eval_nodes_per_graph (int): Number of nodes per graph.
-            use_domain (bool): Whether to use domain information.
-            use_batch_norm (bool): Whether to use batch normalization.
-            scale_node_size (bool) Whether to scale output layer by node sizes.
-            transform_input (bool): Whether to transform input.
-            beta (float): Beta used in BetaScheduler.
-            max_beta (float): Maximal beta used in BetaScheduler.
-            pre_warm_up (int): Number of epochs in pre warm up.
-            output_layer (str): Output layer.
-            **kwargs: Arbitrary keyword arguments.
+        Parameters
+        ----------
+        optimizer : str
+            Optimizer.
+        learning_rate : float
+            Learning rate.
+        latent_dim : int
+            Latent dimension.
+        dropout_rate : float
+            Dropout rate.
+        l2_coef : float
+            l2 regularization coefficient.
+        l1_coef : float
+            l1 regularization coefficient.
+        intermediate_dim_enc : int
+            Encoder intermediate dimension.
+        depth_enc : int
+            Encoder depth.
+        intermediate_dim_dec : int
+            Decoder intermediate dimension.
+        depth_dec : int
+            Decoder depth.
+        cond_depth : int
+            Graph conditional depth.
+        cond_dim : int
+            Graph conditional dimension.
+        cond_dropout_rate : float
+            Graph conditional dropout rate.
+        cond_activation : str
+            Graph conditional activation.
+        cond_l2_reg : float
+            Graph conditional l2 regularization coefficient.
+        cond_use_bias : bool
+            Graph conditional use bias.
+        n_eval_nodes_per_graph : int
+            Number of nodes per graph.
+        use_domain : bool
+            Whether to use domain information.
+        use_batch_norm : bool
+            Whether to use batch normalization.
+        scale_node_size : bool
+            Whether to scale output layer by node sizes.
+        transform_input : bool
+            Whether to transform input.
+        beta : float
+            Beta used in BetaScheduler.
+        max_beta : float
+            Maximal beta used in BetaScheduler.
+        pre_warm_up : int
+            Number of epochs in pre warm up.
+        output_layer : str
+            Output layer.
+        kwargs
+            Arbitrary keyword arguments.
         """
         self.n_eval_nodes_per_graph = n_eval_nodes_per_graph
         self.model = ModelCVAEncem(
@@ -145,16 +170,23 @@ class EstimatorCVAEncem(EstimatorGraph):
         self.optimizer = optimizer
 
     def evaluate_any_posterior_sampling(self, img_keys, node_idx, batch_size: int = 1):
-        """Evaluates model based on resampled dataset for posterior resampling.
-        node_1 + domain_1 -> encoder -> z_1 + domain_2 -> decoder -> reconstruction_2
+        """
+        Evaluate model based on resampled dataset for posterior resampling.
 
-        Args:
-            img_keys (list): Image keys in partition.
-            node_idx (dict): Dictionary of nodes per image in partition.
-            batch_size (int): Batch size.
+        node_1 + domain_1 -> encoder -> z_1 + domain_2 -> decoder -> reconstruction_2.
 
-        Returns:
-            (Tuple): Tuple of dictionary of evaluated metrics and latent space arrays (z, z_mean, z_log_var).
+        Parameters
+        ----------
+        img_keys
+            Image keys in partition.
+        node_idx
+            Dictionary of nodes per image in partition.
+        batch_size : int
+            Batch size.
+
+        Returns
+        -------
+        Tuple of dictionary of evaluated metrics and latent space arrays (z, z_mean, z_log_var).
         """
         # generating a resampled dataset for neighbourhood transfer evaluation
         ds = self._get_resampled_dataset(image_keys=img_keys, nodes_idx=node_idx, batch_size=batch_size, seed=None)
