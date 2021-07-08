@@ -35,7 +35,7 @@ ncem
 
     <p align="center">
         <a href="https://ncem.readthedocs.io/en/latest/">
-            <img src="https://raw.githubusercontent.com/theislab/ncem/master/docs/_static/img/concept.png"
+            <img src="https://raw.githubusercontent.com/theislab/ncem/main/docs/_static/img/concept.png"
              width="1000px" alt="ncem concept">
         </a>
     </p>
