@@ -36,7 +36,7 @@ ncem
     <p align="center">
         <a href="https://ncem.readthedocs.io/en/latest/">
             <img src="https://raw.githubusercontent.com/theislab/ncem/master/docs/_static/img/concept.png"
-             width="400px" alt="Squidpy logo">
+             width="1000px" alt="ncem concept">
         </a>
     </p>
 
