@@ -21,29 +21,45 @@ from tqdm import tqdm
 
 
 class GraphTools:
+    """GraphTools class."""
+
     celldata: AnnData
     img_celldata: Dict[str, AnnData]
 
     def compute_adjacency_matrices(self, radius: int, transform: str = None):
-        """
+        """Compute adjacency matrix for each image in dataset (uses `squidpy.gr.spatial_neighbors`).
 
-        :param radius:
-        :param transform:
-        :return:
+        Parameters
+        ----------
+        radius : int
+            Radius of neighbors for non-grid data.
+        transform : str
+            Type of adjacency matrix transform. Valid options are:
+
+            - `spectral` - spectral transformation of the adjacency matrix.
+            - `cosine` - cosine transformation of the adjacency matrix.
+            - `None` - no transformation of the adjacency matrix.
         """
         pbar_total = len(self.img_celldata.keys())
         with tqdm(total=pbar_total) as pbar:
-            for k, adata in self.img_celldata.items():
+            for _k, adata in self.img_celldata.items():
                 sq.gr.spatial_neighbors(adata=adata, radius=radius, transform=transform, key_added="adjacency_matrix")
                 pbar.update(1)
 
     @staticmethod
     def _transform_a(a):
-        """
-        Computes D^(-1) * (A+I), with A an adjacency matrix, I the identity matrix
-        and D the degree matrix.
-        :param a: (scipy.sparse.csr_matrix) sparse adjacency matrix
-        :return: (scipy.sparse.csr_matrix) degree transformed sparse adjacency matrix
+        """Compute degree transformation of adjacency matrix.
+
+        Computes D^(-1) * (A+I), with A an adjacency matrix, I the identity matrix and D the degree matrix.
+
+        Parameters
+        ----------
+        a
+            sparse adjacency matrix.
+
+        Returns
+        -------
+        degree transformed sparse adjacency matrix
         """
         warnings.filterwarnings("ignore", message="divide by zero encountered in true_divide")
         degrees = 1 / a.sum(axis=0)
@@ -54,22 +70,51 @@ class GraphTools:
         return a_out
 
     def _transform_all_a(self, a_dict: dict):
-        """
-        Computes D^(-1) * (A+I), with A an adjacency matrix, I the identity matrix
-        and D the degree matrix for all matrices in a dictionary.
+        """Compute degree transformation for dictionary of adjacency matrices.
 
-        :param a_dict: Dict[str, scipy.sparse.csr_matrix] dictionary of sparse adjacency matrices
-        :return: Dict[str, scipy.sparse.csr_matrix] dictionary of degree transformed sparse adjacency matrices
+        Computes D^(-1) * (A+I), with A an adjacency matrix, I the identity matrix and D the degree matrix for all
+        matrices in a dictionary.
+
+        Parameters
+        ----------
+        a_dict : dict
+            a_dict
+
+        Returns
+        -------
+        dictionary of degree transformed sparse adjacency matrices
         """
         a_transformed = {i: self._transform_a(a) for i, a in a_dict.items()}
         return a_transformed
 
     @staticmethod
     def _compute_distance_matrix(pos_matrix):
+        """Compute distance matrix.
+
+        Parameters
+        ----------
+        pos_matrix
+            Position matrix.
+
+        Returns
+        -------
+        distance matrix
+        """
         diff = pos_matrix[:, :, None] - pos_matrix[:, :, None].T
         return (diff * diff).sum(1)
 
     def _get_degrees(self, max_distances: list):
+        """Get dgrees.
+
+        Parameters
+        ----------
+        max_distances : list
+            List of maximal distances.
+
+        Returns
+        -------
+        degrees
+        """
         degs = {}
         degrees = {}
         for i, adata in self.img_celldata.items():
@@ -82,25 +127,41 @@ class GraphTools:
 
     def plot_degree_vs_dist(
         self,
-        degree_matrices=None,
-        max_distances=None,
+        degree_matrices: Optional[list] = None,
+        max_distances: Optional[list] = None,
         lateral_resolution: float = 1.0,
-        save: Union[str, None] = None,
+        save: Optional[str] = None,
         suffix: str = "_degree_vs_dist.pdf",
         show: bool = True,
         return_axs: bool = False,
     ):
-        """
+        """Plot degree versus distances.
 
-        :param degree_matrices:
-        :param max_distances:
-        :param lateral_resolution:
-        :param save: Whether (if not None) and where (path as string given as save) to save plot.
-        :param suffix: Suffix of file name to save to.
-        :param show: Whether to display plot.
-        :param return_axs: Whether to return axis objects.
-        :return:
+        Parameters
+        ----------
+        degree_matrices : list, optional
+            List of degree matrices
+        max_distances : list, optional
+            List of maximal distances.
+        lateral_resolution : float
+            Lateral resolution
+        save : str, optional
+            Whether (if not None) and where (path as string given as save) to save plot.
+        suffix : str
+            Suffix of file name to save to.
+        show : bool
+            Whether to display plot.
+        return_axs : bool
+            Whether to return axis objects.
 
+        Returns
+        -------
+        axis if `return_axs` is True.
+
+        Raises
+        ------
+        ValueError
+            If `degree_matrices` and `max_distances` are `None`.
         """
         if degree_matrices is None:
             if max_distances is None:
@@ -152,21 +213,40 @@ class GraphTools:
 
 
 class PlottingTools:
+    """PlottingTools class."""
+
     celldata: AnnData
     img_celldata: Dict[str, AnnData]
 
     def celldata_interaction_matrix(
         self,
-        fontsize: int = 13,
+        fontsize: Optional[int] = None,
         figsize: Tuple[float, float] = (5, 5),
         title: Optional[str] = None,
         save: Optional[str] = None,
         suffix: str = "_celldata_interaction_matrix.pdf",
     ):
+        """Compute and plot interaction matrix of celldata.
+
+        The interaction matrix is computed by `squidpy.gr.interaction_matrix()`.
+
+        Parameters
+        ----------
+        fontsize : int, optional
+            Font size.
+        figsize : tuple
+            Figure size.
+        title : str, optional
+            Figure title.
+        save : str, optional
+            Whether (if not None) and where (path as string given as save) to save plot.
+        suffix : str
+            Suffix of file name to save to.
+        """
         interaction_matrix = []
         cluster_key = self.celldata.uns["metadata"]["cluster_col_preprocessed"]
         with tqdm(total=len(self.img_celldata.keys())) as pbar:
-            for k, adata in self.img_celldata.items():
+            for adata in self.img_celldata.values():
                 im = sq.gr.interaction_matrix(
                     adata, cluster_key=cluster_key, connectivity_key="adjacency_matrix", normalized=True, copy=True
                 )
@@ -180,7 +260,8 @@ class PlottingTools:
         df_means = by_row_index.mean().sort_index(axis=1)
         self.celldata.uns[f"{cluster_key}_interactions"] = np.array(df_means).T
 
-        sc.set_figure_params(scanpy=True, fontsize=fontsize)
+        if fontsize:
+            sc.set_figure_params(scanpy=True, fontsize=fontsize)
         if save:
             save = save + suffix
         sq.pl.interaction_matrix(
@@ -194,17 +275,34 @@ class PlottingTools:
 
     def celldata_nhood_enrichment(
         self,
-        fontsize: int = 13,
+        fontsize: Optional[int] = None,
         figsize: Tuple[float, float] = (5, 5),
         title: Optional[str] = None,
         save: Optional[str] = None,
         suffix: str = "_celldata_nhood_enrichment.pdf",
     ):
+        """Compute and plot neighbourhood enrichment of celldata.
+
+        The enrichment is computed by `squidpy.gr.nhood_enrichment()`.
+
+        Parameters
+        ----------
+        fontsize : int, optional
+            Font size.
+        figsize : tuple
+            Figure size.
+        title : str, optional
+            Figure title.
+        save : str, optional
+            Whether (if not None) and where (path as string given as save) to save plot.
+        suffix : str
+            Suffix of file name to save to.
+        """
         zscores = []
         counts = []
         cluster_key = self.celldata.uns["metadata"]["cluster_col_preprocessed"]
         with tqdm(total=len(self.img_celldata.keys())) as pbar:
-            for k, adata in self.img_celldata.items():
+            for adata in self.img_celldata.values():
                 im = sq.gr.nhood_enrichment(
                     adata,
                     cluster_key=cluster_key,
@@ -237,8 +335,8 @@ class PlottingTools:
             "zscore": np.array(df_zscores).T,
             "count": np.array(df_counts).T,
         }
-
-        sc.set_figure_params(scanpy=True, fontsize=fontsize)
+        if fontsize:
+            sc.set_figure_params(scanpy=True, fontsize=fontsize)
         if save:
             save = save + suffix
         sq.pl.nhood_enrichment(
@@ -259,6 +357,28 @@ class PlottingTools:
         show: bool = True,
         return_axs: bool = False,
     ):
+        """Plot cell type frequencies from celldata on the complete dataset.
+
+        Parameters
+        ----------
+        fontsize : int, optional
+           Font size.
+        figsize : tuple
+           Figure size.
+        save : str, optional
+            Whether (if not None) and where (path as string given as save) to save plot.
+        suffix : str
+            Suffix of file name to save to.
+        show : bool
+            Whether to display plot.
+        return_axs : bool
+            Whether to return axis objects.
+
+        Returns
+        -------
+        axis
+            If `return_axs` is True.
+        """
         plt.ioff()
         cluster_id = self.celldata.uns["metadata"]["cluster_col_preprocessed"]
         if fontsize:
@@ -301,6 +421,36 @@ class PlottingTools:
         show: bool = True,
         return_axs: bool = False,
     ):
+        """Plot cell type frequencies grouped by cell type.
+
+        Parameters
+        ----------
+        undefined_type : str, optional
+            Undefined cell type.
+        merge_types : tuple, optional
+            Merge cell types.
+        min_x : float, optional
+            Minimal x value.
+        max_x : float, optional
+            Maximal x value.
+        fontsize : int, optional
+           Font size.
+        panelsize : tuple
+           Panel size.
+        save : str, optional
+            Whether (if not None) and where (path as string given as save) to save plot.
+        suffix : str
+            Suffix of file name to save to.
+        show : bool
+            Whether to display plot.
+        return_axs : bool
+            Whether to return axis objects.
+
+        Returns
+        -------
+        axis
+            If `return_axs` is True.
+        """
         if fontsize:
             sc.set_figure_params(scanpy=True, fontsize=fontsize)
         feature_mat = pd.concat(
@@ -309,7 +459,7 @@ class PlottingTools:
                     [
                         pd.DataFrame(
                             {
-                                "image": [k for i in range(adata.shape[0])],
+                                "image": [k for _i in range(adata.shape[0])],
                             }
                         ),
                         pd.DataFrame(adata.X, columns=list(adata.var_names)),
@@ -376,7 +526,7 @@ class PlottingTools:
         image_key: str,
         target_cell_type: Optional[str] = None,
         undefined_type: Optional[str] = None,
-        n_neighbors: Optional[int] = 10,
+        n_neighbors: int = 15,
         n_pcs: Optional[int] = None,
         figsize: Tuple[float, float] = (4.0, 4.0),
         fontsize: Optional[int] = None,
@@ -387,6 +537,47 @@ class PlottingTools:
         show: bool = True,
         copy: bool = True,
     ):
+        """Plot the umap for one image and optionally for a specific target cell type.
+
+        Parameters
+        ----------
+        image_key : str
+            Image key.
+        target_cell_type : str, optional
+            Target cell type.
+        undefined_type : str, optional
+            Undefined cell type.
+        n_neighbors : int
+            The size of local neighborhood (in terms of number of neighboring data points) used for manifold
+            approximation. Larger values result in more global views of the manifold, while smaller values result in
+            more local data being preserved. In general values should be in the range 2 to 100.
+        n_pcs : int, optional
+            Use this many PCs.
+        fontsize : int, optional
+           Font size.
+        figsize : tuple
+           Figure size.
+        size : int, optional
+            Point size. If `None`, is automatically computed as 120000 / n_cells.
+        palette : str, optional
+            Colors to use for plotting categorical annotation groups. The palette can be a valid `ListedColormap`
+            name (`'Set2'`, `'tab20'`, …). If `None`, `mpl.rcParams["axes.prop_cycle"]` is used unless the categorical
+            variable already has colors stored in `adata.uns["{var}_colors"]`. If provided, values of
+            `adata.uns["{var}_colors"]` will be set.
+        save : str, optional
+            Whether (if not None) and where (path as string given as save) to save plot.
+        suffix : str
+            Suffix of file name to save to.
+        show : bool
+            Whether to display plot.
+        copy : bool
+            Whether to return a copy of the AnnaData object.
+
+        Returns
+        -------
+        AnnData
+            If `copy` is True.
+        """
         temp_adata = self.img_celldata[image_key].copy()
         cluster_id = temp_adata.uns["metadata"]["cluster_col_preprocessed"]
         if undefined_type:
@@ -445,6 +636,39 @@ class PlottingTools:
         show: bool = True,
         copy: bool = True,
     ):
+        """Plot spatial allocation of cells of one image for all cell types.
+
+        Parameters
+        ----------
+        image_key : str
+            Image key.
+        undefined_type : str, optional
+            Undefined cell type.
+        fontsize : int, optional
+           Font size.
+        figsize : tuple
+           Figure size.
+        spot_size : int
+            Diameter of spot (in coordinate space) for each point. Diameter in pixels of the spots will be
+            `size * spot_size * scale_factor`. This argument is required if it cannot be resolved from library info.
+        legend_loc : str
+            Location of legend, either `'on data'`, `'right margin'` or a valid keyword for the loc parameter of Legend.
+        save : str, optional
+            Whether (if not None) and where (path as string given as save) to save plot.
+        suffix : str
+            Suffix of file name to save to.
+        show : bool
+            Whether to display plot.
+        clean_view : bool
+            Whether to show cleaned view.
+        copy : bool
+            Whether to return a copy of the AnnaData object.
+
+        Returns
+        -------
+        AnnData
+            If `copy` is True.
+        """
         temp_adata = self.img_celldata[image_key].copy()
         cluster_id = temp_adata.uns["metadata"]["cluster_col_preprocessed"]
         if undefined_type:
@@ -486,12 +710,37 @@ class PlottingTools:
         n_pcs: Optional[int] = None,
         clip_pvalues: Optional[int] = -5,
     ):
+        """Compute cluster enrichment for one image and one target cell type.
+
+        Parameters
+        ----------
+        image_key : list
+            Image key.
+        target_cell_type : str
+            Target cell type.
+        undefined_type : str, optional
+            Undefined cell type.
+        filter_titles : list, optional
+            Filter certain titles.
+        n_neighbors : int
+            The size of local neighborhood (in terms of number of neighboring data points) used for manifold
+            approximation. Larger values result in more global views of the manifold, while smaller values result in
+            more local data being preserved. In general values should be in the range 2 to 100.
+        n_pcs : int, optional
+            Use this many PCs.
+        clip_pvalues : int, optional
+            Clipping value for p-values.
+
+        Returns
+        -------
+        adata, adata_substates, log_pval, fold_change
+        """
         titles = list(self.celldata.uns["node_type_names"].values())
         sorce_type_names = [f"source type {x.replace('_', ' ')}" for x in titles]
 
         pbar_total = len(self.img_celldata.keys()) + len(self.img_celldata.keys()) + len(titles)
         with tqdm(total=pbar_total) as pbar:
-            for k, adata in self.img_celldata.items():
+            for adata in self.img_celldata.values():
                 source_type = np.matmul(
                     np.asarray(adata.obsp["adjacency_matrix_connectivities"].todense() > 0, dtype="int"),
                     adata.obsm["node_types"],
@@ -536,7 +785,7 @@ class PlottingTools:
 
             distinct_louvain = len(np.unique(adata_substates.obs.louvain))
             pval_source_type = []
-            for i, st in enumerate(titles):
+            for st in titles:
                 pval_cluster = []
                 for j in range(distinct_louvain):
                     crosstab = np.array(pd.crosstab(df[f"source type {st}"], df[str(j)]))
@@ -592,6 +841,32 @@ class PlottingTools:
         suffix: str = "_cluster_enrichment.pdf",
         show: bool = True,
     ):
+        """Plot cluster enrichment (uses the p-values and fold change computed by `compute_cluster_enrichment()`).
+
+        Parameters
+        ----------
+        pvalues
+            P-values.
+        fold_change
+            Fold change.
+        fontsize : int, optional
+           Font size.
+        figsize : tuple
+           Figure size.
+        pad : float
+            Pad.
+        pvalues_cmap : tuple, optional
+            Cmap of p-values.
+        linspace : tuple, optional
+            Linspace.
+        save : str, optional
+            Whether (if not None) and where (path as string given as save) to save plot.
+        suffix : str
+            Suffix of file name to save to.
+        show : bool
+            Whether to display plot.
+        """
+
         class MidpointNormalize(colors.Normalize):
             def __init__(self, vmin=None, vmax=None, midpoint=None, clip=False):
                 self.midpoint = midpoint
@@ -634,13 +909,13 @@ class PlottingTools:
                 ticks=ticks,
                 pad=pad,
                 orientation="horizontal",
-            ).set_label(f"fold change")
+            ).set_label("fold change")
         else:
             plt.colorbar(
                 img2,
                 pad=pad,
                 orientation="horizontal",
-            ).set_label(f"fold change")
+            ).set_label("fold change")
         plt.colorbar(
             img1,
         ).set_label("$log_{10}$ FDR-corrected pvalues")
@@ -664,8 +939,8 @@ class PlottingTools:
 
     @staticmethod
     def umaps_cluster_enrichment(
-        adata,
-        filter_titles,
+        adata: AnnData,
+        filter_titles: list,
         nrows: int = 4,
         ncols: int = 5,
         size: Optional[int] = None,
@@ -675,7 +950,34 @@ class PlottingTools:
         suffix: str = "_cluster_enrichment_umaps.pdf",
         show: bool = True,
     ):
-        for i, x in enumerate(filter_titles):
+        """Plot cluster enrichment.
+
+        Uses the AnnData object from `compute_cluster_enrichment()`.
+
+        Parameters
+        ----------
+        adata : AnnData
+           Annotated data object.
+        filter_titles : list
+            Filter certain titles.
+        nrows : int
+            Number of rows in grid.
+        ncols : int
+           Number of columns in grid.
+        figsize : tuple
+           Figure size.
+        fontsize : int, optional
+           Font size.
+        size : int, optional
+            Point size. If `None`, is automatically computed as 120000 / n_cells.
+        save : str, optional
+            Whether (if not None) and where (path as string given as save) to save plot.
+        suffix : str
+            Suffix of file name to save to.
+        show : bool
+            Whether to display plot.
+        """
+        for x in filter_titles:
             adata.uns[f"source type {x}_colors"] = ["darkgreen", "lightgrey"]
         if fontsize:
             sc.set_figure_params(scanpy=True, fontsize=fontsize)
@@ -723,7 +1025,7 @@ class PlottingTools:
         target_cell_type: str,
         clean_view: bool = False,
         figsize: Tuple[float, float] = (7.0, 7.0),
-        spot_size: Optional[int] = 40,
+        spot_size: int = 40,
         fontsize: Optional[int] = None,
         legend_loc: str = "right margin",
         palette: Union[str, list] = "tab10",
@@ -732,6 +1034,45 @@ class PlottingTools:
         show: bool = True,
         copy: bool = False,
     ):
+        """Plot spatial allocation of cells.
+
+        Parameters
+        ----------
+        adata_substates : AnnData
+            AnnData substates object.
+        image_key : str
+            Image key.
+        target_cell_type : str
+            Target cell type.
+        fontsize : int, optional
+           Font size.
+        figsize : tuple
+           Figure size.
+        spot_size : int
+            Diameter of spot (in coordinate space) for each point. Diameter in pixels of the spots will be
+            `size * spot_size * scale_factor`. This argument is required if it cannot be resolved from library info.
+        legend_loc : str
+            Location of legend, either `'on data'`, `'right margin'` or a valid keyword for the loc parameter of Legend.
+        save : str, optional
+            Whether (if not None) and where (path as string given as save) to save plot.
+        palette : str, optional
+            Colors to use for plotting categorical annotation groups. The palette can be a valid `ListedColormap`
+            name (`'Set2'`, `'tab20'`, …). If `None`, `mpl.rcParams["axes.prop_cycle"]` is used unless the categorical
+            variable already has colors stored in `adata.uns["{var}_colors"]`. If provided, values of
+            `adata.uns["{var}_colors"]` will be set.
+        suffix : str
+            Suffix of file name to save to.
+        show : bool
+            Whether to display plot.
+        clean_view : bool
+            Whether to show cleaned view.
+        copy : bool
+            Whether to return a copy of the AnnaData object.
+
+        Returns
+        -------
+        AnnData if `copy` is True.
+        """
         temp_adata = self.img_celldata[image_key].copy()
         cluster_id = temp_adata.uns["metadata"]["cluster_col_preprocessed"]
         if clean_view:
@@ -799,6 +1140,43 @@ class PlottingTools:
         show: bool = True,
         copy: bool = True,
     ):
+        """Plot spatial allocation of cells.
+
+        Parameters
+        ----------
+        image_key : str, optional
+            Image key.
+        source_groups : str, optional
+            Source interaction clusters. If `None`, select all clusters.
+        undefined_type : str
+            Undefined cell type.
+        hgnc_names : list, optional
+            List of HGNC names.
+        fraction : float, optional
+            Subsample to this `fraction` of the number of observations.
+        pvalue_threshold : float
+            Only show interactions with p-value <= `pvalue_threshold`.
+        width : float
+            Width.
+        seed : int
+            Random seed for reproducibility.
+        random_state : int
+            Random seed to change subsampling.
+        fontsize : int, optional
+           Font size.
+        save : str, optional
+            Whether (if not None) and where (path as string given as save) to save plot.
+        suffix : str
+            Suffix of file name to save to.
+        show : bool
+            Whether to display plot.
+        copy : bool
+            Whether to return a copy of the AnnaData object.
+
+        Returns
+        -------
+        AnnData if `copy` is True.
+        """
         interactions = import_intercell_network(
             transmitter_params={"categories": "ligand"}, receiver_params={"categories": "receptor"}
         )
@@ -870,6 +1248,33 @@ class PlottingTools:
         show: bool = True,
         return_axs: bool = False,
     ):
+        """Plot spatial allocation of cells.
+
+        Parameters
+        ----------
+        adata : AnnData
+            AnnData object.
+        source_group : str
+            Source interaction cluster.
+        figsize : tuple
+           Figure size.
+        pvalue_threshold : float
+            Only show interactions with p-value <= `pvalue_threshold`.
+        fontsize : int, optional
+           Font size.
+        save : str, optional
+            Whether (if not None) and where (path as string given as save) to save plot.
+        suffix : str
+            Suffix of file name to save to.
+        show : bool
+            Whether to display plot.
+        return_axs : bool
+            Whether to return axis objects.
+
+        Returns
+        -------
+        axis if `return_axs` is True.
+        """
         cluster_id = adata.uns["metadata"]["cluster_col_preprocessed"]
         pvals = adata.uns[f"{cluster_id}_ligrec"]["pvalues"].xs(source_group, axis=1)
         if fontsize:
@@ -904,6 +1309,17 @@ class PlottingTools:
         self,
         undefined_type: Optional[str] = None,
     ):
+        """Compute variance decomposition.
+
+        Parameters
+        ----------
+        undefined_type : str
+            Undefined cell type.
+
+        Returns
+        -------
+        var_decomposition
+        """
         temp_adata = self.celldata.copy()
         cluster_id = temp_adata.uns["metadata"]["cluster_col_preprocessed"]
         img_col = temp_adata.uns["metadata"]["image_col"]
@@ -973,6 +1389,32 @@ class PlottingTools:
         show: bool = True,
         return_axs: bool = False,
     ):
+        """Plot spatial allocation of cells.
+
+        Parameters
+        ----------
+        df
+            Variance decomposition dataframe.
+        figsize : tuple,
+            Figure size.
+        fontsize : int, optional
+           Font size.
+        multiindex : bool
+            Multiindex.
+        save : str, optional
+            Whether (if not None) and where (path as string given as save) to save plot.
+        suffix : str
+            Suffix of file name to save to.
+        show : bool
+            Whether to display plot.
+        return_axs : bool
+            Whether to return axis objects.
+
+        Returns
+        -------
+        axis
+            If `return_axs` is True.
+        """
         if fontsize:
             sc.set_figure_params(scanpy=True, fontsize=fontsize)
 
@@ -1001,7 +1443,7 @@ class PlottingTools:
 
             hline = []
             new_xlabels = []
-            for index1, index2_list in xlabel_mapping.items():
+            for _index1, index2_list in xlabel_mapping.items():
                 # slice_list[0] = "{} - {}".format(mouse, slice_list[0])
                 index2_list[0] = "{}".format(index2_list[0])
                 new_xlabels.extend(index2_list)
@@ -1031,12 +1473,25 @@ class PlottingTools:
 
 
 class DataLoader(GraphTools, PlottingTools):
+    """DataLoader class. Inherits all functions from GraphTools and PlottingTools."""
+
     def __init__(
         self,
         data_path: str,
         radius: int,
-        label_selection: Union[List[str], None] = None,
+        label_selection: Optional[List[str]] = None,
     ):
+        """Initialize DataLoader.
+
+        Parameters
+        ----------
+        data_path : str
+            Data path.
+        radius : int
+            Radius.
+        label_selection : list, optional
+            label selection.
+        """
         self.data_path = data_path
 
         print("Loading data from raw files")
@@ -1060,76 +1515,64 @@ class DataLoader(GraphTools, PlottingTools):
 
     @property
     def patients(self):
+        """Return number of patients in celldata.
+
+        Returns
+        -------
+        patients
+        """
         return np.unique(np.asarray(list(self.celldata.uns["img_to_patient_dict"].values())))
 
     def register_celldata(self):
-        """
-        Loads anndata object of complete dataset.
-        :return:
-        """
+        """Load AnnData object of complete dataset."""
         print("registering celldata")
         self._register_celldata()
         assert self.celldata is not None, "celldata was not loaded"
 
     def register_img_celldata(self):
-        """
-        Loads dictionary of of image-wise celldata objects with {imgage key : anndata object of image}.
-        :return:
-        """
+        """Load dictionary of of image-wise celldata objects with {imgage key : anndata object of image}."""
         print("collecting image-wise celldata")
         self._register_img_celldata()
         assert self.img_celldata is not None, "image-wise celldata was not loaded"
 
     def register_graph_features(self, label_selection):
+        """Load graph level covariates.
+
+        Parameters
+        ----------
+        label_selection
+            Label selection.
+        """
         print("adding graph-level covariates")
         self._register_graph_features(label_selection=label_selection)
 
     @abc.abstractmethod
     def _register_celldata(self):
+        """Load AnnData object of complete dataset."""
         pass
 
     @abc.abstractmethod
     def _register_img_celldata(self):
+        """Load dictionary of of image-wise celldata objects with {imgage key : anndata object of image}."""
         pass
 
     @abc.abstractmethod
     def _register_graph_features(self, label_selection):
+        """Load graph level covariates.
+
+        Parameters
+        ----------
+        label_selection
+            Label selection.
+        """
         pass
 
-    def merge_types(self, cell_type_mapping_dict: Dict[str, str]):
-        """
-
-        :param cell_type_mapping_dict: dictionary specifying cell type merge logic
-        :return:
-        """
-        key_to_pos = {key: pos for pos, key in enumerate(np.sort(list(self.celldata.uns["node_type_names"].keys())))}
-        new_types = np.sort(np.unique(list(cell_type_mapping_dict.values())))
-        positions = {}
-        for t in new_types:
-            keys = [
-                idx for idx, name in self.celldata.uns["node_type_names"].items() if cell_type_mapping_dict[idx] == t
-            ]
-            positions[t] = [key_to_pos[key] for key in keys]
-        new_node_types = np.concatenate(
-            [np.sum(self.celldata.obsm["node_types"][:, positions[t]], axis=1, keepdims=True) for t in new_types],
-            axis=1,
-        )
-        self.celldata.obsm["node_types"] = new_node_types
-        self.celldata.uns["node_type_names"] = {name: name for i, name in enumerate(new_types)}
-
-        for key, adata in self.img_celldata.items():
-            new_node_types = np.concatenate(
-                [np.sum(adata.obsm["node_types"][:, positions[t]], axis=1, keepdims=True) for t in new_types], axis=1
-            )
-
-            adata.obsm["node_types"] = new_node_types
-            adata.uns["node_type_names"] = {name: name for i, name in enumerate(new_types)}
-
     def size_factors(self):
-        """
-        Get size factors. Only makes sense with positive input.
+        """Get size factors (Only makes sense with positive input).
 
-        :return: Dict[str, np.ndarray] dictionary of size factors
+        Returns
+        -------
+        sf_dict
         """
         # Check if irregular sums are encountered:
         for i, adata in self.img_celldata.items():
@@ -1141,6 +1584,8 @@ class DataLoader(GraphTools, PlottingTools):
 
 
 class DataLoaderZhang(DataLoader):
+    """DataLoaderZhang class. Inherits all functions from DataLoader."""
+
     cell_type_merge_dict = {
         "Astrocytes": "Astrocytes",
         "Endothelial": "Endothelial",
@@ -1170,10 +1615,7 @@ class DataLoaderZhang(DataLoader):
     }
 
     def _register_celldata(self):
-        """
-        Registers an Anndata object over all images and collects all necessary information.
-        :return:
-        """
+        """Load AnnData object of complete dataset."""
         metadata = {
             "lateral_resolution": 0.109,
             "fn": "preprocessed_zhang.h5ad",
@@ -1221,10 +1663,8 @@ class DataLoaderZhang(DataLoader):
 
         self.celldata = celldata
 
-    def merge_types_predefined(self):
-        pass
-
     def _register_img_celldata(self):
+        """Load dictionary of of image-wise celldata objects with {imgage key : anndata object of image}."""
         image_col = self.celldata.uns["metadata"]["image_col"]
         img_celldata = {}
         for k in self.celldata.uns["img_keys"]:
@@ -1232,8 +1672,15 @@ class DataLoaderZhang(DataLoader):
         self.img_celldata = img_celldata
 
     def _register_graph_features(self, label_selection):
+        """Load graph level covariates.
+
+        Parameters
+        ----------
+        label_selection
+            Label selection.
+        """
         # Save processed data to attributes.
-        for k, adata in self.img_celldata.items():
+        for adata in self.img_celldata.values():
             graph_covariates = {
                 "label_names": {},
                 "label_tensors": {},
@@ -1255,6 +1702,8 @@ class DataLoaderZhang(DataLoader):
 
 
 class DataLoaderJarosch(DataLoader):
+    """DataLoaderJarosch class. Inherits all functions from DataLoader."""
+
     cell_type_merge_dict = {
         "B cells": "B cells",
         "CD4 T cells": "CD4 T cells",
@@ -1272,10 +1721,7 @@ class DataLoaderJarosch(DataLoader):
     }
 
     def _register_celldata(self):
-        """
-        Registers an Anndata object over all images and collects all necessary information.
-        :return:
-        """
+        """Load AnnData object of complete dataset."""
         metadata = {
             "lateral_resolution": 0.5,
             "fn": "raw_inflamed_colon_1.h5ad",
@@ -1321,10 +1767,8 @@ class DataLoaderJarosch(DataLoader):
 
         self.celldata = celldata
 
-    def merge_types_predefined(self):
-        self.merge_types(self.cell_type_merge_dict)
-
     def _register_img_celldata(self):
+        """Load dictionary of of image-wise celldata objects with {imgage key : anndata object of image}."""
         image_col = self.celldata.uns["metadata"]["image_col"]
         img_celldata = {}
         for k in self.celldata.uns["img_keys"]:
@@ -1332,8 +1776,15 @@ class DataLoaderJarosch(DataLoader):
         self.img_celldata = img_celldata
 
     def _register_graph_features(self, label_selection):
+        """Load graph level covariates.
+
+        Parameters
+        ----------
+        label_selection
+            Label selection.
+        """
         # Save processed data to attributes.
-        for k, adata in self.img_celldata.items():
+        for adata in self.img_celldata.values():
             graph_covariates = {
                 "label_names": {},
                 "label_tensors": {},
@@ -1355,6 +1806,8 @@ class DataLoaderJarosch(DataLoader):
 
 
 class DataLoaderHartmann(DataLoader):
+    """DataLoaderHartmann class. Inherits all functions from DataLoader."""
+
     cell_type_merge_dict = {
         "Imm_other": "Other immune cells",
         "Epithelial": "Epithelial",
@@ -1367,10 +1820,7 @@ class DataLoaderHartmann(DataLoader):
     }
 
     def _register_celldata(self):
-        """
-        Registers an Anndata object over all images and collects all necessary information.
-        :return:
-        """
+        """Load AnnData object of complete dataset."""
         metadata = {
             "lateral_resolution": 400 / 1024,
             "fn": ["scMEP_MIBI_singlecell/scMEP_MIBI_singlecell.csv", "scMEP_sample_description.xlsx"],
@@ -1469,17 +1919,22 @@ class DataLoaderHartmann(DataLoader):
 
         self.celldata = celldata
 
-    def merge_types_predefined(self):
-        pass
-
     def _register_img_celldata(self):
+        """Load dictionary of of image-wise celldata objects with {imgage key : anndata object of image}."""
         image_col = self.celldata.uns["metadata"]["image_col"]
         img_celldata = {}
         for k in self.celldata.uns["img_keys"]:
             img_celldata[str(k)] = self.celldata[self.celldata.obs[image_col] == k].copy()
         self.img_celldata = img_celldata
 
-    def _register_graph_features(self, label_selection: Union[List[str], None] = None):
+    def _register_graph_features(self, label_selection):
+        """Load graph level covariates.
+
+        Parameters
+        ----------
+        label_selection
+            Label selection.
+        """
         # DEFINE COLUMN NAMES FOR TABULAR DATA.
         # Define column names to extract from patient-wise tabular data:
         patient_col = "ID"
@@ -1518,7 +1973,7 @@ class DataLoaderHartmann(DataLoader):
             for feature in list(label_cols.keys())
             if label_cols[feature] == "continuous"
         }
-        for i, feature in enumerate(list(label_cols.keys())):
+        for feature in list(label_cols.keys()):
             if label_cols[feature] == "continuous":
                 label_tensors[feature] = (tissue_meta_data[feature].values - continuous_mean[feature]) / continuous_std[
                     feature
@@ -1526,7 +1981,7 @@ class DataLoaderHartmann(DataLoader):
                 label_names[feature] = [feature]
         # 2. One-hot encode categorical columns
         # Force all entries in categorical columns to be string so that GLM-like formula processing can be performed.
-        for i, feature in enumerate(list(label_cols.keys())):
+        for feature in list(label_cols.keys()):
             if label_cols[feature] == "categorical":
                 tissue_meta_data[feature] = tissue_meta_data[feature].astype("str")
         # One-hot encode each string label vector:
@@ -1587,6 +2042,8 @@ class DataLoaderHartmann(DataLoader):
 
 
 class DataLoaderPascualReguant(DataLoader):
+    """DataLoaderPascualReguant class. Inherits all functions from DataLoader."""
+
     cell_type_merge_dict = {
         "B cell": "B cells",
         "Endothelial cells": "Endothelial cells",
@@ -1600,10 +2057,7 @@ class DataLoaderPascualReguant(DataLoader):
     }
 
     def _register_celldata(self):
-        """
-        Registers an Anndata object over all images and collects all necessary information.
-        :return:
-        """
+        """Load AnnData object of complete dataset."""
         metadata = {
             "lateral_resolution": 0.325,
             "fn": ["TONSIL_MFI_nuclei_data_table.xlsx", "TONSIL_MFI_membranes_data_table.xlsx"],
@@ -1702,10 +2156,8 @@ class DataLoaderPascualReguant(DataLoader):
 
         self.celldata = celldata
 
-    def merge_types_predefined(self):
-        pass
-
     def _register_img_celldata(self):
+        """Load dictionary of of image-wise celldata objects with {imgage key : anndata object of image}."""
         image_col = self.celldata.uns["metadata"]["image_col"]
         img_celldata = {}
         for k in self.celldata.uns["img_keys"]:
@@ -1713,8 +2165,15 @@ class DataLoaderPascualReguant(DataLoader):
         self.img_celldata = img_celldata
 
     def _register_graph_features(self, label_selection):
+        """Load graph level covariates.
+
+        Parameters
+        ----------
+        label_selection
+            Label selection.
+        """
         # Save processed data to attributes.
-        for k, adata in self.img_celldata.items():
+        for adata in self.img_celldata.values():
             graph_covariates = {
                 "label_names": {},
                 "label_tensors": {},
@@ -1736,6 +2195,8 @@ class DataLoaderPascualReguant(DataLoader):
 
 
 class DataLoaderSchuerch(DataLoader):
+    """DataLoaderSchuerch class. Inherits all functions from DataLoader."""
+
     cell_type_merge_dict = {
         "B cells": "B cells",
         "CD11b+ monocytes": "monocytes",
@@ -1769,10 +2230,7 @@ class DataLoaderSchuerch(DataLoader):
     }
 
     def _register_celldata(self):
-        """
-        Registers an Anndata object over all images and collects all necessary information.
-        :return:
-        """
+        """Load AnnData object of complete dataset."""
         metadata = {
             "lateral_resolution": 0.377442,
             "fn": "CRC_clusters_neighborhoods_markers_NEW.csv",
@@ -1881,14 +2339,8 @@ class DataLoaderSchuerch(DataLoader):
 
         self.celldata = celldata
 
-    def merge_types_predefined(self):
-        """
-        Merges loaded cell types based on defined dictionary.
-        :return:
-        """
-        self.merge_types(self.cell_type_merge_dict)
-
     def _register_img_celldata(self):
+        """Load dictionary of of image-wise celldata objects with {imgage key : anndata object of image}."""
         image_col = self.celldata.uns["metadata"]["image_col"]
         img_celldata = {}
         for k in self.celldata.uns["img_keys"]:
@@ -1896,6 +2348,13 @@ class DataLoaderSchuerch(DataLoader):
         self.img_celldata = img_celldata
 
     def _register_graph_features(self, label_selection):
+        """Load graph level covariates.
+
+        Parameters
+        ----------
+        label_selection
+            Label selection.
+        """
         # Graph features are based on TMA spot and not patient, thus patient_col is technically wrong.
         # For aspects where patients are needed (e.g. train-val-test split) the correct patients that are
         # loaded in _register_images() are used
@@ -2004,19 +2463,19 @@ class DataLoaderSchuerch(DataLoader):
             for feature in list(label_cols.keys())
             if label_cols[feature] == "continuous"
         }
-        for i, feature in enumerate(list(label_cols.keys())):
+        for feature in list(label_cols.keys()):
             if label_cols[feature] == "continuous":
                 label_tensors[feature] = (tissue_meta_data[feature].values - continuous_mean[feature]) / continuous_std[
                     feature
                 ]
                 label_names[feature] = [feature]
-        for i, feature in enumerate(list(label_cols.keys())):
+        for feature in list(label_cols.keys()):
             if label_cols[feature] == "percentage":
                 label_tensors[feature] = tissue_meta_data[feature]
                 label_names[feature] = [feature]
         # 2. One-hot encode categorical columns
         # Force all entries in categorical columns to be string so that GLM-like formula processing can be performed.
-        for i, feature in enumerate(list(label_cols.keys())):
+        for feature in list(label_cols.keys()):
             if label_cols[feature] == "categorical":
                 tissue_meta_data[feature] = tissue_meta_data[feature].astype("str")
         # One-hot encode each string label vector:
@@ -2039,7 +2498,7 @@ class DataLoaderSchuerch(DataLoader):
             for feature in list(label_cols.keys())
             if label_cols[feature] == "survival"
         }
-        for i, feature in enumerate(list(label_cols.keys())):
+        for feature in list(label_cols.keys()):
             if label_cols[feature] == "survival":
                 label_tensors[feature] = np.concatenate(
                     [
@@ -2055,7 +2514,7 @@ class DataLoaderSchuerch(DataLoader):
                 label_tensors[feature] = np.expand_dims(label_tensors[feature], axis=1)
         # The dictionary of tensor is nested in slices in a dictionary by image which is easier to query with a
         # generator.
-        tissue_meta_data_patients = tissue_meta_data[patient_col].values.tolist()
+        # tissue_meta_data_patients = tissue_meta_data[patient_col].values.tolist()
         # image keys are of the form reg0xx_A or reg0xx_B with xx going from 01 to 70
         # label tensors have entries (1+2)_A, (1+2)_B, (2+3)_A, (2+3)_B, ...
         img_to_index = {

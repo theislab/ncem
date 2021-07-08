@@ -8,13 +8,18 @@ class NegBinLoss(tf.keras.losses.Loss):
     """Custom negative binomial loss."""
 
     def call(self, y_true, y_pred):
-        """Implements the negative log likelihood loss as reconstruction loss.
+        """Implement the negative log likelihood loss as reconstruction loss.
 
-        Args:
-        y_true: y_true.
-        y_pred: y_pred.
+        Parameters
+        ----------
+        y_true
+            y_true.
+        y_pred
+            y_pred.
 
-        Returns:
+        Returns
+        -------
+        neg_ll
             negative log likelihood loss as reconstruction loss.
         """
         x = y_true
@@ -39,13 +44,18 @@ class GaussianLoss(tf.keras.losses.Loss):
     """Custom gaussian loss."""
 
     def call(self, y_true, y_pred):
-        """Implements Gaussian loss as reconstruction loss.
+        """Implement Gaussian loss as reconstruction loss.
 
-        Args:
-            y_true: y_true.
-            y_pred: y_pred.
+        Parameters
+        ----------
+        y_true
+            y_true.
+        y_pred
+            y_pred.
 
-        Returns:
+        Returns
+        -------
+        neg_ll
             Gaussian loss as reconstruction loss.
         """
         y_pred, sd = tf.split(y_pred, num_or_size_splits=2, axis=2, name="gaussian_loss_split")
@@ -62,10 +72,14 @@ class KLLoss(tf.keras.losses.Loss):
     def __init__(self, beta: float = 1.0, max_beta: float = 1.0, pre_warm_up: int = 0):
         """Initialize Kullback Leibler divergence.
 
-        Args:
-            beta (float): Beta.
-            max_beta (float): Maximal beta.
-            pre_warm_up (int): Pre warm up.
+        Parameters
+        ----------
+        beta : float
+            Beta.
+        max_beta : float
+            Maximal beta.
+        pre_warm_up : int
+            Pre warm up.
         """
         super().__init__()
         self.beta = tf.Variable(beta, dtype=tf.float32, trainable=False)
@@ -73,13 +87,18 @@ class KLLoss(tf.keras.losses.Loss):
         self.pre_warm_up = pre_warm_up
 
     def call(self, y_true, y_pred):
-        """Kullback-Leibler divergence.
+        """Call Kullback-Leibler divergence.
 
-        Args:
-            y_true: y_true.
-            y_pred: y_pred.
+        Parameters
+        ----------
+        y_true
+            y_true.
+        y_pred
+            y_pred.
 
-        Returns:
+        Returns
+        -------
+        kl_loss
             Kullback-Leibler divergence.
         """
         z, z_mean, z_log_var = tf.split(y_pred, num_or_size_splits=3, axis=1)
