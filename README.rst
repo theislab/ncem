@@ -31,6 +31,10 @@ ncem
    :target: https://github.com/psf/black
    :alt: Black
 
+.. image:: https://github.com/theislab/ncem/tree/main/resources/images/concept.png
+   :width: 1000px
+   :align: center
+
 
 Features
 --------
