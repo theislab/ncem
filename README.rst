@@ -1,7 +1,7 @@
 ncem
 ===========================
 
-|PyPI| |Python Version| |License| |Read the Docs| |Build| |Tests| |Codecov| |pre-commit| |Black|
+|PyPI| |Python Version| |License| |Read the Docs| |Build| |pre-commit| |Black|
 
 .. |PyPI| image:: https://img.shields.io/pypi/v/ncem.svg
    :target: https://pypi.org/project/ncem/
@@ -31,6 +31,10 @@ ncem
    :target: https://github.com/psf/black
    :alt: Black
 
+.. image:: https://github.com/theislab/ncem/tree/main/resources/images/concept.png
+   :width: 1000px
+   :align: center
+
 
 Features
 --------
@@ -46,12 +50,6 @@ You can install *ncem* via pip_ from PyPI_:
 .. code:: console
 
    $ pip install ncem
-
-
-Usage
------
-
-Please see the `Command-line Reference <Usage_>`_ for details.
 
 
 Credits

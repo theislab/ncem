@@ -11,6 +11,8 @@ from matplotlib.ticker import FormatStrFormatter
 
 
 class GridSearchContainer:
+    """GridSearchContainer class."""
+
     runparams: dict
     run_ids_clean: dict
     evals: dict
@@ -23,15 +25,18 @@ class GridSearchContainer:
     target_cell_evals: dict
     target_cell_indices: dict
 
-    keys_all: list
-    keys_test: list
-    keys_train: list
-    keys_val: list
-    nodes_test: Dict[str, np.ndarray]
-    nodes_train: Dict[str, np.ndarray]
-    nodes_val: Dict[str, np.ndarray]
-
     def __init__(self, source_path, gs_ids, lateral_resolution):
+        """Initialize GridSearchContainer.
+
+        Parameters
+        ----------
+        source_path
+            Source path.
+        gs_ids
+            Grid search identifiers.
+        lateral_resolution
+            Lateral resolution.
+        """
         self.source_path = source_path
         if isinstance(gs_ids, str):
             gs_ids = [gs_ids]
@@ -46,10 +51,11 @@ class GridSearchContainer:
 
     @property
     def cv_keys(self) -> List[str]:
-        """
-        Returns keys of cross-validation used in dictionaries in this class.
+        """Return keys of cross-validation used in dictionaries in this class.
 
-        :return: list of string keys
+        Returns
+        -------
+        list of string keys
         """
         return np.unique(self.summary_table["cv"].values).tolist()
 
@@ -59,12 +65,23 @@ class GridSearchContainer:
         add_posterior_sampling_model: bool = False,
         report_unsuccessful_runs: bool = False,
     ):
-        """
-        Load all metrics from grid search output files.
+        """Load all metrics from grid search output files.
 
         Core results are save in self.summary_table.
 
-        :return:
+        Parameters
+        ----------
+        expected_pickle : list, optional
+            Expected pickle files.
+        add_posterior_sampling_model : bool
+            Whether to add posterior sampling model as seperate model to summary_table.
+        report_unsuccessful_runs : bool
+            Whether to print reporting statements in out stream.
+
+        Raises
+        ------
+        ValueError
+            If no complete runs found.
         """
         if expected_pickle is None:
             expected_pickle = ["evaluation", "history", "hyperparam", "model_args", "time"]
@@ -101,7 +118,7 @@ class GridSearchContainer:
                 np.unique(["_".join(x.split("_")[:-1]) for x in run_ids])  # identifiers of hyper-parameters settings
             )
             run_ids_clean = []  # only IDs of completed runs (all files present)
-            for j, r in enumerate(run_ids):
+            for r in run_ids:
                 complete_run = True
                 for cv in cv_ids:
                     # Check pickled files:
@@ -420,33 +437,16 @@ class GridSearchContainer:
         self.runparams_table = pd.concat(self.runparams_table)
         self.summary_table["um_radius"] = (self.summary_table["radius"] * self.lateral_resolution).astype(int)
 
-        # Load files that are shared across a grid search.
-        keys_all = {}
-        keys_test = {}
-        keys_train = {}
-        keys_val = {}
-        nodes_test = {}
-        nodes_train = {}
-        nodes_val = {}
-        for cv in cv_ids:
-            with open(indir + run_ids_clean[0] + "_" + cv + "_indices.pickle", "rb") as f:
-                idx_partitions = pickle.load(f)
-            keys_all[cv] = idx_partitions["all"]
-            keys_test[cv] = idx_partitions["test"]
-            keys_train[cv] = idx_partitions["train"]
-            keys_val[cv] = idx_partitions["val"]
-            nodes_test[cv] = idx_partitions["test_nodes"]
-            nodes_train[cv] = idx_partitions["train_nodes"]
-            nodes_val[cv] = idx_partitions["val_nodes"]
-        self.keys_all = keys_all
-        self.keys_test = keys_test
-        self.keys_train = keys_train
-        self.keys_val = keys_val
-        self.nodes_test = nodes_test
-        self.nodes_train = nodes_train
-        self.nodes_val = nodes_val
-
     def load_target_cell_evaluation(self, report_unsuccessful_runs: bool = False):
+        """Load all metrics from grid search output files of target cell evaluation.
+
+        Core results are save in self.target_cell_table.
+
+        Parameters
+        ----------
+        report_unsuccessful_runs : bool
+            Whether to print reporting statements in out stream.
+        """
         self.target_cell_runparams = {}
         self.target_cell_evals = {}
         self.target_cell_indices = {}
@@ -471,7 +471,7 @@ class GridSearchContainer:
                 np.unique(["_".join(x.split("_")[:-1]) for x in run_ids])  # identifiers of hyper-parameters settings
             )
             run_ids_clean = []  # only IDs of completed runs (all files present)
-            for j, r in enumerate(run_ids):
+            for r in run_ids:
                 complete_run = True
                 for cv in cv_ids:
                     fn = r + "_" + cv + "_ntevaluation.pickle"
@@ -624,10 +624,21 @@ class GridSearchContainer:
         self.target_cell_table["um_radius"] = (self.target_cell_table["radius"] * self.lateral_resolution).astype(int)
 
     def select_cv(self, cv_idx: int) -> str:
-        """
-        Return key of of cross-validation selected with numeric index.
-        :param cv_idx: Index of cross-validation to plot confusion matrix for.
-        :return:
+        """Return key of of cross-validation selected with numeric index.
+
+        Parameters
+        ----------
+        cv_idx : int
+            Index of cross-validation to plot confusion matrix for.
+
+        Returns
+        -------
+        cv
+
+        Raises
+        ------
+        ValueError
+            `cv_idx` out of scope of cross-validation set
         """
         if cv_idx >= len(self.cv_keys):
             raise ValueError("cv_idx %i out of scope of cross-validation set: %s" % (cv_idx, self.cv_keys))
@@ -643,6 +654,30 @@ class GridSearchContainer:
         partition_select: str = "test",
         cv_mode: str = "mean",
     ):
+        """Get best model identifier.
+
+        Parameters
+        ----------
+        subset_hyperparameters : list, optional
+            List of subset hyperparameters.
+        metric_select : str
+            Selected metric.
+        partition_select : str
+            Selected parition.
+        cv_mode : str
+            cross validation mode.
+
+        Returns
+        -------
+        best_model_id
+
+        Raises
+        ------
+        ValueError
+            If measure, partition or cv_mode not recognized.
+        Warning
+            If cv_mode max is selected with the following metrics: loss, elbo, mse, mae
+        """
         if subset_hyperparameters is None:
             subset_hyperparameters = []
         if metric_select.endswith("loss"):
@@ -714,6 +749,21 @@ class GridSearchContainer:
         partition_select: str = "val",
         cv_mode: str = "mean",
     ):
+        """Copy best model.
+
+        Parameters
+        ----------
+        gs_id : str
+            Grid search identifier.
+        dst : str
+            dst folder.
+        metric_select : str
+            Selected metric.
+        partition_select : str
+            Selected partition.
+        cv_mode : str
+            Cross validation mode.
+        """
         from shutil import copyfile
 
         if dst[0] != "/":
@@ -728,7 +778,21 @@ class GridSearchContainer:
             fn_idx = run_id + "_" + cv + "_indices.pickle"
             copyfile(src + fn_idx, dst + fn_idx)
 
-    def get_info(self, model_id, expected_pickle: Union[None, list] = None):
+    def get_info(self, model_id, expected_pickle: Optional[list] = None):
+        """Get information of model.
+
+        Parameters
+        ----------
+        model_id
+            Model identifier.
+        expected_pickle : list, optional
+            Expected pickle files.
+
+        Raises
+        ------
+        ValueError
+            If file is missing.
+        """
         if expected_pickle is None:
             expected_pickle = ["evaluation", "history", "hyperparam"]
 
@@ -755,8 +819,7 @@ class GridSearchContainer:
             info["runparams"] = pickle.load(f)
         self.info = info
 
-        # Plotting functions:
-
+    # Plotting functions:
     def plot_best_model_by_hyperparam(
         self,
         partition_show: str,
@@ -776,7 +839,6 @@ class GridSearchContainer:
         figsize: Tuple[float, float] = (3.5, 4.0),
         fontsize: Optional[int] = None,
         plot_mode: str = "boxplot",
-        hue_order=None,
         palette: Optional[dict] = None,
         color: Optional[str] = None,
         save: Optional[str] = None,
@@ -784,6 +846,61 @@ class GridSearchContainer:
         show: bool = True,
         return_axs: bool = False,
     ):
+        """Plot best model by hyperparameter.
+
+        Parameters
+        ----------
+        partition_show : str
+            Showing partition.
+        metric_show : str
+            Showing metric.
+        partition_select : str
+            Selected partition.
+        metric_select : str
+            Selected metric.
+        param_x : str
+            Parameter on x axis.
+        param_hue : str
+            Parameter for hue.
+        graph_model_class : str
+            Graph model class.
+        baseline_model_class : str
+            Baseline model class.
+        rename_levels : list, optional
+            Rename levels with stated logic.
+        subset_hyperparameters : list, optional
+            Subset hyperparameters.
+        cv_mode : str
+            Cross validation mode.
+        yaxis_limit : tuple, optional
+            y axis limits.
+        xticks : list, optional
+            List of x ticks.
+        rotate_xticks : bool
+            Whether to rotate x ticks.
+        figsize : tuple
+            Figure size.
+        fontsize : int, optional
+            Font size.
+        plot_mode : str
+            Plotting mode, can be `boxplot`, `lineplot` or `mean_lineplot`.
+        palette : dict, optional
+            Palette.
+        color : str, optional
+            Color.
+        save : str, optional
+            Whether (if not None) and where (path as string given as save) to save plot.
+        suffix : str
+            Suffix of file name to save to.
+        show : bool
+            Whether to display plot.
+        return_axs : bool
+            Whether to return axis objects.
+
+        Returns
+        -------
+        axis if `return_axs` is True.
+        """
         if fontsize:
             sc.set_figure_params(scanpy=True, fontsize=fontsize)
         sns.set_palette("colorblind")
@@ -842,7 +959,6 @@ class GridSearchContainer:
                     x=param_x,
                     y=ycol,
                     hue=param_hue,
-                    hue_order=hue_order,
                     data=summary_table,
                     ax=ax,
                 )
@@ -862,7 +978,6 @@ class GridSearchContainer:
                 x=param_x,
                 y=ycol,
                 style="cv",
-                hue_order=hue_order,
                 palette=palette,
                 data=summary_table[summary_table["model_class"] == graph_model_class],
                 hue=param_hue,
@@ -925,14 +1040,39 @@ class GridSearchContainer:
         metric_select: str,
         param_x: str,
         ncols: int = 8,
-        plot_mode: str = "boxplot",
         show: bool = True,
         save: Optional[str] = None,
         suffix: str = "target_cell_evaluation.pdf",
         return_axs: bool = False,
-        panel_width: float = 3.0,
-        panel_height: float = 3.0,
+        panelsize: Tuple[float, float] = (3.0, 3.0),
     ):
+        """Plot target cell evaluation.
+
+        Parameters
+        ----------
+        metric_show : str
+            Showing metric.
+        metric_select : str
+            Selected metric.
+        param_x : str
+            Parameter on x axis.
+        panelsize : tuple
+            Panel size.
+        ncols : int
+            Number of columns.
+        save : str, optional
+            Whether (if not None) and where (path as string given as save) to save plot.
+        suffix : str
+            Suffix of file name to save to.
+        show : bool
+            Whether to display plot.
+        return_axs : bool
+            Whether to return axis objects.
+
+        Returns
+        -------
+        axis if `return_axs` is True.
+        """
         params_x_unique = np.sort(np.unique(self.target_cell_table[param_x].values))
         params_tc_unique = np.sort(np.unique(self.target_cell_table["target_cell"].values))
 
@@ -940,7 +1080,7 @@ class GridSearchContainer:
         nrows = len(params_tc_unique) // ncols + int(len(params_tc_unique) % ncols > 0)
 
         fig, ax = plt.subplots(
-            ncols=ncols, nrows=nrows, figsize=(ncols * panel_width, nrows * panel_height), sharex=True
+            ncols=ncols, nrows=nrows, figsize=(ncols * panelsize[0], nrows * panelsize[1]), sharex=True
         )
         ax = ax.flat
         for a in ax[ct:]:
@@ -977,11 +1117,8 @@ class GridSearchContainer:
             table = target_cell_table.loc[np.array([x in run_ids for x in target_cell_table["run_id"].values]), :]
             tc_frequencies = int(np.unique(table["target_cell_frequencies"])[0])
             target_cell_frequencies.update({tc: tc_frequencies})
-            if plot_mode == "boxplot":
-                sns.boxplot(x=param_x, y=metric_show, data=table, ax=ax[i], color="steelblue")
-                sns.swarmplot(x=param_x, y=metric_show, data=table, ax=ax[i], color="steelblue")
-            elif plot_mode == "lineplot":
-                sns.lineplot(x=param_x, y=metric_show, style="cv", data=table, ax=ax[i], sort=False, markers=True)
+            sns.boxplot(x=param_x, y=metric_show, data=table, ax=ax[i], color="steelblue")
+            sns.swarmplot(x=param_x, y=metric_show, data=table, ax=ax[i], color="steelblue")
             ax[i].set_title(f"{tc.replace('_', ' ')} \n({str(tc_frequencies)} cells)")
             ax[i].set_xlabel("")
             ax[i].set_ylabel("")
