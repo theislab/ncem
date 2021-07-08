@@ -80,7 +80,7 @@ Classes to pool evaluation metrics across fits in a grid search.
 .. autosummary::
    :toctree: api
 
-   train.GridsearchContainer
+   train.GridSearchContainer
 
 
 Tutorials
