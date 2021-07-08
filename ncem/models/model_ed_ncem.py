@@ -8,16 +8,7 @@ from ncem.models.layers import (Decoder, Encoder, GaussianOutput, GCNLayer,
 
 
 class ModelEDncem:
-    """Model class for NCEM encoder-decoder with graph layer IND (MAX) or GCN.
-
-    Attributes:
-        args (dict):
-        encoder_model:
-        decoder_model:
-        encoder:
-        decoder:
-        training_model:
-    """
+    """Model class for NCEM encoder-decoder with graph layer IND (MAX) or GCN."""
 
     def __init__(
         self,
@@ -46,32 +37,57 @@ class ModelEDncem:
     ):
         """Initialize encoder-decoder NCEM model.
 
-        Args:
-            input_shapes (Tuple): Input shapes.
-            latent_dim (int): Latent dimension.
-            dropout_rate (float): Dropout rate.
-            l2_coef (float): l2 regularization coefficient.
-            l1_coef (float): l1 regularization coefficient.
-            enc_intermediate_dim (int): Encoder intermediate dimension.
-            enc_depth (int): Encoder depth.
-            dec_intermediate_dim (int): Decoder intermediate dimension.
-            dec_depth (int): Decoder depth.
-            cond_type (str): Graph conditional type.
-            cond_depth (int): Graph conditional depth.
-            cond_dim (int): Graph conditional dimension.
-            cond_dropout_rate (float): Graph conditional dropout rate.
-            cond_activation: Graph conditional activation.
-            cond_l2_reg (float): Graph conditional l2 regularization coefficient.
-            cond_use_bias (bool): Graph conditional use bias.
-            use_domain (bool): Whether to use domain inormation.
-            use_type_cond (bool): whether to use the categorical cell type label in conditional.
-            use_node_degree (bool): whether to use node degree in conditional.
-            scale_node_size (bool) Whether to scale output layer by node sizes.
-            output_layer (str): Output layer.
-            **kwargs: Arbitrary keyword arguments.
-        Raises:
-            ValueError: If `cond_type` is not recognized.
-            ValueError: If `output_layer` is not recognized.
+        Parameters
+        ----------
+        input_shapes
+            Input shapes.
+        latent_dim : int
+            Latent dimension.
+        dropout_rate : float
+            Dropout rate.
+        l2_coef : float
+            l2 regularization coefficient.
+        l1_coef : float
+            l1 regularization coefficient.
+        enc_intermediate_dim : int
+            Encoder intermediate dimension.
+        enc_depth : int
+            Encoder depth.
+        dec_intermediate_dim : int
+            Decoder intermediate dimension.
+        dec_depth : int
+            Decoder depth.
+        cond_type : str
+            Graph conditional type.
+        cond_depth : int
+            Graph conditional depth.
+        cond_dim : int
+            Graph conditional dimension.
+        cond_dropout_rate : float
+            Graph conditional dropout rate.
+        cond_activation : str
+            Graph conditional activation.
+        cond_l2_reg : float
+            Graph conditional l2 regularization coefficient.
+        cond_use_bias : bool
+            Graph conditional use bias.
+        use_domain : bool
+            Whether to use domain information.
+        use_type_cond : bool
+            whether to use the categorical cell type label in conditional.
+        use_node_degree : bool
+            whether to use node degrees.
+        scale_node_size : bool
+            Whether to scale output layer by node sizes.
+        output_layer : str
+            Output layer.
+        kwargs
+            Arbitrary keyword arguments.
+
+        Raises
+        ------
+        ValueError
+            If `cond_type` or `output_layer` is not recognized.
         """
         super().__init__()
         self.args = {

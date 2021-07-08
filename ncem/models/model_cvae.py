@@ -8,9 +8,7 @@ from ncem.models.layers import (Decoder, Encoder, GaussianConstDispOutput,
 
 
 class ModelCVAE:
-    """
-    Model class for conditional variational autoencoder.
-    """
+    """Model class for conditional variational autoencoder."""
 
     def __init__(
         self,
@@ -31,7 +29,48 @@ class ModelCVAE:
         output_layer="gaussian",
         **kwargs
     ):
-        """Initialize conditional variational autoencoder model."""
+        """Initialize conditional variational autoencoder model.
+
+        Parameters
+        ----------
+        input_shapes
+            input_shapes.
+        latent_dim : int
+            Latent dimension.
+        dropout_rate : float
+            Dropout rate.
+        l2_coef : float
+            l2 regularization coefficient.
+        l1_coef : float
+            l1 regularization coefficient.
+        intermediate_dim_enc : int
+            Encoder intermediate dimension.
+        depth_enc : int
+            Encoder depth.
+        intermediate_dim_dec : int
+            Decoder intermediate dimension.
+        depth_dec : int
+            Decoder depth.
+        use_domain : bool
+            Whether to use domain information.
+        use_type_cond : bool
+            Whether to use type conditional.
+        use_batch_norm : bool
+            Whether to use batch normalization.
+        scale_node_size : bool
+            Whether to scale output layer by node sizes.
+        transform_input : bool
+            Whether to transform input.
+        output_layer : str
+            Output layer.
+        kwargs
+            Arbitrary keyword arguments.
+
+        Raises
+        ------
+        ValueError
+            If `output_layer` is not recognized.
+        """
         super().__init__()
         self.args = {
             "input_shapes": input_shapes,

@@ -2,21 +2,45 @@ import tensorflow as tf
 
 
 class LinearOutput(tf.keras.layers.Layer):
+    """Linear output layer."""
+
     def __init__(self, use_node_scale: bool = False, name="linear_output", **kwargs):
+        """Initialize LinearOutput.
+
+        Args:
+            use_node_scale (bool): Use node scale.
+            name (str): Layer name.
+            ``**kwargs``: Arbitrary keyword arguments.
+        """
         super().__init__(name=name, **kwargs)
         self.use_node_scale = use_node_scale
         self.var_bias = None
 
     def get_config(self):
+        """LinearOutput get_config."""
         config = super().get_config().copy()
         config.update({"original_dim": self.original_dim, "use_node_scale": self.use_node_scale})
         return config
 
     def build(self, input_shapes):
+        """LinearOutput layer build function.
+
+        Args:
+            input_shapes (Tuple): Input shapes.
+        """
         genes_dim = input_shapes[0][-1]
         self.var_bias = self.add_weight("var_bias", shape=[1, genes_dim], initializer="zeros")
 
     def call(self, inputs, **kwargs):
+        """LinearOutput layer call function.
+
+        Args:
+            inputs: Inputs.
+            ``**kwargs``: Arbitrary keyword arguments.
+
+        Returns:
+            output of LinearOutput layer
+        """
         bound = 60.0
         mean, sf = inputs
 
@@ -38,17 +62,36 @@ class LinearOutput(tf.keras.layers.Layer):
 
 
 class LinearConstDispOutput(tf.keras.layers.Layer):
+    """Linear output layer with constant dispersion."""
+
     def __init__(self, use_node_scale: bool = False, name="linear_const_disp_output", **kwargs):
+        """Initialize LinearConstDispOutput.
+
+        Args:
+            use_node_scale (bool): Use node scale.
+            name (str): Layer name.
+            ``**kwargs``: Arbitrary keyword arguments.
+        """
         super().__init__(name=name, **kwargs)
         self.use_node_scale = use_node_scale
         self.var_bias = None
 
     def get_config(self):
+        """LinearConstDispOutput get_config."""
         config = super().get_config().copy()
         config.update({"original_dim": self.original_dim, "use_node_scale": self.use_node_scale})
         return config
 
     def call(self, inputs, **kwargs):
+        """LinearConstDispOutput layer call function.
+
+        Args:
+            inputs: Inputs.
+            ``**kwargs``: Arbitrary keyword arguments.
+
+        Returns:
+            output of LinearConstDispOutput layer
+        """
         bound = 60.0
         mean, sf = inputs
 
@@ -70,10 +113,17 @@ class LinearConstDispOutput(tf.keras.layers.Layer):
 
 
 class GaussianOutput(tf.keras.layers.Layer):
-    """Log normal likelihood output layer"""
+    """Log normal likelihood output layer."""
 
     def __init__(self, original_dim=None, use_node_scale: bool = False, name="gaussian_output", **kwargs):
+        """Initialize GaussianOutput.
 
+        Args:
+            original_dim: original dimension.
+            use_node_scale (bool): Use node scale.
+            name (str): Layer name.
+            ``**kwargs``: Arbitrary keyword arguments.
+        """
         super().__init__(name=name, **kwargs)
 
         self.original_dim = original_dim
@@ -83,11 +133,17 @@ class GaussianOutput(tf.keras.layers.Layer):
         self.var_bias = None
 
     def get_config(self):
+        """GaussianOutput get_config."""
         config = super().get_config().copy()
         config.update({"original_dim": self.original_dim, "use_node_scale": self.use_node_scale})
         return config
 
     def build(self, input_shapes):
+        """GaussianOutput layer build function.
+
+        Args:
+            input_shapes (Tuple): Input shapes.
+        """
         input_shape = input_shapes[0]
         self.intermediate_dim = input_shape[2]
 
@@ -95,6 +151,15 @@ class GaussianOutput(tf.keras.layers.Layer):
         self.var_bias = self.add_weight("var_bias", shape=[1, self.original_dim], initializer="zeros")
 
     def call(self, inputs, **kwargs):
+        """GaussianOutput layer call function.
+
+        Args:
+            inputs: Inputs.
+            ``**kwargs``: Arbitrary keyword arguments.
+
+        Returns:
+            output of GaussianOutput layer
+        """
         bound = 60.0
 
         activation, sf = inputs
@@ -122,10 +187,17 @@ class GaussianOutput(tf.keras.layers.Layer):
 
 
 class GaussianConstDispOutput(tf.keras.layers.Layer):
-    """Log normal likelihood output layer"""
+    """Log normal likelihood output layer."""
 
     def __init__(self, original_dim=None, use_node_scale: bool = False, name="gaussian_output", **kwargs):
+        """Initialize GaussianConstDispOutput.
 
+        Args:
+            original_dim: original dimension.
+            use_node_scale (bool): Use node scale.
+            name (str): Layer name.
+            ``**kwargs``: Arbitrary keyword arguments.
+        """
         super().__init__(name=name, **kwargs)
 
         self.original_dim = original_dim
@@ -134,17 +206,32 @@ class GaussianConstDispOutput(tf.keras.layers.Layer):
         self.means = None
 
     def get_config(self):
+        """GaussianConstDispOutput get_config."""
         config = super().get_config().copy()
         config.update({"original_dim": self.original_dim, "use_node_scale": self.use_node_scale})
         return config
 
     def build(self, input_shapes):
+        """GaussianConstDispOutput layer build function.
+
+        Args:
+            input_shapes (Tuple): Input shapes.
+        """
         input_shape = input_shapes[0]
         self.intermediate_dim = input_shape[2]
 
         self.means = tf.keras.layers.Dense(units=self.original_dim, use_bias=True, activation="linear")
 
     def call(self, inputs, **kwargs):
+        """GaussianConstDispOutput layer call function.
+
+        Args:
+            inputs: Inputs.
+            ``**kwargs``: Arbitrary keyword arguments.
+
+        Returns:
+            output of GaussianConstDispOutput layer
+        """
         bound = 60.0
 
         activation, sf = inputs
@@ -169,10 +256,17 @@ class GaussianConstDispOutput(tf.keras.layers.Layer):
 
 
 class NegBinOutput(tf.keras.layers.Layer):
-    """Negative binomial output layer"""
+    """Negative binomial output layer."""
 
     def __init__(self, original_dim=None, use_node_scale: bool = False, name="neg_bin_output", **kwargs):
+        """Initialize NegBinOutput.
 
+        Args:
+            original_dim: original dimension.
+            use_node_scale (bool): Use node scale.
+            name (str): Layer name.
+            ``**kwargs``: Arbitrary keyword arguments.
+        """
         super().__init__(name=name, **kwargs)
 
         self.original_dim = original_dim
@@ -182,11 +276,17 @@ class NegBinOutput(tf.keras.layers.Layer):
         self.var = None
 
     def get_config(self):
+        """NegBinOutput get_config."""
         config = super().get_config().copy()
         config.update({"original_dim": self.original_dim, "use_node_scale": self.use_node_scale})
         return config
 
     def build(self, input_shapes):
+        """NegBinOutput layer build function.
+
+        Args:
+            input_shapes (Tuple): Input shapes.
+        """
         input_shape = input_shapes[0]
         self.intermediate_dim = input_shape[2]
 
@@ -194,6 +294,15 @@ class NegBinOutput(tf.keras.layers.Layer):
         self.var = tf.keras.layers.Dense(units=self.original_dim, use_bias=True, activation="linear")
 
     def call(self, inputs, **kwargs):
+        """NegBinOutput layer call function.
+
+        Args:
+            inputs: Inputs.
+            ``**kwargs``: Arbitrary keyword arguments.
+
+        Returns:
+            output of NegBinOutput layer
+        """
         bound = 60.0
 
         activation, sf = inputs
@@ -215,10 +324,17 @@ class NegBinOutput(tf.keras.layers.Layer):
 
 
 class NegBinSharedDispOutput(tf.keras.layers.Layer):
-    """Negative binomial output layer with dispersion shared over features"""
+    """Negative binomial output layer with dispersion shared over features."""
 
     def __init__(self, original_dim=None, use_node_scale: bool = False, name="neg_bin_shared_disp_output", **kwargs):
+        """Initialize NegBinSharedDispOutput.
 
+        Args:
+            original_dim: original dimension.
+            use_node_scale (bool): Use node scale.
+            name (str): Layer name.
+            ``**kwargs``: Arbitrary keyword arguments.
+        """
         super().__init__(name=name, **kwargs)
 
         self.original_dim = original_dim
@@ -229,11 +345,17 @@ class NegBinSharedDispOutput(tf.keras.layers.Layer):
         self.var_bias = None
 
     def get_config(self):
+        """NegBinSharedDispOutput get_config."""
         config = super().get_config().copy()
         config.update({"original_dim": self.original_dim, "use_node_scale": self.use_node_scale})
         return config
 
     def build(self, input_shapes):
+        """NegBinSharedDispOutput layer build function.
+
+        Args:
+            input_shapes (Tuple): Input shapes.
+        """
         input_shape = input_shapes[0]
         self.intermediate_dim = input_shape[2]
 
@@ -241,6 +363,15 @@ class NegBinSharedDispOutput(tf.keras.layers.Layer):
         self.var_bias = self.add_weight("var_bias", shape=[1, self.original_dim], initializer="zeros")
 
     def call(self, inputs, **kwargs):
+        """NegBinSharedDispOutput layer call function.
+
+        Args:
+            inputs: Inputs.
+            ``**kwargs``: Arbitrary keyword arguments.
+
+        Returns:
+            output of NegBinSharedDispOutput layer
+        """
         bound = 60.0
 
         activation, sf = inputs
@@ -266,10 +397,17 @@ class NegBinSharedDispOutput(tf.keras.layers.Layer):
 
 
 class NegBinConstDispOutput(tf.keras.layers.Layer):
-    """Negative binomial output layer with constant dispersion"""
+    """Negative binomial output layer with constant dispersion."""
 
     def __init__(self, original_dim=None, use_node_scale: bool = False, name="neg_bin_const_disp_output", **kwargs):
+        """Initialize NegBinConstDispOutput.
 
+        Args:
+            original_dim: original dimension.
+            use_node_scale (bool): Use node scale.
+            name (str): Layer name.
+            ``**kwargs``: Arbitrary keyword arguments.
+        """
         super().__init__(name=name, **kwargs)
 
         self.original_dim = original_dim
@@ -279,17 +417,32 @@ class NegBinConstDispOutput(tf.keras.layers.Layer):
         self.var = None
 
     def get_config(self):
+        """NegBinConstDispOutput get_config."""
         config = super().get_config().copy()
         config.update({"original_dim": self.original_dim, "use_node_scale": self.use_node_scale})
         return config
 
     def build(self, input_shapes):
+        """NegBinConstDispOutput layer build function.
+
+        Args:
+            input_shapes (Tuple): Input shapes.
+        """
         input_shape = input_shapes[0]
         self.intermediate_dim = input_shape[2]
 
         self.means = tf.keras.layers.Dense(units=self.original_dim, use_bias=True, activation="linear")
 
     def call(self, inputs, **kwargs):
+        """NegBinConstDispOutput layer call function.
+
+        Args:
+            inputs: Inputs.
+            ``**kwargs``: Arbitrary keyword arguments.
+
+        Returns:
+            output of NegBinConstDispOutput layer
+        """
         bound = 60.0
 
         activation, sf = inputs

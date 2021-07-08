@@ -25,11 +25,33 @@ sys.path.insert(0, os.path.abspath(".."))
 extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.viewcode",
-    "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
     "sphinx_click",
     "sphinx_rtd_dark_mode",
+    "sphinx.ext.intersphinx",
+    "sphinx.ext.doctest",
+    "sphinx.ext.coverage",
+    "sphinx.ext.mathjax",
+    "sphinx.ext.autosummary",
 ]
+
+# Generate the API documentation when building
+autosummary_generate = True
+autodoc_member_order = "bysource"
+napoleon_google_docstring = False
+napoleon_numpy_docstring = True
+napoleon_include_init_with_doc = False
+napoleon_use_rtype = True
+napoleon_use_param = True
+
+intersphinx_mapping = dict(
+    anndata=("https://anndata.readthedocs.io/en/latest/", None),
+    scanpy=("https://scanpy.readthedocs.io/en/latest/", None),
+    numpy=("https://docs.scipy.org/doc/numpy/", None),
+    pandas=("http://pandas.pydata.org/pandas-docs/stable/", None),
+    python=("https://docs.python.org/3", None),
+    scipy=("https://docs.scipy.org/doc/scipy/reference/", None),
+)
 
 default_dark_mode = True
 
@@ -45,7 +67,7 @@ master_doc = "index"
 # General information about the project.
 project = "ncem"
 copyright = "2021, theislab"
-author = "Anna Schaar, David Fischer"
+author = "David S. Fischer, Anna C. Schaar"
 
 # The version info for the project you're documenting, acts as replacement
 # for |version| and |release|, also used in various other places throughout

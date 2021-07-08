@@ -1,13 +1,19 @@
 import numpy as np
+from diffxpy.stats.stats import wald_test
+from diffxpy.testing.correction import correct
 
 
 def _get_p_value(a_var: np.ndarray, fisher_inv: np.ndarray, coef_loc_totest: int):
-    """
-    Returns the p-value for differential expression for each gene
-    :return: np.ndarray
-    """
-    from diffxpy.stats.stats import wald_test
+    """Returns the p-value for differential expression for each gene,
 
+    Args:
+        a_var: a var matrix.
+        fisher_inv: Fisher inv matrix.
+        coef_loc_totest: Coefficient location to test.
+
+    Returns:
+        Wald test from diffxpy.
+    """
     theta_mle = a_var[coef_loc_totest]
     theta_sd = fisher_inv[:, coef_loc_totest, coef_loc_totest]
     theta_sd = np.nextafter(0, np.inf, out=theta_sd, where=theta_sd < np.nextafter(0, np.inf))
@@ -20,8 +26,16 @@ def wald_test(
     fisher_inv: list,
     significance_threshold: float = 0.01,
 ):
-    from diffxpy.testing.correction import correct
+    """Wald test.
 
+    Args:
+        parameters: Parameters.
+        fisher_inv: List of fisher inv matrix.
+        significance_threshold (float): Significance threshold for corrected p-values.
+
+    Returns:
+        Boolean significance, significance.
+    """
     res = []
     bool_res = []
     for i, fi in enumerate(fisher_inv):

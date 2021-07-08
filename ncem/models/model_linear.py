@@ -27,18 +27,29 @@ class ModelLinear:
     ):
         """Initialize linear model.
 
-        Args:
-            input_shapes (Tuple): Input shapes.
-            l2_coef (float): l2 regularization coefficient.
-            l1_coef (float): l1 regularization coefficient.
-            use_source_type (bool): Whether to use source type information.
-            use_domain (bool): Whether to use domain information.
-            scale_node_size (bool): Whether to scale output layer by node sizes.
-            output_layer (str): Output layer.
-            **kwargs: Arbitrary keyword arguments.
+        Parameters
+        ----------
+        input_shapes
+            input_shapes.
+        l2_coef : float
+            l2 regularization coefficient.
+        l1_coef : float
+            l1 regularization coefficient.
+        use_source_type : bool
+            Whether to use source type.
+        use_domain : bool
+            Whether to use domain information.
+        scale_node_size : bool
+            Whether to scale output layer by node sizes.
+        output_layer : str
+            Output layer.
+        kwargs
+            Arbitrary keyword arguments.
 
-        Raises:
-            ValueError: If `output_layer` is not recognized.
+        Raises
+        ------
+        ValueError
+            If `cond_type` or `output_layer` is not recognized.
         """
         super().__init__()
         self.args = {

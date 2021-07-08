@@ -5,11 +5,14 @@ import tensorflow.experimental.numpy as tnp
 
 
 def custom_mae(y_true, y_pred):
-    """
+    """Custom mean absolute error metric.
 
-    :param y_true:
-    :param y_pred:
-    :return: (graphs,)
+    Args:
+        y_true: y_true.
+        y_pred: y_pred.
+
+    Returns:
+        custom mae.
     """
     y_pred, _ = tf.split(y_pred, num_or_size_splits=2, axis=2)
     abs = tf.abs(y_true - y_pred)
@@ -18,11 +21,14 @@ def custom_mae(y_true, y_pred):
 
 
 def custom_mse(y_true, y_pred):
-    """
+    """Custom mean squared error metric.
 
-    :param y_true:
-    :param y_pred:
-    :return: (graphs,)
+    Args:
+        y_true: y_true.
+        y_pred: y_pred.
+
+    Returns:
+        custom mse.
     """
     y_pred, _ = tf.split(y_pred, num_or_size_splits=2, axis=2)
     se = tf.square(y_true - y_pred)
@@ -31,11 +37,14 @@ def custom_mse(y_true, y_pred):
 
 
 def custom_mean_sd(y_true, y_pred):
-    """
+    """Custom mean standard deviation metric.
 
-    :param y_true:
-    :param y_pred:
-    :return: (graphs,)
+    Args:
+        y_true: y_true.
+        y_pred: y_pred.
+
+    Returns:
+        custom mean sd.
     """
     _, sd = tf.split(y_pred, num_or_size_splits=2, axis=2)
     sd = tf.reduce_mean(sd)
@@ -43,11 +52,14 @@ def custom_mean_sd(y_true, y_pred):
 
 
 def logp1_custom_mse(y_true, y_pred):
-    """
+    """Custom logp1 mean squared error metric.
 
-    :param y_true:
-    :param y_pred:
-    :return: (graphs,)
+    Args:
+        y_true: y_true.
+        y_pred: y_pred.
+
+    Returns:
+        logp1 custom mse.
     """
     y_pred, _ = tf.split(y_pred, num_or_size_splits=2, axis=2)
     y_true = tf.math.log(y_true + 1.0)
@@ -58,11 +70,14 @@ def logp1_custom_mse(y_true, y_pred):
 
 
 def custom_mse_scaled(y_true, y_pred):
-    """
+    """Custom mean squared error scaled metric.
 
-    :param y_true:
-    :param y_pred:
-    :return: (graphs,)
+    Args:
+        y_true: y_true.
+        y_pred: y_pred.
+
+    Returns:
+        custom mse scaled.
     """
     y_pred, sd = tf.split(y_pred, num_or_size_splits=2, axis=2)
     se = tf.square(y_true - y_pred) / tf.square(sd)
@@ -71,11 +86,14 @@ def custom_mse_scaled(y_true, y_pred):
 
 
 def gaussian_reconstruction_loss(y_true, y_pred):
-    """
+    """Custom gaussian reconstruction loss.
 
-    :param y_true:
-    :param y_pred:
-    :return: (graphs,)
+    Args:
+        y_true: y_true.
+        y_pred: y_pred.
+
+    Returns:
+        custom gaussian reconstruction loss.
     """
     y_pred, sd = tf.split(y_pred, num_or_size_splits=2, axis=2)
     neg_ll = tf.math.log(tf.sqrt(2 * math.pi) * sd) + 0.5 * tf.math.square(y_pred - y_true) / tf.math.square(sd)
@@ -84,7 +102,15 @@ def gaussian_reconstruction_loss(y_true, y_pred):
 
 
 def nb_reconstruction_loss(y_true, y_pred):
-    """Implements the negative log likelihood loss as reconstruction loss"""
+    """Implements the negative log likelihood loss as reconstruction loss.
+
+    Args:
+        y_true: y_true.
+        y_pred: y_pred.
+
+    Returns:
+        negative log likelihood loss as reconstruction loss.
+    """
     x = y_true
     loc, scale = tf.split(y_pred, num_or_size_splits=2, axis=2)
 
@@ -104,6 +130,15 @@ def nb_reconstruction_loss(y_true, y_pred):
 
 
 def custom_kl(y_true, y_pred):
+    """Custom kullback-leibler divergence.
+
+    Args:
+        y_true: y_true.
+        y_pred: y_pred.
+
+    Returns:
+        Custom kullback-leibler divergence.
+    """
     z, z_mean, z_log_var = tf.split(y_pred, num_or_size_splits=3, axis=1)
     log2pi = tf.math.log(2.0 * math.pi)
     logqz_x = -0.5 * tf.reduce_sum(tf.square(z - z_mean) * tf.exp(-z_log_var) + z_log_var + log2pi, axis=-1)
@@ -113,10 +148,14 @@ def custom_kl(y_true, y_pred):
 
 
 def r_squared(y_true, y_pred):
-    """
-    :param y_true:
-    :param y_pred:
-    :return: (graphs,)
+    """Custom r squared.
+
+    Args:
+        y_true: y_true.
+        y_pred: y_pred.
+
+    Returns:
+        Custom r squared.
     """
     y_pred, _ = tf.split(y_pred, num_or_size_splits=2, axis=2)
     residual = tf.reduce_sum(tf.square(y_true - y_pred))
@@ -126,11 +165,16 @@ def r_squared(y_true, y_pred):
 
 
 def r_squared_linreg(y_true, y_pred):
-    """
+    """Custom r squared.
+
     This implementation follows the scipy linear regression implementation of R2.
-    :param y_true:
-    :param y_pred:
-    :return: (graphs,)
+
+    Args:
+        y_true: y_true.
+        y_pred: y_pred.
+
+    Returns:
+        Custom r squared.
     """
     y_pred, _ = tf.split(y_pred, num_or_size_splits=2, axis=2)
     x = y_true
@@ -165,10 +209,14 @@ def r_squared_linreg(y_true, y_pred):
 
 
 def logp1_r_squared(y_true, y_pred):
-    """
-    :param y_true:
-    :param y_pred:
-    :return: (graphs,)
+    """Custom logp1 r squared.
+
+    Args:
+        y_true: y_true.
+        y_pred: y_pred.
+
+    Returns:
+        Custom logp1 r squared.
     """
     y_pred, _ = tf.split(y_pred, num_or_size_splits=2, axis=2)
     y_true = tf.math.log(y_true + 1.0)
@@ -180,11 +228,16 @@ def logp1_r_squared(y_true, y_pred):
 
 
 def logp1_r_squared_linreg(y_true, y_pred):
-    """
+    """Custom logp1 r squared.
+
     This implementation follows the scipy linear regression implementation of R2.
-    :param y_true:
-    :param y_pred:
-    :return: (graphs,)
+
+    Args:
+        y_true: y_true.
+        y_pred: y_pred.
+
+    Returns:
+        Custom logp1 r squared.
     """
     y_pred, _ = tf.split(y_pred, num_or_size_splits=2, axis=2)
 

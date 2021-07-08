@@ -5,27 +5,21 @@ from ncem.models import ModelED
 
 
 class EstimatorED(EstimatorNoGraph):
-    """Estimator class for encoder-decoder models. Subclass of EstimatorNoGraph.
-
-    Attributes:
-        model_type (str):
-        adj_type (str):
-        use_type_cond (bool):
-        log_transform (bool):
-        metrics (dict):
-        n_eval_nodes_per_graph:
-    """
+    """Estimator class for encoder-decoder models. Subclass of EstimatorNoGraph."""
 
     def __init__(
         self,
         use_type_cond: bool = True,
         log_transform: bool = False,
     ):
-        """Initializes a EstimatorED object.
+        """Initialize a EstimatorED object.
 
-        Args:
-            use_type_cond (bool): whether to use the categorical cell type label in conditional.
-            log_transform (bool): Whether to log transform h_1.
+        Parameters
+        ----------
+        use_type_cond : bool
+            whether to use the categorical cell type label in conditional.
+        log_transform : bool
+            Whether to log transform h_1.
         """
         super(EstimatorED, self).__init__()
         self.adj_type = "none"
@@ -56,35 +50,46 @@ class EstimatorED(EstimatorNoGraph):
         output_layer: str = "gaussian",
         **kwargs
     ):
-        """Initializes a ModelED object.
+        """Initialize a ModelED object.
 
-        Args:
-            optimizer (str): Optimizer.
-            learning_rate (float): Learning rate.
-            latent_dim (int): Latent dimension.
-            dropout_rate (float): Dropout rate.
-            l2_coef (float): l2 regularization coefficient.
-            l1_coef (float): l1 regularization coefficient.
-            enc_intermediate_dim (int): Encoder intermediate dimension.
-            enc_depth (int): Encoder depth.
-            dec_intermediate_dim (int): Decoder intermediate dimension.
-            dec_depth (int): Decoder depth.
-            n_eval_nodes_per_graph (int): Number of nodes per graph.
-            use_domain (bool): Whether to use domain inormation.
-            scale_node_size (bool) Whether to scale output layer by node sizes.
-            beta (float): Beta used in BetaScheduler.
-            max_beta (float): Maximal beta used in BetaScheduler.
-            pre_warm_up (int): Number of epochs in pre warm up.
-            output_layer (str): Output layer.
-            **kwargs: Arbitrary keyword arguments.
-
-        Attributes:
-            n_eval_nodes_per_graph (int):
-            model:
-            beta (float): Beta used in BetaScheduler.
-            max_beta (float): Maximal beta used in BetaScheduler.
-            pre_warm_up (int): Number of epochs in pre warm up.
-
+        Parameters
+        ----------
+        optimizer : str
+            Optimizer.
+        learning_rate : float
+            Learning rate.
+        latent_dim : int
+            Latent dimension.
+        dropout_rate : float
+            Dropout rate.
+        l2_coef : float
+            l2 regularization coefficient.
+        l1_coef : float
+            l1 regularization coefficient.
+        enc_intermediate_dim : int
+            Encoder intermediate dimension.
+        enc_depth : int
+            Encoder depth.
+        dec_intermediate_dim : int
+            Decoder intermediate dimension.
+        dec_depth : int
+            Decoder depth.
+        n_eval_nodes_per_graph : int
+            Number of nodes per graph.
+        use_domain : bool
+            Whether to use domain information.
+        scale_node_size : bool
+            Whether to scale output layer by node sizes.
+        beta : float
+            Beta used in BetaScheduler.
+        max_beta : float
+            Maximal beta used in BetaScheduler.
+        pre_warm_up : int
+            Number of epochs in pre warm up.
+        output_layer : str
+            Output layer.
+        kwargs
+            Arbitrary keyword arguments.
         """
         self.n_eval_nodes_per_graph = n_eval_nodes_per_graph
         self.model = ModelED(
