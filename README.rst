@@ -31,9 +31,14 @@ ncem
    :target: https://github.com/psf/black
    :alt: Black
 
-.. image:: https://github.com/theislab/ncem/tree/main/resources/images/concept.png
-   :width: 1000px
-   :align: center
+.. raw:: html
+
+    <p align="center">
+        <a href="https://ncem.readthedocs.io/en/latest/">
+            <img src="https://raw.githubusercontent.com/theislab/ncem/master/docs/_static/img/concept.png"
+             width="400px" alt="Squidpy logo">
+        </a>
+    </p>
 
 
 Features
