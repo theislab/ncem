@@ -7,7 +7,7 @@ from ncem.models.layers import (CondDecoder, CondEncoder,
                                 GaussianConstDispOutput, GaussianOutput,
                                 GCNLayer, MaxLayer, NegBinConstDispOutput,
                                 NegBinOutput, NegBinSharedDispOutput,
-                                NodeDegrees, PreprocInput, SamplingPrior)
+                                PreprocInput, SamplingPrior)
 
 
 class ModelCVAEncem:

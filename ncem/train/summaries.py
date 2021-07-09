@@ -492,7 +492,9 @@ class GridSearchContainer:
                 else:
                     run_ids_clean.append(r)
             # Load results and settings from completed runs:
-            evals = {} # Dictionary over runs with dictionary over cross-validations with results from model evaluation.
+            evals = (
+                {}
+            )  # Dictionary over runs with dictionary over cross-validations with results from model evaluation.
             indices = {}
             runparams = {}  # Dictionary over runs with model settings.
             for x in run_ids_clean:

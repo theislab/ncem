@@ -4,7 +4,7 @@ import tensorflow as tf
 
 from ncem.models.layers import (Decoder, Encoder, GaussianOutput, GCNLayer,
                                 MaxLayer, NegBinConstDispOutput, NegBinOutput,
-                                NegBinSharedDispOutput, NodeDegrees)
+                                NegBinSharedDispOutput)
 
 
 class ModelEDncem:
