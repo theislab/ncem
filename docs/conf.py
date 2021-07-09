@@ -37,12 +37,14 @@ extensions = [
 
 # Generate the API documentation when building
 autosummary_generate = True
-autodoc_member_order = "bysource"
+autodoc_member_order = 'bysource'
 napoleon_google_docstring = False
 napoleon_numpy_docstring = True
 napoleon_include_init_with_doc = False
 napoleon_use_rtype = True
 napoleon_use_param = True
+napoleon_custom_sections = [('Params', 'Parameters')]
+todo_include_todos = False
 
 intersphinx_mapping = dict(
     anndata=("https://anndata.readthedocs.io/en/latest/", None),
@@ -53,10 +55,10 @@ intersphinx_mapping = dict(
     scipy=("https://docs.scipy.org/doc/scipy/reference/", None),
 )
 
-default_dark_mode = True
+default_dark_mode = False
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ["_templates"]
+templates_path = ['_templates']
 
 # The suffix(es) of source filenames.
 source_suffix = ".rst"
@@ -88,7 +90,7 @@ language = None
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This patterns also effect to html_static_path and html_extra_path
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = "sphinx"
@@ -108,13 +110,23 @@ html_theme = "sphinx_rtd_theme"
 # theme further.  For a list of options available for each theme, see the
 # documentation.
 #
-# html_theme_options = {}
+html_theme_options = dict(
+    navigation_depth=4,
+)
+html_context = dict(
+    display_github=True,      # Integrate GitHub
+    github_user='theislab',   # Username
+    github_repo='ncem',    # Repo name
+    github_version='main',  # Version
+    conf_py_path='/docs/',    # Path in the checkout to the docs root
+)
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
-
+html_show_sphinx = False
+gh_url = 'https://github.com/{github_user}/{github_repo}'.format_map(html_context)
 
 # -- Options for HTMLHelp output ---------------------------------------
 
