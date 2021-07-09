@@ -55,8 +55,6 @@ intersphinx_mapping = dict(
     scipy=("https://docs.scipy.org/doc/scipy/reference/", None),
 )
 
-default_dark_mode = False
-
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
