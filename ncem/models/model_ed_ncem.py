@@ -30,7 +30,6 @@ class ModelEDncem:
         cond_use_bias: bool = True,
         use_domain: bool = False,
         use_type_cond: bool = False,
-        use_node_degree: bool = False,
         scale_node_size: bool = False,
         output_layer: str = "gaussian",
         **kwargs,
@@ -75,8 +74,6 @@ class ModelEDncem:
             Whether to use domain information.
         use_type_cond : bool
             whether to use the categorical cell type label in conditional.
-        use_node_degree : bool
-            whether to use node degrees.
         scale_node_size : bool
             Whether to scale output layer by node sizes.
         output_layer : str
@@ -111,7 +108,6 @@ class ModelEDncem:
             "cond_use_bias": cond_use_bias,
             "use_domain": use_domain,
             "use_type_cond": use_type_cond,
-            "use_node_degree": use_node_degree,
             "scale_node_size": scale_node_size,
             "output_layer": output_layer,
         }
@@ -155,11 +151,6 @@ class ModelEDncem:
             )
         else:
             categ_condition = input_categ_condition
-
-        if use_node_degree:
-            node_degrees = NodeDegrees(in_node_dim)(input_a)
-
-            categ_condition = tf.concat([categ_condition, node_degrees], axis=-1)
 
         if cond_depth > 1:
             print("using multi layer graph model")

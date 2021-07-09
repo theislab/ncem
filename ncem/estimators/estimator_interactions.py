@@ -39,7 +39,7 @@ class EstimatorInteractions(Estimator):
         image_keys: np.array,
         nodes_idx: Union[dict, str],
         batch_size: int,
-        shuffle_buffer_size: int,
+        shuffle_buffer_size: Optional[int],
         train: bool,
         seed: Optional[int],
         prefetch: int = 100,
@@ -55,7 +55,7 @@ class EstimatorInteractions(Estimator):
             Dictionary of nodes per image in partition.
         batch_size : int
             Batch size.
-        shuffle_buffer_size : int
+        shuffle_buffer_size : int, optional
             Shuffle buffer size.
         train : bool
             Whether dataset is used for training or not (influences shuffling of nodes).

@@ -33,8 +33,10 @@ def activate_virtualenv_in_precommit_hooks(session: Session) -> None:
     session's virtual environment. This allows pre-commit to locate hooks in
     that environment when invoked from git.
 
-    Args:
-        session: The Session object.
+    Parameters
+    ----------
+    session
+        The Session object.
     """
     if session.bin is None:
         return
@@ -79,8 +81,10 @@ def activate_virtualenv_in_precommit_hooks(session: Session) -> None:
 def precommit(session: Session) -> None:
     """Lint using pre-commit.
 
-    Args:
-        session: The Session object.
+    Parameters
+    ----------
+    session
+        The Session object.
     """
     args = session.posargs or ["run", "--all-files"]
     session.install(
@@ -105,8 +109,10 @@ def precommit(session: Session) -> None:
 def safety(session: Session) -> None:
     """Scan dependencies for insecure packages.
 
-    Args:
-        session: The Session object.
+    Parameters
+    ----------
+    session
+        The Session object.
     """
     requirements = session.poetry.export_requirements()
     session.install("safety")
@@ -117,8 +123,10 @@ def safety(session: Session) -> None:
 def mypy(session: Session) -> None:
     """Type-check using mypy.
 
-    Args:
-        session: The Session object.
+    Parameters
+    ----------
+    session
+        The Session object.
     """
     args = session.posargs or ["ncem", "tests", "docs/conf.py"]
     session.install(".")
@@ -132,8 +140,10 @@ def mypy(session: Session) -> None:
 def tests(session: Session) -> None:
     """Run the test suite.
 
-    Args:
-        session: The Session object.
+    Parameters
+    ----------
+    session
+        The Session object.
     """
     session.install(".")
     session.install("coverage[toml]", "pytest", "pygments")
@@ -148,8 +158,10 @@ def tests(session: Session) -> None:
 def coverage(session: Session) -> None:
     """Produce the coverage report.
 
-    Args:
-        session: The Session object.
+    Parameters
+    ----------
+    session
+        The Session object.
     """
     # Do not use session.posargs unless this is the only session.
     nsessions = len(session._runner.manifest)  # type: ignore[attr-defined]
@@ -168,8 +180,10 @@ def coverage(session: Session) -> None:
 def typeguard(session: Session) -> None:
     """Runtime type checking using Typeguard.
 
-    Args:
-        session: The Session object.
+    Parameters
+    ----------
+    session
+        The Session object.
     """
     session.install(".")
     session.install("pytest", "typeguard", "pygments")
@@ -180,8 +194,10 @@ def typeguard(session: Session) -> None:
 def xdoctest(session: Session) -> None:
     """Run examples with xdoctest.
 
-    Args:
-        session: The Session object.
+    Parameters
+    ----------
+    session
+        The Session object.
     """
     args = session.posargs or ["all"]
     session.install(".")
@@ -193,8 +209,10 @@ def xdoctest(session: Session) -> None:
 def docs_build(session: Session) -> None:
     """Build the documentation.
 
-    Args:
-        session: The Session object.
+    Parameters
+    ----------
+    session
+        The Session object.
     """
     args = session.posargs or ["docs", "docs/_build"]
     session.install(".")
@@ -211,8 +229,10 @@ def docs_build(session: Session) -> None:
 def docs(session: Session) -> None:
     """Build and serve the documentation with live reloading on file changes.
 
-    Args:
-        session: The Session object.
+    Parameters
+    ----------
+    session
+        The Session object.
     """
     args = session.posargs or ["--open-browser", "docs", "docs/_build"]
     session.install(".")
