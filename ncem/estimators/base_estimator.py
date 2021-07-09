@@ -69,6 +69,7 @@ class Estimator:
     validation_steps: int
 
     def __init__(self):
+        """Initialize Estimator class."""
         self.model = None
         self.loss = []
         self.metrics = []
@@ -90,8 +91,10 @@ class Estimator:
         radius: int,
         label_selection: Optional[List[str]] = None,
     ):
-        """
-        Initializes a DataLoader object.
+        """Initialize a DataLoader object.
+
+        Parameters
+        ----------
         :param data_origin:
         :param data_path:
         :param radius:
