@@ -16,9 +16,9 @@ from ncem.utils.metrics import (custom_kl, custom_mae, custom_mean_sd,
 
 
 class Estimator:
-    """
-    Estimator class for models Contains all necessary methods for data loading, model initialization, training,
-    evaluation and prediction.
+    """Estimator class for models.
+
+    Contains all necessary methods for data loading, model initialization, training, evaluation and prediction.
     """
 
     img_to_patient_dict: Dict[str, str]
@@ -95,10 +95,19 @@ class Estimator:
 
         Parameters
         ----------
-        :param data_origin:
-        :param data_path:
-        :param radius:
-        :return:
+        data_origin : str
+            Data origin.
+        data_path : str
+            Data path.
+        radius : int
+            Radius.
+        label_selection : list, optional
+            Label selection.
+
+        Raises
+        ------
+        ValueError
+            If `data_origin` not recognized.
         """
         if data_origin == "zhang":
             from ncem.data import DataLoaderZhang as DataLoader
@@ -143,6 +152,37 @@ class Estimator:
         use_covar_graph_covar: bool = False,
         domain_type: str = "image",
     ):
+        """Get data used in estimator classes.
+
+        Parameters
+        ----------
+        data_origin : str
+            Data origin.
+        data_path : str
+            Data path.
+        radius : int
+            Radius.
+        graph_covar_selection : list, tuple, optional
+            Selected graph covariates.
+        node_label_space_id : str
+            Node label space id.
+        node_feature_space_id : str
+            Node feature space id.
+        use_covar_node_position : bool
+            Whether to use node position as covariate.
+        use_covar_node_label : bool
+            Whether to use node label as covariate.
+        use_covar_graph_covar : bool
+            Whether to use graph covariates.
+        domain_type : str
+            Covariate that is used as domain.
+
+        Raises
+        ------
+        ValueError
+            If sub-selected covar_selection could not be found, `node_label_space_id` or `node_feature_space_id`
+            not recognized
+        """
         if self.adj_type is None:
             raise ValueError("set adj_type by init_estim() first")
         if graph_covar_selection is None:
@@ -266,12 +306,33 @@ class Estimator:
         image_keys: List[str],
         nodes_idx: Dict[str, np.ndarray],
         batch_size: int,
-        shuffle_buffer_size: int,
+        shuffle_buffer_size: Optional[int],
         train: bool,
         seed: Optional[int],
         prefetch: int = 100,
         reinit_n_eval: Optional[int] = None,
     ):
+        """Prepare a dataset.
+
+        Parameters
+        ----------
+        image_keys : np.array
+            Image keys in partition.
+        nodes_idx : dict, str
+            Dictionary of nodes per image in partition.
+        batch_size : int
+            Batch size.
+        shuffle_buffer_size : int, optional
+            Shuffle buffer size.
+        train : bool
+            Whether dataset is used for training or not (influences shuffling of nodes).
+        seed : int, optional
+            Random seed.
+        prefetch: int
+            Prefetch of dataset.
+        reinit_n_eval : int, optional
+            Used if model is reinitialized to different number of nodes per graph.
+        """
         pass
 
     @abc.abstractmethod
@@ -283,29 +344,74 @@ class Estimator:
         seed: Optional[int] = None,
         prefetch: int = 100,
     ):
+        """Evaluate model based on resampled dataset for posterior resampling.
+
+        node_1 + domain_1 -> encoder -> z_1 + domain_2 -> decoder -> reconstruction_2.
+
+        Parameters
+        ----------
+        image_keys: np.array
+            Image keys in partition.
+        nodes_idx : dict
+            Dictionary of nodes per image in partition.
+        batch_size : int
+            Batch size.
+        seed : int, optional
+            Seed.
+        prefetch : int
+            Prefetch.
+        """
         pass
 
     @abc.abstractmethod
     def init_model(self, **kwargs):
-        """
-        Initializes and compiles the model.
+        """Initialize and compiles the model.
+
+        Parameters
+        ----------
+        kwargs
+            Arbitrary keyword arguments.
         """
         pass
 
     @property
     def patient_ids_bytarget(self) -> np.ndarray:
+        """Return patient identifiers by target.
+
+        Returns
+        -------
+        patient_ids_bytarget
+        """
         return np.array([self.img_to_patient_dict[x] for x in self.complete_img_keys])
 
     @property
     def patient_ids_unique(self) -> np.ndarray:
+        """Return unique patient identifiers.
+
+        Returns
+        -------
+        patient_ids_unique
+        """
         return np.unique(self.patient_ids_bytarget)
 
     @property
     def img_keys_all(self):
+        """Return all image keys.
+
+        Returns
+        -------
+        img_keys_all
+        """
         return np.unique(np.concatenate([self.img_keys_train, self.img_keys_eval, self.img_keys_test])).tolist()
 
     @property
     def nodes_idx_all(self):
+        """Return all node indices.
+
+        Returns
+        -------
+        nodes_idx_all
+        """
         return dict(
             [
                 (
@@ -326,6 +432,22 @@ class Estimator:
 
     @staticmethod
     def _prepare_sf(x):
+        """Prepare size factors.
+
+        Parameters
+        ----------
+        x
+            Inout array.
+
+        Returns
+        -------
+        size_factors
+
+        Raises
+        ------
+        ValueError
+            x.shape > 2
+        """
         if len(x.shape) == 2:
             sf = np.asarray(x.sum(axis=1)).flatten()
         elif len(x.shape) == 1:
@@ -336,13 +458,21 @@ class Estimator:
         return sf
 
     def _compile_model(self, optimizer: tf.keras.optimizers.Optimizer, output_layer: str):
-        """
-        Compile all necessary models.
+        """Compile all necessary models.
+
         ATTENTION: Decoder compiled with same optimizer instance as training model if an instance is passed!
 
-        :param optimizer: optimizer to be used for training model (and decoder)
-        :param output_layer: output layer to be used (e.g. gaussian)
-        :return:
+        Parameters
+        ----------
+        optimizer : tf.keras.optimizers.Optimizer
+            Optimizer to be used for training model (and decoder).
+        output_layer : str
+            Output layer to be used (e.g. gaussian).
+
+        Raises
+        ------
+        ValueError
+            If `output_layer` is not recognized.
         """
         self.vi_model = False  # variational inference
         if self.model_type in ["cvae", "cvae_ncem"]:
@@ -391,13 +521,17 @@ class Estimator:
             self.model.decoder_sampling.compile(optimizer=optimizer, loss=self.loss, metrics=self.metrics)
 
     def _remove_unidentified_nodes(self, node_idx) -> Tuple[int, dict]:
-        """
-        Exclude undefined cells from data set.
+        """Exclude undefined cells from data set.
 
-        :param node_idx: Data set to remove unidentified nodes from.
-        :return: Tuple of
-            - number of unidentifed nodes removed,
-            - Data set with unidentified nodes removed from.
+        Parameters
+        ----------
+        node_idx
+            Data set to remove unidentified nodes from.
+
+        Returns
+        -------
+        tuple
+            number of unidentifed nodes removed, data set with unidentified nodes removed from.
         """
         if self.undefined_node_types is not None:
             # Identify cells with undefined cell_type in all target images
@@ -426,16 +560,22 @@ class Estimator:
     def split_data_given(
         self, img_keys_test, img_keys_train, img_keys_eval, nodes_idx_test, nodes_idx_train, nodes_idx_eval
     ):
-        """
-        Split data by given partition.
+        """Split data by given partition.
 
-        :param img_keys_test:
-        :param img_keys_train:
-        :param img_keys_eval:
-        :param nodes_idx_test:
-        :param nodes_idx_train:
-        :param nodes_idx_eval:
-        :return:
+        Parameters
+        ----------
+        img_keys_test
+            Test image keys.
+        img_keys_train
+            Train image keys.
+        img_keys_eval
+            Evaluation image keys.
+        nodes_idx_test
+            Test node indices.
+        nodes_idx_train
+            Train node indices.
+        nodes_idx_eval
+            Evaluation node indices.
         """
         self.img_keys_test = img_keys_test
         self.img_keys_train = img_keys_train
@@ -446,15 +586,22 @@ class Estimator:
         self.nodes_idx_eval = nodes_idx_eval
 
     def split_data_node(self, test_split: float, validation_split: float, seed: int = 1):
-        """
-        Split nodes randomly into partitions.
+        """Split nodes randomly into partitions.
 
-        :param test_split: Fraction of total nodes to be in test set.
-        :param validation_split: Fraction of train-eval nodes to be in validation split.
-        :param seed: Seed for random selection of observations.
-        :return:
-        """
+        Parameters
+        ----------
+        test_split : float
+            Fraction of total nodes to be in test set.
+        validation_split : float
+            Fraction of train-eval nodes to be in validation split.
+        seed : int
+            Seed for random selection of observations.
 
+        Raises
+        ------
+        ValueError
+            If evaluation or test dataset are empty.
+        """
         print(
             "Using split method: node. \n Train-test-validation split is based on total number of nodes "
             "per patients over all images."
@@ -547,16 +694,24 @@ class Estimator:
             raise ValueError("The train dataset is empty.")
 
     def split_data_target_cell(self, target_cell: str, test_split: float, validation_split: float, seed: int = 1):
-        """
-        Split nodes randomly into partitions.
+        """Split nodes randomly into partitions.
 
-        :param target_cell: Target cell type used for training.
-        :param test_split: Fraction of total nodes to be in test set.
-        :param validation_split: Fraction of train-eval nodes to be in validation split.
-        :param seed: Seed for random selection of observations.
-        :return:
-        """
+        Parameters
+        ----------
+        target_cell : str
+            Target cell type.
+        test_split : float
+            Fraction of total nodes to be in test set.
+        validation_split : float
+            Fraction of train-eval nodes to be in validation split.
+        seed : int
+            Seed for random selection of observations.
 
+        Raises
+        ------
+        ValueError
+            If evaluation or test dataset are empty.
+        """
         print(
             "Using split method: node. \n Train-test-validation split is based on total number of nodes "
             "per patients over all images."
@@ -678,7 +833,7 @@ class Estimator:
         batch_size: int = 16,
         validation_batch_size: int = 16,
         max_validation_steps: Optional[int] = 10,
-        shuffle_buffer_size: int = int(1e4),
+        shuffle_buffer_size: Optional[int] = int(1e4),
         patience: int = 20,
         lr_schedule_min_lr: float = 1e-5,
         lr_schedule_factor: float = 0.2,
@@ -691,8 +846,8 @@ class Estimator:
         early_stopping: bool = True,
         reduce_lr_plateau: bool = True,
         pretrain_decoder: bool = False,
-        decoder_epochs: bool = 1000,
-        decoder_patience: bool = 20,
+        decoder_epochs: int = 1000,
+        decoder_patience: int = 20,
         decoder_callbacks: Optional[list] = None,
         aggressive: bool = False,
         aggressive_enc_patience: int = 10,
@@ -700,6 +855,73 @@ class Estimator:
         seed: int = 1234,
         **kwargs,
     ):
+        """Train model.
+
+        Use validation loss and maximum number of epochs as termination criteria.
+
+        Parameters
+        ----------
+        epochs : int
+            Integer number of times to iterate over the training data arrays. If unspecified, it will default to 1000.
+        epochs_warmup : int
+            Integer number of times to iterate over the training data arrays in warm up (without early stopping). If
+            unspecified, it will default to 0.
+        max_steps_per_epoch : int, optional
+            Maximal steps per epoch. If unspecified, it will default to 20.
+        batch_size : int
+            Number of samples per gradient update. If unspecified, it will default to 16.
+        validation_batch_size : int
+            Number of samples in validation. If unspecified, it will default to 16.
+        max_validation_steps : int
+            Maximal steps per validation. If unspecified, it will default to 10.
+        shuffle_buffer_size : int, optional
+            Shuffle buffer size. If unspecified, it will default to 1e4.
+        patience : int
+            Number of epochs with no improvement. If unspecified, it will default to 20.
+        lr_schedule_min_lr : float
+            Lower bound on the learning rate. If unspecified, it will default to 1e-5.
+        lr_schedule_factor : float
+            Factor by which the learning rate will be reduced. new_lr = lr * factor. If unspecified, it will default
+            to 0.2.
+        lr_schedule_patience : int
+            Number of epochs with no improvement after which learning rate will be reduced. If unspecified, it will
+            default to 5.
+        initial_epoch : int
+            Epoch at which to start training (useful for resuming a previous training run). If unspecified, it will
+            default to 0.
+        monitor_partition : str
+            Monitor partition.
+        monitor_metric : str
+            Monitor metric.
+        log_dir : str, optional
+            Logging directory.
+        callbacks : list, optional
+             List of callbacks to be called during training.
+        early_stopping : bool
+            Whether to activate early stopping.
+        reduce_lr_plateau : bool
+            Whether to reduce learning rate on plateau.
+        pretrain_decoder : bool
+            Whether to pretrain the decoder model.
+        decoder_epochs : int
+            Integer number of times to iterate over the training data arrays in decoder pretraining. If unspecified, it
+            will default to 1000.
+        decoder_patience : int
+            Number of epochs with no improvement in decoder pretraining. If unspecified, it will default to 20.
+        decoder_callbacks : list, optional
+             List of callbacks to be called during decoder pretraining.
+        aggressive : bool
+            Whether to train aggressive.
+        aggressive_enc_patience : int
+             Number of epochs with no improvement in aggressive training. If unspecified, it will default to 10.
+        aggressive_epochs : int
+            Integer number of times to iterate over the training data arrays in aggressive training. If unspecified, it
+            will default to 5.
+        seed : int
+            Random seed for reproduability.
+        kwargs
+            Arbitrary keyword arguments.
+        """
         # Save training settings to allow model restoring.
         self.train_hyperparam = {
             "epochs": epochs,
@@ -812,25 +1034,41 @@ class Estimator:
         reduce_lr_plateau: bool = True,
         **kwargs,
     ):
-
-        """
-        Train model.
+        """Train model normal.
 
         Use validation loss and maximum number of epochs as termination criteria.
 
-        :param epochs:
-        :param patience:
-        :param lr_schedule_min_lr:
-        :param lr_schedule_factor:
-        :param lr_schedule_patience:
-        :param initial_epoch:
-        :param monitor_partition:
-        :param monitor_metric:
-        :param log_dir:
-        :param callbacks:
-        :param early_stopping:
-        :param reduce_lr_plateau:
-        :return:
+        Parameters
+        ----------
+        epochs : int
+            Integer number of times to iterate over the training data arrays. If unspecified, it will default to 1000.
+        patience : int
+            Number of epochs with no improvement. If unspecified, it will default to 20.
+        lr_schedule_min_lr : float
+            Lower bound on the learning rate. If unspecified, it will default to 1e-5.
+        lr_schedule_factor : float
+            Factor by which the learning rate will be reduced. new_lr = lr * factor. If unspecified, it will default
+            to 0.2.
+        lr_schedule_patience : int
+            Number of epochs with no improvement after which learning rate will be reduced. If unspecified, it will
+            default to 5.
+        initial_epoch : int
+            Epoch at which to start training (useful for resuming a previous training run). If unspecified, it will
+            default to 0.
+        monitor_partition : str
+            Monitor partition.
+        monitor_metric : str
+            Monitor metric.
+        log_dir : str, optional
+            Logging directory.
+        callbacks : list, optional
+             List of callbacks to be called during training.
+        early_stopping : bool
+            Whether to activate early stopping.
+        reduce_lr_plateau : bool
+            Whether to reduce learning rate on plateau.
+        kwargs
+            Arbitrary keyword arguments.
         """
         # Set callbacks.
         cbs = []
@@ -901,6 +1139,43 @@ class Estimator:
         reduce_lr_plateau: bool = True,
         **kwargs,
     ):
+        """Pre-train decoder model.
+
+        Use validation loss and maximum number of epochs as termination criteria.
+
+        Parameters
+        ----------
+        patience : int
+            Number of epochs with no improvement. If unspecified, it will default to 20.
+        lr_schedule_min_lr : float
+            Lower bound on the learning rate. If unspecified, it will default to 1e-5.
+        lr_schedule_factor : float
+            Factor by which the learning rate will be reduced. new_lr = lr * factor. If unspecified, it will default
+            to 0.2.
+        lr_schedule_patience : int
+            Number of epochs with no improvement after which learning rate will be reduced. If unspecified, it will
+            default to 5.
+        initial_epoch : int
+            Epoch at which to start training (useful for resuming a previous training run). If unspecified, it will
+            default to 0.
+        monitor_partition : str
+            Monitor partition.
+        monitor_metric : str
+            Monitor metric.
+        log_dir : str, optional
+            Logging directory.
+        callbacks : list, optional
+             List of callbacks to be called during training.
+        early_stopping : bool
+            Whether to activate early stopping.
+        reduce_lr_plateau : bool
+            Whether to reduce learning rate on plateau.
+        decoder_epochs : int
+            Integer number of times to iterate over the training data arrays in decoder pretraining. If unspecified, it
+            will default to 1000.
+        kwargs
+            Arbitrary keyword arguments.
+        """
         # Set callbacks.
         cbs = []
         if reduce_lr_plateau:
@@ -976,10 +1251,15 @@ class Estimator:
         aggressive_enc_patience: int = 10,
         aggressive_epochs: int = 5,
     ):
-        """
-        :param aggressive_enc_patience:
-        :param aggressive_epochs:
-        :return:
+        """Train model aggressive.
+
+        Parameters
+        ----------
+        aggressive_enc_patience : int
+             Number of epochs with no improvement in aggressive training. If unspecified, it will default to 10.
+        aggressive_epochs : int
+            Integer number of times to iterate over the training data arrays in aggressive training. If unspecified, it
+            will default to 5.
         """
         # @tf.function
         def train_iter(
@@ -1168,6 +1448,19 @@ class Estimator:
                 self.history[k] = v
 
     def _get_dataset_test(self, batch_size: int = 1):
+        """Get test dataset.
+
+        Parameters
+        ----------
+        batch_size : int
+            Number of samples. If unspecified, it will default to 1.
+
+        Returns
+        -------
+        A tensorflow dataset.
+
+
+        """
         if self.img_keys_test is not None and len(self.img_keys_test) != 0:
             image_keys = self.img_keys_test
         else:
@@ -1190,21 +1483,35 @@ class Estimator:
         )
 
     def predict(self, batch_size: int = 1) -> Tuple[Dict[str, np.ndarray], Dict[str, np.ndarray]]:
-        """
-        Return observed labels and full predictions (including scale model) grouped exactly as in nodes_idx_test.
-        :return:
+        """Return observed labels and full predictions (including scale model) grouped exactly as in nodes_idx_test.
+
+        Parameters
+        ----------
+        batch_size : int
+            Number of samples. If unspecified, it will default to 1.
+
+        Returns
+        -------
+        predict
         """
         ds = self._get_dataset_test(batch_size=batch_size)
         return self.model.training_model.predict(ds)
 
     def evaluate_any(self, img_keys, node_idx, batch_size: int = 1):
-        """
-        Evaluates model on any given data set.
+        """Evaluate model on any given data set.
 
-        :param img_keys:
-        :param node_idx:
-        :param batch_size:
-        :return:
+        Parameters
+        ----------
+        img_keys
+            Image keys.
+        node_idx
+            Nodes indices.
+        batch_size : int
+            Number of samples. If unspecified, it will default to 1.
+
+        Returns
+        -------
+        eval_dict
         """
         ds = self._get_dataset(
             image_keys=img_keys,
@@ -1220,11 +1527,16 @@ class Estimator:
         return eval_dict
 
     def evaluate_per_node_type(self, batch_size: int = 1):
-        """
-        Evaluates model for each node type seperately.
+        """Evaluate model for each node type seperately.
 
-        :param batch_size:
-        :return:
+        Parameters
+        ----------
+        batch_size : int
+            Number of samples. If unspecified, it will default to 1.
+
+        Returns
+        -------
+        split_per_node_type, evaluation_per_node_type
         """
         evaluation_per_node_type = {}
         split_per_node_type = {}
@@ -1252,10 +1564,30 @@ class Estimator:
 
 
 class EstimatorGraph(Estimator):
+    """EstimatorGraph class for spatial models."""
+
     def init_model(self, **kwargs):
+        """Initialize EstimatorGraph.
+
+        Parameters
+        ----------
+        kwargs
+            Arbitrary keyword arguments.
+        """
         pass
 
     def _get_output_signature(self, resampled: bool = False):
+        """Get output signatures.
+
+        Parameters
+        ----------
+        resampled : bool
+            Whether dataset is resampled or not.
+
+        Returns
+        -------
+        output_signature
+        """
         h_1 = tf.TensorSpec(
             shape=(self.n_eval_nodes_per_graph, self.n_features_1), dtype=tf.float32
         )  # input node features
@@ -1310,16 +1642,30 @@ class EstimatorGraph(Estimator):
         prefetch: int = 100,
         reinit_n_eval: Optional[int] = None,
     ):
-        """
+        """Prepare a dataset.
 
-        :param image_keys:
-        :param nodes_idx:
-        :param batch_size:
-        :param shuffle_buffer_size:
-        :param train:
-        :param seed:
-        :param prefetch:
-        :return:
+        Parameters
+        ----------
+        image_keys : np.array
+            Image keys in partition.
+        nodes_idx : dict, str
+            Dictionary of nodes per image in partition.
+        batch_size : int
+            Batch size.
+        shuffle_buffer_size : int, optional
+            Shuffle buffer size.
+        train : bool
+            Whether dataset is used for training or not (influences shuffling of nodes).
+        seed : int, optional
+            Random seed.
+        prefetch: int
+            Prefetch of dataset.
+        reinit_n_eval : int, optional
+            Used if model is reinitialized to different number of nodes per graph.
+
+        Returns
+        -------
+        A tensorflow dataset.
         """
         np.random.seed(seed)
         if reinit_n_eval is not None and reinit_n_eval != self.n_eval_nodes_per_graph:
@@ -1432,14 +1778,28 @@ class EstimatorGraph(Estimator):
         prefetch: int = 100,
         reinit_n_eval: Optional[int] = None,
     ):
-        """
+        """Evaluate model based on resampled dataset for posterior resampling.
 
-        :param image_keys:
-        :param nodes_idx:
-        :param batch_size:
-        :param seed:
-        :param prefetch:
-        :return:
+        node_1 + domain_1 -> encoder -> z_1 + domain_2 -> decoder -> reconstruction_2.
+
+        Parameters
+        ----------
+        image_keys: np.array
+            Image keys in partition.
+        nodes_idx : dict
+            Dictionary of nodes per image in partition.
+        batch_size : int
+            Batch size.
+        seed : int, optional
+            Seed.
+        prefetch : int
+            Prefetch.
+        reinit_n_eval : int, optional
+            Used if model is reinitialized to different number of nodes per graph.
+
+        Returns
+        -------
+        A tensorflow dataset.
         """
         np.random.seed(seed)
         if reinit_n_eval is not None:
@@ -1572,10 +1932,30 @@ class EstimatorGraph(Estimator):
 
 
 class EstimatorNoGraph(Estimator):
+    """EstimatorNoGraph class for baseline models."""
+
     def init_model(self, **kwargs):
+        """Initialize EstimatorNoGraph.
+
+        Parameters
+        ----------
+        kwargs
+            Arbitrary keyword arguments.
+        """
         pass
 
     def _get_output_signature(self, resampled: bool = False):
+        """Get output signatures.
+
+        Parameters
+        ----------
+        resampled : bool
+            Whether dataset is resampled or not.
+
+        Returns
+        -------
+        output_signature
+        """
         h_1 = tf.TensorSpec(
             shape=(self.n_eval_nodes_per_graph, self.n_features_1), dtype=tf.float32
         )  # input node features
@@ -1616,23 +1996,36 @@ class EstimatorNoGraph(Estimator):
         image_keys: List[str],
         nodes_idx: Dict[str, np.ndarray],
         batch_size: int,
-        shuffle_buffer_size: int,
+        shuffle_buffer_size: Optional[int],
         train: bool = True,
         seed: Optional[int] = None,
         prefetch: int = 100,
         reinit_n_eval: Optional[int] = None,
     ):
-        """
-        Prepares a dataset.
+        """Prepare a dataset.
 
-        Uses self.h as feature space.
+        Parameters
+        ----------
+        image_keys : np.array
+            Image keys in partition.
+        nodes_idx : dict, str
+            Dictionary of nodes per image in partition.
+        batch_size : int
+            Batch size.
+        shuffle_buffer_size : int, optional
+            Shuffle buffer size.
+        train : bool
+            Whether dataset is used for training or not (influences shuffling of nodes).
+        seed : int, optional
+            Random seed.
+        prefetch: int
+            Prefetch of dataset.
+        reinit_n_eval : int, optional
+            Used if model is reinitialized to different number of nodes per graph.
 
-        :param image_keys: List of images indices to use.
-        :param nodes_idx: List of cell indices to use.
-        :param batch_size:
-        :param shuffle_buffer_size: Set to None to not shuffle
-        :param seed: Seed to set for np.random for reproducable evaluation and prediction.
-        :return: A tf.data.Dataset for unsupervised models.
+        Returns
+        -------
+        A tensorflow dataset.
         """
         np.random.seed(seed)
         if reinit_n_eval is not None and reinit_n_eval != self.n_eval_nodes_per_graph:
@@ -1720,14 +2113,28 @@ class EstimatorNoGraph(Estimator):
         prefetch: int = 100,
         reinit_n_eval: Optional[int] = None,
     ):
-        """
+        """Evaluate model based on resampled dataset for posterior resampling.
 
-        :param image_keys:
-        :param nodes_idx:
-        :param batch_size:
-        :param seed:
-        :param prefetch:
-        :return:
+        node_1 + domain_1 -> encoder -> z_1 + domain_2 -> decoder -> reconstruction_2.
+
+        Parameters
+        ----------
+        image_keys: np.array
+            Image keys in partition.
+        nodes_idx : dict
+            Dictionary of nodes per image in partition.
+        batch_size : int
+            Batch size.
+        seed : int, optional
+            Seed.
+        prefetch : int
+            Prefetch.
+        reinit_n_eval : int, optional
+            Used if model is reinitialized to different number of nodes per graph.
+
+        Returns
+        -------
+        A tensorflow dataset.
         """
         np.random.seed(seed)
         if reinit_n_eval is not None:

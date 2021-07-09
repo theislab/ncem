@@ -25,7 +25,7 @@ class PreprocInput(tf.keras.layers.Layer):
         Parameters
         ----------
         inputs
-            Inputs.
+            Inputs.git
         kwargs
             Arbitrary keyword arguments.
 

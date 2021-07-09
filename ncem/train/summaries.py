@@ -15,9 +15,6 @@ class GridSearchContainer:
 
     runparams: dict
     run_ids_clean: dict
-    evals: dict
-    evals_posterior_sampling: dict
-    histories: dict
     source_gs: dict
     cv_ids: dict
 
@@ -42,6 +39,10 @@ class GridSearchContainer:
             gs_ids = [gs_ids]
         self.gs_ids = gs_ids
         self.lateral_resolution = lateral_resolution
+
+        self.evals = {}
+        self.evals_posterior_sampling = {}
+        self.histories = {}
 
         self.summary_table = None
         self.runparams_table = None
@@ -491,9 +492,7 @@ class GridSearchContainer:
                 else:
                     run_ids_clean.append(r)
             # Load results and settings from completed runs:
-            evals = (
-                {}
-            )  # Dictionary over runs with dictionary over cross-validations with results from model evaluation.
+            evals = {} # Dictionary over runs with dictionary over cross-validations with results from model evaluation.
             indices = {}
             runparams = {}  # Dictionary over runs with model settings.
             for x in run_ids_clean:

@@ -10,5 +10,5 @@ from ncem.models.layers.output_layers import (GaussianConstDispOutput,
                                               NegBinConstDispOutput,
                                               NegBinOutput,
                                               NegBinSharedDispOutput)
-from ncem.models.layers.preproc_input import (DenseInteractions, NodeDegrees,
+from ncem.models.layers.preproc_input import (DenseInteractions,
                                               PreprocInput)
