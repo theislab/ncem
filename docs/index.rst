@@ -6,7 +6,8 @@ Welcome to ncem's documentation!
 
    readme
    installation
-   usage
+   api
+   tutorials
    reference
    contributing
    authors
