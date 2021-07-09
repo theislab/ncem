@@ -38,43 +38,6 @@ class PreprocInput(tf.keras.layers.Layer):
         return inputs
 
 
-class NodeDegrees(tf.keras.layers.Layer):
-    """NodeDegrees layer."""
-
-    def __init__(self, in_node_dim, name: str = "nodedegrees", **kwargs):
-        """Initialize NodeDegrees.
-
-        Parameters
-        ----------
-        in_node_dim
-            Node dimension.
-        name : str
-            Layer name.
-        kwargs
-            Arbitrary keyword arguments.
-        """
-        super().__init__(name=name, **kwargs)
-        self.in_node_dim = in_node_dim
-
-    def call(self, inputs, **kwargs):
-        """Call NodeDegrees layer.
-
-        Parameters
-        ----------
-        inputs
-            Inputs.
-        kwargs
-            Arbitrary keyword arguments.
-
-        Returns
-        -------
-        node_degrees
-        """
-        node_degrees = tf.sparse.reduce_sum(inputs, axis=-1)
-        node_degrees = tf.reshape(node_degrees, shape=[-1, self.in_node_dim, 1])
-        return node_degrees
-
-
 class DenseInteractions(tf.keras.layers.Layer):
     """DenseInteractions layer."""
 

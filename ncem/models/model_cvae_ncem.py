@@ -34,7 +34,6 @@ class ModelCVAEncem:
         use_domain: bool = False,
         scale_node_size: bool = False,
         use_type_cond: bool = True,
-        use_node_degree: bool = False,
         use_batch_norm: bool = False,
         transform_input: bool = False,
         output_layer: str = "gaussian",
@@ -82,8 +81,6 @@ class ModelCVAEncem:
             Whether to use batch normalization.
         use_type_cond : bool
             whether to use the categorical cell type label in conditional.
-        use_node_degree : bool
-            whether to use node degrees.
         scale_node_size : bool
             Whether to scale output layer by node sizes.
         transform_input : bool
@@ -120,7 +117,6 @@ class ModelCVAEncem:
             "cond_use_bias": cond_use_bias,
             "use_domain": use_domain,
             "use_type_cond": use_type_cond,
-            "use_node_degree": use_node_degree,
             "scale_node_size": scale_node_size,
             "output_layer": output_layer,
         }
@@ -173,11 +169,6 @@ class ModelCVAEncem:
         else:
             categ_condition = input_categ_condition
 
-        if use_node_degree:
-            node_degrees = NodeDegrees(in_node_dim)(input_a)
-
-            categ_condition = tf.concat([categ_condition, node_degrees], axis=-1)
-
         if cond_depth > 1:
             print("using multi layer graph model")
         x_neighbour_embedding = input_x_cond_full
@@ -212,10 +203,8 @@ class ModelCVAEncem:
         else:
             raise ValueError("tried to access a non-supported conditional layer %s" % cond_type)
 
-        if transform_input:
-            x = PreprocInput()(input_x_reconstruct)
-        else:
-            x = input_x_reconstruct
+        x = PreprocInput()(input_x_reconstruct) if transform_input else input_x_reconstruct
+
         self.encoder_model = CondEncoder(
             latent_dim=latent_dim,
             intermediate_dim=intermediate_dim_enc,
@@ -416,11 +405,11 @@ class ModelCVAEncem:
         logpz = -0.5 * tf.reduce_mean(tf.square(z) + log2pi)
         d_kl = logqz_x - logpz
         loc, scale = output_decoder_layer
-        if output_layer == "gaussian" or output_layer == "gaussian_const_disp":
+        if output_layer in ["gaussian", "gaussian_const_disp"]:
             neg_ll = tf.math.log(tf.sqrt(2 * np.math.pi) * scale) + 0.5 * tf.math.square(
                 loc - input_x_reconstruct
             ) / tf.math.square(scale)
-        elif output_layer == "nb" or output_layer == "nb_const_disp" or output_layer == "nb_shared_disp":
+        elif output_layer in ["nb", "nb_const_disp", "nb_shared_disp"]:
             eta_loc = tf.math.log(loc)
             eta_scale = tf.math.log(scale)
 
