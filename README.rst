@@ -40,7 +40,7 @@ ncem
 
 Features
 --------
-ncem_ is a model rpository ina a single python package for the manuscript *Fischer, D. S., Schaar, A. C. and Theis, F. Learning cell communication from spatial
+ncem_ is a model repository in a single python package for the manuscript *Fischer, D. S., Schaar, A. C. and Theis, F. Learning cell communication from spatial
 graphs of cells. 2021.* (preprint_)
 
 
