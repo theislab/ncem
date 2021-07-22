@@ -40,8 +40,8 @@ ncem
 
 Features
 --------
-
-Repository for the manuscript *Fischer, D. S., Schaar, A. C. and Theis, F. Learning cell communication from spatial graphs of cells. 2021.*
+ncem_ is a model rpository ina a single python package for the manuscript *Fischer, D. S., Schaar, A. C. and Theis, F. Learning cell communication from spatial
+graphs of cells. 2021.* (preprint_)
 
 
 Installation
@@ -59,9 +59,11 @@ Credits
 
 This package was created with cookietemple_ using Cookiecutter_ based on Hypermodern_Python_Cookiecutter_.
 
+.. _ncem: https://ncem.readthedocs.io
 .. _cookietemple: https://cookietemple.com
 .. _Cookiecutter: https://github.com/audreyr/cookiecutter
 .. _PyPI: https://pypi.org/
 .. _Hypermodern_Python_Cookiecutter: https://github.com/cjolowicz/cookiecutter-hypermodern-python
 .. _pip: https://pip.pypa.io/
 .. _Usage: https://ncem.readthedocs.io/en/latest/usage.html
+.. _preprint: https://www.biorxiv.org/content/10.1101/2021.07.11.451750v1
