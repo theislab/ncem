@@ -8,6 +8,7 @@ Welcome to ncem's documentation!
    installation
    usage
    tutorials
+   ecosystem
    reference
    contributing
    authors
