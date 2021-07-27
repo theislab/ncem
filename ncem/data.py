@@ -1471,6 +1471,150 @@ class PlottingTools:
         else:
             return None
 
+    def cell_radius(
+        self,
+        area_key: Optional[str] = None,
+        volume_key: Optional[str] = None,
+        figsize: Tuple[float, float] = (16.0, 3.5),
+        fontsize: Optional[int] = None,
+        text_pos: Tuple[float, float] = (1.1, 0.9),
+        save: Union[str, None] = None,
+        suffix: str = "_distribution_cellradius.pdf",
+        show: bool = True,
+        return_axs: bool = False,
+    ):
+        """Plots the cell radius distribution.
+
+        Parameters
+        ----------
+        area_key : str, optional
+            Key for cell area in obs.
+        volume_key : str, optional
+            Key for cell volume in obs.
+        figsize : tuple,
+            Figure size.
+        fontsize : int, optional
+           Font size.
+        text_pos : tuple
+            Relative text position.
+        save : str, optional
+            Whether (if not None) and where (path as string given as save) to save plot.
+        suffix : str
+            Suffix of file name to save to.
+        show : bool
+            Whether to display plot.
+        return_axs : bool
+            Whether to return axis objects.
+
+        Returns
+        -------
+        axis
+            If `return_axs` is True.
+        """
+        if fontsize:
+            sc.set_figure_params(scanpy=True, fontsize=fontsize)
+
+        if area_key:
+            x = np.sqrt(self.celldata.obs[area_key])
+
+        if volume_key:
+            x = np.cbrt(self.celldata.obs[volume_key])
+
+        fig, ax = plt.subplots(1, 1, figsize=figsize)
+        sns.histplot(x, ax=ax)
+        plt.axvline(np.mean(x), color='Red', linewidth=2, ax=ax)
+        min_ylim, max_ylim = plt.ylim()
+        plt.text(np.mean(x) * text_pos[0], max_ylim * text_pos[1], 'mean: {:.2f} $\mu$m'.format(np.mean(x)), ax=ax)
+        ax.set_xlabel("")
+        ax.set_ylabel("")
+
+        plt.tight_layout()
+        if save is not None:
+            plt.savefig(save + suffix)
+
+        if show:
+            plt.show()
+
+        plt.close(fig)
+        plt.ion()
+
+        if return_axs:
+            return ax
+        else:
+            return None
+
+    def minimal_cell_distance(
+        self,
+        figsize: Tuple[float, float] = (16.0, 3.5),
+        fontsize: Optional[int] = None,
+        text_pos: Tuple[float, float] = (1.1, 0.9),
+        save: Union[str, None] = None,
+        suffix: str = "_distribution_min_celldistance.pdf",
+        show: bool = True,
+        return_axs: bool = False,
+    ):
+        """Plots the minimal cell distance distribution.
+
+        Parameters
+        ----------
+        figsize : tuple,
+            Figure size.
+        fontsize : int, optional
+           Font size.
+        text_pos : tuple
+            Relative text position.
+        save : str, optional
+            Whether (if not None) and where (path as string given as save) to save plot.
+        suffix : str
+            Suffix of file name to save to.
+        show : bool
+            Whether to display plot.
+        return_axs : bool
+            Whether to return axis objects.
+
+        Returns
+        -------
+        axis
+            If `return_axs` is True.
+        """
+        if fontsize:
+            sc.set_figure_params(scanpy=True, fontsize=fontsize)
+
+        x = []
+        with tqdm(total=len(self.img_celldata.keys())) as pbar:
+            for adata in self.img_celldata.values():
+                dist = adata.obsp['adjacency_matrix_distances'].todense()
+                for i in range(dist.shape[0]):
+                    vec = dist[i, :]
+                    vec = vec[vec != 0]
+                    if vec.shape[1] == 0:
+                        continue
+                    x.append(np.min(vec))
+                pbar.update(1)
+
+        fig, ax = plt.subplots(1, 1, figsize=figsize)
+        sns.histplot(x, ax=ax)
+        plt.axvline(np.mean(x), color='Red', linewidth=2, ax=ax)
+        min_ylim, max_ylim = plt.ylim()
+        plt.text(np.mean(x) * text_pos[0], max_ylim * text_pos[1], 'mean: {:.2f} $\mu$m'.format(np.mean(x)), ax=ax)
+        ax.set_xlabel("")
+        ax.set_ylabel("")
+
+        plt.tight_layout()
+        if save is not None:
+            plt.savefig(save + suffix)
+
+        if show:
+            plt.show()
+
+        plt.close(fig)
+        plt.ion()
+
+        if return_axs:
+            return ax
+        else:
+            return None
+
 
 class DataLoader(GraphTools, PlottingTools):
     """DataLoader class. Inherits all functions from GraphTools and PlottingTools."""
@@ -1879,7 +2023,9 @@ class DataLoaderHartmann(DataLoader):
         ]
 
         celldata = AnnData(
-            X=celldata_df[feature_cols], obs=celldata_df[["point", "cell_id", "donor", "Cluster"]].astype("category")
+            X=celldata_df[feature_cols], obs=celldata_df[
+                ["point", "cell_id", "cell_size", "donor", "Cluster"]
+            ].astype("category")
         )
 
         celldata.uns["metadata"] = metadata
