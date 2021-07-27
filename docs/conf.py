@@ -9,6 +9,7 @@
 #
 import os
 import sys
+from pathlib import Path
 
 sys.path.insert(0, os.path.abspath(".."))
 
@@ -16,7 +17,7 @@ sys.path.insert(0, os.path.abspath(".."))
 # -- General configuration ---------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
-# needs_sphinx = '1.0'
+needs_sphinx = '1.7'
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
@@ -27,7 +28,6 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.napoleon",
     "sphinx_click",
-    "sphinx_rtd_dark_mode",
     "sphinx.ext.intersphinx",
     "sphinx.ext.doctest",
     "sphinx.ext.coverage",
@@ -44,7 +44,6 @@ napoleon_include_init_with_doc = False
 napoleon_use_rtype = True
 napoleon_use_param = True
 napoleon_custom_sections = [("Params", "Parameters")]
-todo_include_todos = False
 
 intersphinx_mapping = dict(
     anndata=("https://anndata.readthedocs.io/en/latest/", None),
@@ -126,6 +125,12 @@ html_static_path = ["_static"]
 html_show_sphinx = False
 gh_url = "https://github.com/{github_user}/{github_repo}".format_map(html_context)
 
+
+def setup(app):
+    app.add_css_file('css/custom.css')
+    app.connect('autodoc-process-docstring', insert_function_images)
+    app.add_role('pr', autolink(f'{gh_url}/pull/{{}}', 'PR {}'))
+
 # -- Options for HTMLHelp output ---------------------------------------
 
 # Output file base name for HTML help builder.
@@ -200,3 +205,24 @@ texinfo_documents = [
 html_css_files = [
     "custom_cookietemple.css",
 ]
+
+# -- Images for plot functions -------------------------------------------------
+
+
+def insert_function_images(app, what, name, obj, options, lines):
+    path = Path(__file__).parent / 'api' / f'{name}.png'
+    if what != 'function' or not path.is_file(): return
+    lines[0:0] = [f'.. image:: {path.name}', '   :width: 200', '   :align: right', '']
+
+# -- GitHub links --------------------------------------------------------------
+
+
+def autolink(url_template, title_template='{}'):
+    from docutils import nodes
+
+    def role(name, rawtext, text, lineno, inliner, options={}, content=[]):
+        url = url_template.format(text)
+        title = title_template.format(text)
+        node = nodes.reference(rawtext, title, refuri=url, **options)
+        return [node], []
+    return role
