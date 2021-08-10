@@ -99,8 +99,10 @@
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="usage.html">API</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ecosystem.html">Ecosystem</a></li>
 <li class="toctree-l1"><a class="reference internal" href="reference.html">Reference</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Contributor Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#how-to-add-a-dataloader">How to add a dataloader</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#how-to-report-a-bug">How to report a bug</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#how-to-request-a-feature">How to request a feature</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#how-to-set-up-your-development-environment">How to set up your development environment</a></li>
@@ -191,6 +193,60 @@ highly welcomes contributions in the form of bug reports, feature requests, and 
 <li><p><a class="reference external" href="https://github.com/theislab/ncem/issues">Issue Tracker</a></p></li>
 <li><p><a class="reference external" href="CODE_OF_CONDUCT.rst">Code of Conduct</a></p></li>
 </ul>
+<div class="section" id="how-to-add-a-dataloader">
+<h2>How to add a dataloader<a class="headerlink" href="#how-to-add-a-dataloader" title="Permalink to this headline">¶</a></h2>
+<p>Overview of contributing dataloaders to ncem.</p>
+<ol class="arabic simple">
+<li><dl class="simple">
+<dt>Install ncem.</dt><dd><p>Clone ncem into a local repository from <cite>development</cite> branch and install via pip.</p>
+</dd>
+</dl>
+</li>
+</ol>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cd</span> <span class="n">target_directory</span>
+<span class="n">git</span> <span class="n">clone</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">theislab</span><span class="o">/</span><span class="n">ncem</span><span class="o">.</span><span class="n">git</span>
+<span class="n">git</span> <span class="n">checkout</span> <span class="n">development</span>
+<span class="c1"># git pull  # use this to update your installation</span>
+<span class="n">cd</span> <span class="n">ncem</span>  <span class="c1"># go into ncem directory</span>
+<span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">e</span> <span class="o">.</span>  <span class="c1"># install</span>
+</pre></div>
+</div>
+<ol class="arabic" start="2">
+<li><dl>
+<dt>Create a new dataloader in <cite>data.py</cite></dt><dd><p>Your dataloader should be a new class in <cite>data.py</cite> (ideally named by first author, e.g. DataLoaderZhang) and
+should contain the following functions <cite>_register_celldata</cite>, <cite>_register_img_celldata</cite> and <cite>_register_graph_features</cite>.</p>
+<p><cite>_register_celldata</cite> creates an AnnData object called <cite>celldata</cite> of the complete dataset with feature names
+stored in <cite>celldata.var_names</cite>. Cell type annotations are stored in <cite>celldata.obs</cite>. <cite>celldata.uns[‘metadata’]</cite>
+should contain the naming conventions of files and columns in obs.</p>
+<p><cite>_register_img_celldata</cite> then automatically splits the <cite>celldata</cite> into a dictionary of AnnData object with one
+AnnData object per image in the dataset.</p>
+<p><cite>_register_graph_features</cite> can be added in case of additional graph features, e.g. disease status of images.</p>
+<p>Additionally, each dataloader should have a class attribute <cite>cell_type_merge_dict</cite> which provides a logic on how to
+merge cell types in any subsequent analysis. This can be helpful when considering datasets with fine cell type
+annotations and a coarser annotation is wanted.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Make loader public (Optional).</dt><dd><p>You can contribute the data loader to public ncem as code through a pull request.
+Note that you can also just keep the data loader in your local installation if you do not want to make it public.</p>
+</dd>
+</dl>
+</li>
+</ol>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># make sure you are in the top-level ncem directory from step 1</span>
+<span class="n">git</span> <span class="n">add</span> <span class="o">*</span>
+<span class="n">git</span> <span class="n">commit</span>  <span class="c1"># enter your commit description</span>
+<span class="c1"># Next make sure you are up to date with dev</span>
+<span class="n">git</span> <span class="n">checkout</span> <span class="n">development</span>
+<span class="n">git</span> <span class="n">pull</span>
+<span class="n">git</span> <span class="n">checkout</span> <span class="n">YOUR_BRANCH_NAME</span>
+<span class="n">git</span> <span class="n">merge</span> <span class="n">development</span>
+<span class="n">git</span> <span class="n">push</span>  <span class="c1"># this starts the pull request.</span>
+</pre></div>
+</div>
+<p>In any case, feel free to open an GitHub issue on on the <a class="reference external" href="https://github.com/theislab/ncem/issues">Issue Tracker</a>.</p>
+</div>
 <div class="section" id="how-to-report-a-bug">
 <h2>How to report a bug<a class="headerlink" href="#how-to-report-a-bug" title="Permalink to this headline">¶</a></h2>
 <p>Report bugs on the <a class="reference external" href="https://github.com/theislab/ncem/issues">Issue Tracker</a>.</p>
