@@ -17,6 +17,58 @@ Here is a list of important resources for contributors:
 .. _Documentation: https://ncem.readthedocs.io/
 .. _Issue Tracker: https://github.com/theislab/ncem/issues
 
+How to add a dataloader
+-----------------------
+Overview of contributing dataloaders to ncem.
+
+1. Install ncem.
+    Clone ncem into a local repository from `development` branch and install via pip.
+
+.. code-block::
+
+    cd target_directory
+    git clone https://github.com/theislab/ncem.git
+    git checkout development
+    # git pull  # use this to update your installation
+    cd ncem  # go into ncem directory
+    pip install -e .  # install
+
+2. Create a new dataloader in `data.py`
+    Your dataloader should be a new class in `data.py` (ideally named by first author, e.g. DataLoaderZhang) and
+    should contain the following functions `_register_celldata`, `_register_img_celldata` and `_register_graph_features`.
+
+    `_register_celldata` creates an AnnData object called `celldata` of the complete dataset with feature names
+    stored in `celldata.var_names`. Cell type annotations are stored in `celldata.obs`. `celldata.uns['metadata']`
+    should contain the naming conventions of files and columns in obs.
+
+    `_register_img_celldata` then automatically splits the `celldata` into a dictionary of AnnData object with one
+    AnnData object per image in the dataset.
+
+    `_register_graph_features` can be added in case of additional graph features, e.g. disease status of images.
+
+    Additionally, each dataloader should have a class attribute `cell_type_merge_dict` which provides a logic on how to
+    merge cell types in any subsequent analysis. This can be helpful when considering datasets with fine cell type
+    annotations and a coarser annotation is wanted.
+
+3. Make loader public (Optional).
+        You can contribute the data loader to public ncem as code through a pull request.
+        Note that you can also just keep the data loader in your local installation if you do not want to make it public.
+
+.. code-block::
+
+    # make sure you are in the top-level ncem directory from step 1
+    git add *
+    git commit  # enter your commit description
+    # Next make sure you are up to date with dev
+    git checkout development
+    git pull
+    git checkout YOUR_BRANCH_NAME
+    git merge development
+    git push  # this starts the pull request.
+..
+
+In any case, feel free to open an GitHub issue on on the `Issue Tracker`_.
+
 How to report a bug
 -------------------
 
