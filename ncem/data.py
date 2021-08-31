@@ -2694,3 +2694,251 @@ class DataLoaderSchuerch(DataLoader):
             "label_data_types": label_cols,
         }
         self.celldata.uns["graph_covariates"] = graph_covariates
+
+
+class DataLoaderWang(DataLoader):
+    """DataLoaderWang class. Inherits all functions from DataLoader."""
+
+    cell_type_merge_dict = {
+        "AEC": "AEC",
+        "CD4": "CD4 T cells",
+        "CD8": "CD8 T cells",
+        "Ddx4": "Ddx4",
+        "Erythroid c1": "Erythroid",
+        "Erythroid c2": "Erythroid",
+        "Erythroid c3": "Erythroid",
+        "Erythroid c4": "Erythroid",
+        "Erythroid prog1": "Erythroid prog",
+        "Erythroid prog2": "Erythroid prog",
+        "FSTL1": "FSTL1",
+        "Macrophage": "Macrophage",
+        "Megakaryocyte": "Megakaryocyte",
+        "Myeloid": "Myeloid",
+        "SEC": "SEC",
+    }
+
+    def _register_celldata(self):
+        """Load AnnData object of complete dataset."""
+        metadata = {
+            "lateral_resolution": 1.,
+            "fn": ["nuclei_data_table.xlsx", "membrane_data_table.xlsx"],
+            "image_col": "img_keys",
+            "pos_cols": ["Location_Center_X", "Location_Center_Y"],
+            "cluster_col": "cell_class",
+            "cluster_col_preprocessed": "cell_class_preprocessed",
+        }
+        nuclei_df = read_excel(self.data_path + metadata["fn"][0])
+        membranes_df = read_excel(self.data_path + metadata["fn"][1])
+
+        celldata_df = nuclei_df.join(membranes_df.set_index("ObjectNumber"), on="ObjectNumber")
+
+        feature_cols = [
+            "Cd34",
+            "Kit",
+            "Ctnnal1",
+            "Mecom",
+            "Runx1",
+            "Ddx4",
+            "Angpt1",
+            "Pecam1",
+            "Efnb2",
+            "Ephb4",
+            "Fgf2",
+            "Flt4",
+            "Jag1",
+            "Lepr",
+            "Nes",
+            "Angpt2",
+            "Stab2",
+            "Notch1",
+            "Tgfb2",
+            "Il7r",
+            "Notch2",
+            "Pdgfra",
+            "Vwf",
+            "Kdr",
+            "Fstl1",
+            "Ndn",
+            "Tek",
+            "Cd93",
+            "Elk3",
+            "Satb1",
+            "Tox",
+            "Flt3",
+            "Clec14a",
+            "Meis2",
+            "Col4a1",
+            "Bmp5",
+            "Cdh11",
+            "Egfr",
+            "Lox",
+            "Rassf4",
+            "Cxadr",
+            "Gpd1",
+            "Hc",
+            "Proz",
+            "Pzp",
+            "Vcam1",
+            "Abcc3",
+            "Mertk",
+            "Mrc1",
+            "Sdc3",
+            "Itgam",
+            "Hgf",
+            "Sardh",
+            "Gnaz",
+            "Timp3",
+            "Mrvi1",
+            "Mmrn1",
+            "Arsb",
+            "B4galt6",
+            "Gca",
+            "Olr1",
+            "Sgms2",
+            "E2f2",
+            "Fam46c",
+            "Slc25a37",
+            "Tfrc",
+            "Tmod1",
+            "Abcb4",
+            "Ammecr1",
+            "Myh10",
+            "Podxl",
+            "Tmem56",
+            "Axin2",
+            "Bmp2",
+            "Bmp7",
+            "Celsr2",
+            "Dkk2",
+            "Dkk3",
+            "Fzd1",
+            "Fzd3",
+            "Fzd4",
+            "Fzd5",
+            "Nkd2",
+            "Prickle2",
+            "Sfrp1",
+            "Tcf7l2",
+            "Vangl2",
+            "Mki67",
+            "Ep300",
+            "Fbxw7",
+            "Maml1",
+            "Notch3",
+            "Notch4",
+            "Tet2",
+            "Tet1",
+            "Eif3a",
+            "Kitl",
+            "Igf1",
+            "Slamf1",
+            "Hoxb5",
+            "Hoxb4",
+            "Cd48",
+            "Itga2b",
+            "Vav1",
+            "Procr",
+            "Angptl2",
+            "Cdh5",
+            "Cspg4",
+            "Cxcl12",
+            "Il6",
+            "Jag2",
+            "Selp",
+            "Nrp1",
+            "Gfap",
+            "Epcam",
+            "Fgf1",
+            "Egr1",
+            "Mpl",
+            "Eng",
+            "Icam1",
+            "Pou2af1",
+            "Lyve1",
+            "Dll1",
+            "Pdpn",
+            "Adgre1",
+            "Dkk1",
+            "Fzd2",
+            "Fzd7",
+            "Fzd8",
+            "Lef1",
+            "Sfrp2",
+            "Tcf7",
+            "Tcf7l1",
+            "Wnt2",
+            "Wnt4",
+            "Mpp1",
+            "Dll4",
+            "Rbpj",
+            "Gata3",
+            "Meis1",
+        ]
+
+        celldata = AnnData(X=celldata_df[feature_cols], obs=celldata_df[["ObjectNumber", "cell_class"]])
+
+        celldata.uns["metadata"] = metadata
+        celldata.obs["img_keys"] = np.repeat("image", repeats=celldata.shape[0])
+        celldata.uns["img_keys"] = ["image"]
+        # register x and y coordinates into obsm
+        celldata.obsm["spatial"] = np.array(celldata_df[metadata["pos_cols"]])
+
+        celldata.uns["img_to_patient_dict"] = {"image": "patient"}
+
+        # add clean cluster column which removes regular expression from cluster_col
+        celldata.obs[metadata["cluster_col_preprocessed"]] = list(
+            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="category").map(self.cell_type_merge_dict)
+        )
+        celldata.obs[metadata["cluster_col_preprocessed"]] = celldata.obs[metadata["cluster_col_preprocessed"]].astype(
+            "category"
+        )
+        # register node type names
+        node_type_names = list(np.unique(celldata.obs[metadata["cluster_col_preprocessed"]]))
+        celldata.uns["node_type_names"] = {x: x for x in node_type_names}
+        node_types = np.zeros((celldata.shape[0], len(node_type_names)))
+        node_type_idx = np.array(
+            [
+                node_type_names.index(x) for x in celldata.obs[metadata["cluster_col_preprocessed"]].values
+            ]  # index in encoding vector
+        )
+        node_types[np.arange(0, node_type_idx.shape[0]), node_type_idx] = 1
+        celldata.obsm["node_types"] = node_types
+
+        self.celldata = celldata
+
+    def _register_img_celldata(self):
+        """Load dictionary of of image-wise celldata objects with {imgage key : anndata object of image}."""
+        image_col = self.celldata.uns["metadata"]["image_col"]
+        img_celldata = {}
+        for k in self.celldata.uns["img_keys"]:
+            img_celldata[str(k)] = self.celldata[self.celldata.obs[image_col] == k].copy()
+        self.img_celldata = img_celldata
+
+    def _register_graph_features(self, label_selection):
+        """Load graph level covariates.
+
+        Parameters
+        ----------
+        label_selection
+            Label selection.
+        """
+        # Save processed data to attributes.
+        for adata in self.img_celldata.values():
+            graph_covariates = {
+                "label_names": {},
+                "label_tensors": {},
+                "label_selection": [],
+                "continuous_mean": {},
+                "continuous_std": {},
+                "label_data_types": {},
+            }
+            adata.uns["graph_covariates"] = graph_covariates
+
+        graph_covariates = {
+            "label_names": {},
+            "label_selection": [],
+            "continuous_mean": {},
+            "continuous_std": {},
+            "label_data_types": {},
+        }
+        self.celldata.uns["graph_covariates"] = graph_covariates
