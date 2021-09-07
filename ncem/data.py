@@ -1771,7 +1771,6 @@ class DataLoaderZhang(DataLoader):
         }
 
         celldata = read_h5ad(self.data_path + metadata["fn"]).copy()
-        celldata = celldata[celldata.obs[metadata["image_col"]] != "Dirt"].copy()
         celldata.uns["metadata"] = metadata
         celldata.uns["img_keys"] = list(np.unique(celldata.obs[metadata["image_col"]]))
 
@@ -2692,5 +2691,121 @@ class DataLoaderSchuerch(DataLoader):
             "continuous_mean": continuous_mean,
             "continuous_std": continuous_std,
             "label_data_types": label_cols,
+        }
+        self.celldata.uns["graph_covariates"] = graph_covariates
+
+
+class DataLoaderLohoff(DataLoader):
+    """DataLoaderLohoff class. Inherits all functions from DataLoader."""
+
+    cell_type_merge_dict = {
+        'Allantois': 'Allantois',
+        'Anterior somitic tissues': 'Anterior somitic tissues',
+        'Blood progenitors': 'Blood progenitors',
+        'Cardiomyocytes': 'Cardiomyocytes',
+        'Cranial mesoderm': 'Cranial mesoderm',
+        'Definitive endoderm': 'Definitive endoderm',
+        'Dermomyotome': 'Dermomyotome',
+        'Endothelium': 'Endothelium',
+        'Erythroid': 'Erythroid',
+        'ExE endoderm': 'ExE endoderm',
+        'Forebrain/Midbrain/Hindbrain': 'Forebrain/Midbrain/Hindbrain',
+        'Gut tube': 'Gut tube',
+        'Haematoendothelial progenitors': 'Haematoendothelial progenitors',
+        'Intermediate mesoderm': 'Intermediate mesoderm',
+        'Lateral plate mesoderm': 'Lateral plate mesoderm',
+        'Low quality': 'Low quality',
+        'Mixed mesenchymal mesoderm': 'Mixed mesenchymal mesoderm',
+        'NMP': 'NMP',
+        'Neural crest': 'Neural crest',
+        'Presomitic mesoderm': 'Presomitic mesoderm',
+        'Sclerotome': 'Sclerotome',
+        'Spinal cord': 'Spinal cord',
+        'Splanchnic mesoderm': 'Splanchnic mesoderm',
+        'Surface ectoderm': 'Surface ectoderm'
+    }
+
+    def _register_celldata(self):
+        """Load AnnData object of complete dataset."""
+        metadata = {
+            "lateral_resolution": 1.,
+            "fn": "lohoff_preprocessed.h5ad",
+            "image_col": "embryo",
+            "pos_cols": ["x_global", "y_global"],
+            "cluster_col": "celltype_mapped_refined",
+            "cluster_col_preprocessed": "celltype_mapped_refined",
+            "patient_col": "embryo",
+        }
+
+        celldata = read_h5ad(self.data_path + metadata["fn"]).copy()
+        celldata.uns["metadata"] = metadata
+        celldata.uns["img_keys"] = list(np.unique(celldata.obs[metadata["image_col"]]))
+
+        img_to_patient_dict = {
+            str(x): celldata.obs[metadata["patient_col"]].values[i].split("_")[0]
+            for i, x in enumerate(celldata.obs[metadata["image_col"]].values)
+        }
+        celldata.uns["img_to_patient_dict"] = img_to_patient_dict
+        self.img_to_patient_dict = img_to_patient_dict
+
+        # register x and y coordinates into obsm
+        celldata.obsm["spatial"] = celldata.obs[metadata["pos_cols"]]
+
+        # add clean cluster column which removes regular expression from cluster_col
+        celldata.obs[metadata["cluster_col_preprocessed"]] = list(
+            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="category").map(self.cell_type_merge_dict)
+        )
+        celldata.obs[metadata["cluster_col_preprocessed"]] = celldata.obs[metadata["cluster_col_preprocessed"]].astype(
+            "category"
+        )
+
+        # register node type names
+        node_type_names = list(np.unique(celldata.obs[metadata["cluster_col_preprocessed"]]))
+        celldata.uns["node_type_names"] = {x: x for x in node_type_names}
+        node_types = np.zeros((celldata.shape[0], len(node_type_names)))
+        node_type_idx = np.array(
+            [
+                node_type_names.index(x) for x in celldata.obs[metadata["cluster_col_preprocessed"]].values
+            ]  # index in encoding vector
+        )
+        node_types[np.arange(0, node_type_idx.shape[0]), node_type_idx] = 1
+        celldata.obsm["node_types"] = node_types
+
+        self.celldata = celldata
+
+    def _register_img_celldata(self):
+        """Load dictionary of of image-wise celldata objects with {imgage key : anndata object of image}."""
+        image_col = self.celldata.uns["metadata"]["image_col"]
+        img_celldata = {}
+        for k in self.celldata.uns["img_keys"]:
+            img_celldata[str(k)] = self.celldata[self.celldata.obs[image_col] == k].copy()
+        self.img_celldata = img_celldata
+
+    def _register_graph_features(self, label_selection):
+        """Load graph level covariates.
+
+        Parameters
+        ----------
+        label_selection
+            Label selection.
+        """
+        # Save processed data to attributes.
+        for adata in self.img_celldata.values():
+            graph_covariates = {
+                "label_names": {},
+                "label_tensors": {},
+                "label_selection": [],
+                "continuous_mean": {},
+                "continuous_std": {},
+                "label_data_types": {},
+            }
+            adata.uns["graph_covariates"] = graph_covariates
+
+        graph_covariates = {
+            "label_names": {},
+            "label_selection": [],
+            "continuous_mean": {},
+            "continuous_std": {},
+            "label_data_types": {},
         }
         self.celldata.uns["graph_covariates"] = graph_covariates
