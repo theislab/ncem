@@ -2729,7 +2729,7 @@ class DataLoaderLohoff(DataLoader):
         """Load AnnData object of complete dataset."""
         metadata = {
             "lateral_resolution": 1.,
-            "fn": "lohoff_preprocessed.h5ad",
+            "fn": "preprocessed_lohoff.h5ad",
             "image_col": "embryo",
             "pos_cols": ["x_global", "y_global"],
             "cluster_col": "celltype_mapped_refined",
