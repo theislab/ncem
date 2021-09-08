@@ -134,6 +134,9 @@ class Estimator:
                 "tumor cells / immune cells",
                 "immune cells / vasculature",
             ]
+        elif data_origin == 'lohoff':
+            from ncem.data import DataLoaderLohoff as DataLoader
+            self.undefined_node_types = ['Low quality']
         else:
             raise ValueError(f"data_origin {data_origin} not recognized")
 
