@@ -2836,7 +2836,7 @@ class DataLoaderWang(DataLoader):
         metadata = {
             "lateral_resolution": 1.,
             "fn": ["nuclei_data_table.xlsx", "membrane_data_table.xlsx"],
-            "image_col": "img_keys",
+            "image_col": "img_keys",  # ToDo adjust
             "pos_cols": ["Location_Center_X", "Location_Center_Y"],
             "cluster_col": "cell_class",
             "cluster_col_preprocessed": "cell_class_preprocessed",
