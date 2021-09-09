@@ -137,10 +137,14 @@ class Estimator:
         elif data_origin == 'lohoff':
             from ncem.data import DataLoaderLohoff as DataLoader
             self.undefined_node_types = ['Low quality']
-        elif data_origin == "wang":
-            from ncem.data import DataLoaderWang as DataLoader
+        elif data_origin == "luwt":
+            from ncem.data import DataLoaderLuWT as DataLoader
 
-            self.undefined_node_types = None
+            self.undefined_node_types = ['Unknown']
+        elif data_origin == "lutet2":
+            from ncem.data import DataLoaderLuTET2 as DataLoader
+
+            self.undefined_node_types = ['Unknown']
         else:
             raise ValueError(f"data_origin {data_origin} not recognized")
 
