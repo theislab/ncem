@@ -248,7 +248,7 @@ class PlottingTools:
         with tqdm(total=len(self.img_celldata.keys())) as pbar:
             for adata in self.img_celldata.values():
                 im = sq.gr.interaction_matrix(
-                    adata, cluster_key=cluster_key, connectivity_key="adjacency_matrix", normalized=True, copy=True
+                    adata, cluster_key=cluster_key, connectivity_key="adjacency_matrix", normalized=False, copy=True
                 )
                 im = pd.DataFrame(
                     im, columns=list(np.unique(adata.obs[cluster_key])), index=list(np.unique(adata.obs[cluster_key]))
@@ -257,8 +257,9 @@ class PlottingTools:
                 pbar.update(1)
         df_concat = pd.concat(interaction_matrix)
         by_row_index = df_concat.groupby(df_concat.index)
-        df_means = by_row_index.mean().sort_index(axis=1)
-        self.celldata.uns[f"{cluster_key}_interactions"] = np.array(df_means).T
+        df_means = by_row_index.sum().sort_index(axis=1)
+        interactions = np.array(df_means).T
+        self.celldata.uns[f"{cluster_key}_interactions"] = interactions/np.sum(interactions, axis=1)[:, np.newaxis]
 
         if fontsize:
             sc.set_figure_params(scanpy=True, fontsize=fontsize)
@@ -2814,15 +2815,15 @@ class DataLoaderLuWT(DataLoader):
     """DataLoaderLuWT class. Inherits all functions from DataLoader."""
 
     cell_type_merge_dict = {
-        "1": "AEC",
-        "2": "SEC",
-        "3": "MK",
-        "4": "Hepatocyte",
-        "5": "Macrophage",
-        "6": "Myeloid",
-        "7": "Erythroid progenitor",
-        "8": "Erythroid cell",
-        "9": "Unknown",
+        1: "AEC",
+        2: "SEC",
+        3: "MK",
+        4: "Hepatocyte",
+        5: "Macrophage",
+        6: "Myeloid",
+        7: "Erythroid progenitor",
+        8: "Erythroid cell",
+        9: "Unknown",
     }
 
     def _register_celldata(self):
@@ -3001,6 +3002,7 @@ class DataLoaderLuWT(DataLoader):
         )
         # register node type names
         node_type_names = list(np.unique(celldata.obs[metadata["cluster_col_preprocessed"]]))
+        print(node_type_names)
         celldata.uns["node_type_names"] = {x: x for x in node_type_names}
         node_types = np.zeros((celldata.shape[0], len(node_type_names)))
         node_type_idx = np.array(
@@ -3055,15 +3057,15 @@ class DataLoaderLuTET2(DataLoader):
     """DataLoaderLuTET2 class. Inherits all functions from DataLoader."""
 
     cell_type_merge_dict = {
-        "1": "AEC",
-        "2": "SEC",
-        "3": "MK",
-        "4": "Hepatocyte",
-        "5": "Macrophage",
-        "6": "Myeloid",
-        "7": "Erythroid progenitor",
-        "8": "Erythroid cell",
-        "9": "Unknown",
+        1: "AEC",
+        2: "SEC",
+        3: "MK",
+        4: "Hepatocyte",
+        5: "Macrophage",
+        6: "Myeloid",
+        7: "Erythroid progenitor",
+        8: "Erythroid cell",
+        9: "Unknown",
     }
 
     def _register_celldata(self):
@@ -3242,6 +3244,7 @@ class DataLoaderLuTET2(DataLoader):
         )
         # register node type names
         node_type_names = list(np.unique(celldata.obs[metadata["cluster_col_preprocessed"]]))
+        print(node_type_names)
         celldata.uns["node_type_names"] = {x: x for x in node_type_names}
         node_types = np.zeros((celldata.shape[0], len(node_type_names)))
         node_type_idx = np.array(
