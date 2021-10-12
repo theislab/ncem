@@ -176,7 +176,8 @@ class EstimatorNeighborhood(Estimator):
                     h_neighbors = []
                     a_neighborhood = np.zeros((self.n_eval_nodes_per_graph, self.n_neighbors_padded), "float32")
                     for i, j in enumerate(idx_nodes[indices]):
-                        idx_neighbors = np.where(np.asarray(self.a[key][j, :].todense()).flatten() == 1.)[0]
+                        a_j = np.asarray(self.a[key][j, :].todense()).flatten()
+                        idx_neighbors = np.where(a_j > 0.)[0]
                         if self.h0_in:
                             h_neighbors_j = self.h_0[key][idx_neighbors, :]
                         else:
@@ -187,7 +188,7 @@ class EstimatorNeighborhood(Estimator):
                         zeros = np.zeros((1, diff, h_neighbors_j.shape[2]), dtype="float32")
                         h_neighbors_j = np.concatenate([h_neighbors_j, zeros], axis=1)
                         h_neighbors.append(h_neighbors_j)
-                        a_neighborhood[i, :len(idx_neighbors)] = 1.
+                        a_neighborhood[i, :len(idx_neighbors)] = a_j[idx_neighbors]
                     h_neighbors = np.concatenate([h_neighbors], axis=0)
                     if self.log_transform:
                         h_targets = np.log(h_targets + 1.0)
