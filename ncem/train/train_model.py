@@ -3,7 +3,7 @@ import pickle
 from typing import Union
 
 from ncem.estimators import (EstimatorCVAE, EstimatorCVAEncem, EstimatorED,
-                             EstimatorEDncem, EstimatorInteractions,
+                             EstimatorEDncem, EstimatorEdNcemNeighborhood, EstimatorInteractions,
                              EstimatorLinear)
 
 
@@ -132,6 +132,16 @@ class TrainModelEDncem(TrainModel):
 
     def init_estim(self, **kwargs):
         self.estimator = EstimatorEDncem(**kwargs)
+
+    def _save_specific(self, fn):
+        self._save_evaluation_per_node_type(fn=fn)
+
+
+class TrainModelEdSingleNcem(TrainModel):
+    estimator: EstimatorEdNcemNeighborhood
+
+    def init_estim(self, **kwargs):
+        self.estimator = EstimatorEdNcemNeighborhood(**kwargs)
 
     def _save_specific(self, fn):
         self._save_evaluation_per_node_type(fn=fn)

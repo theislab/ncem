@@ -1,7 +1,8 @@
 import tensorflow as tf
+from typing import Tuple
 
-from ncem.estimators import EstimatorGraph
-from ncem.models import ModelEDncem
+from ncem.estimators import EstimatorGraph, EstimatorNeighborhood
+from ncem.models import ModelEDncem, ModelEd2Ncem
 
 
 class EstimatorEDncem(EstimatorGraph):
@@ -160,4 +161,91 @@ class EstimatorEDncem(EstimatorGraph):
         self.beta = beta
         self.max_beta = max_beta
         self.pre_warm_up = pre_warm_up
+        self._compile_model(optimizer=optimizer, output_layer=output_layer)
+
+
+class EstimatorEdNcemNeighborhood(EstimatorNeighborhood):
+    """Estimator class for encoder-decoder NCEM models with single graph layer. Subclass of EstimatorNeighborhood."""
+
+    def __init__(
+        self,
+        cond_type: str,
+        use_type_cond: bool,
+        log_transform: bool = False,
+    ):
+        """Initialize a EstimatorEDncem object.
+
+        Parameters
+        ----------
+        cond_type : str
+            Max, ind or gcn, graph layer used in conditional.
+        use_type_cond : bool
+            Whether to use the categorical cell type label in conditional.
+        log_transform : bool
+            Whether to log transform h_1.
+
+        Raises
+        ------
+        ValueError
+            If `cond_type` is not recognized.
+        """
+        super(EstimatorEdNcemNeighborhood, self).__init__()
+        self.model_type = "ed_ncem"
+        if cond_type in ["gat", "lr_gat"]:
+            self.adj_type = "full"
+        else:
+            raise ValueError("cond_type %s not recognized" % cond_type)
+        self.cond_type = cond_type
+        self.use_type_cond = use_type_cond
+        self.log_transform = log_transform
+        self.metrics = {"np": [], "tf": []}
+        self.n_eval_nodes_per_graph = None
+
+    def init_model(
+        self,
+        optimizer: str,
+        learning_rate: float,
+        latent_dim: Tuple[int],
+        dropout_rate: float,
+        l2_coef: float,
+        l1_coef: float,
+        n_eval_nodes_per_graph: int,
+        use_domain: bool,
+        scale_node_size: bool,
+        output_layer: str,
+        dec_intermediate_dim: int,
+        dec_n_hidden: int,
+        dec_dropout_rate: float,
+        dec_l1_coef: float,
+        dec_l2_coef: float,
+        dec_use_batch_norm: bool,
+        **kwargs
+    ):
+        self.n_eval_nodes_per_graph = n_eval_nodes_per_graph
+        self.model = ModelEd2Ncem(
+            input_shapes=(
+                self.n_features_in,
+                self.n_features_1,
+                self.n_eval_nodes_per_graph,
+                self.n_neighbors_padded,
+                self.n_node_covariates,
+                self.n_domains,
+            ),
+            latent_dim=latent_dim,
+            dropout_rate=dropout_rate,
+            l2_coef=l2_coef,
+            l1_coef=l1_coef,
+            use_domain=use_domain,
+            use_type_cond=self.use_type_cond,
+            scale_node_size=scale_node_size,
+            output_layer=output_layer,
+            dec_intermediate_dim=dec_intermediate_dim,
+            dec_n_hidden=dec_n_hidden,
+            dec_dropout_rate=dec_dropout_rate,
+            dec_l1_coef=dec_l1_coef,
+            dec_l2_coef=dec_l2_coef,
+            dec_use_batch_norm=dec_use_batch_norm,
+        )
+        optimizer = tf.keras.optimizers.get(optimizer)
+        tf.keras.backend.set_value(optimizer.lr, learning_rate)
         self._compile_model(optimizer=optimizer, output_layer=output_layer)
