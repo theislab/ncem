@@ -112,6 +112,10 @@ class SingleLrGatLayer(tf.keras.layers.Layer):
 
 class SingleGatLayer(tf.keras.layers.Layer):
 
+    """
+    TODO GAT implementation here is not complete yet.
+    """
+
     def __init__(self, in_dim, out_dim, dropout_rate, l2_reg, **kwargs):
         """Initialize GatLayer.
 
