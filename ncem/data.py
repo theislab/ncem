@@ -2835,6 +2835,7 @@ class DataLoaderLuWT(DataLoader):
             "pos_cols": ["Center_x", "Center_y"],
             "cluster_col": "CellTypeID_new",
             "cluster_col_preprocessed": "CellTypeID_new_preprocessed",
+            "scRNAseq_fn": ['fetal_liver.h5ad', 'sorted_HSC.h5ad']
         }
         celldata_df = read_csv(self.data_path + metadata["fn"])
 
@@ -3051,6 +3052,33 @@ class DataLoaderLuWT(DataLoader):
             "label_data_types": {},
         }
         self.celldata.uns["graph_covariates"] = graph_covariates
+
+    def _register_scRNA_seq(self):
+        """Load scRNA-seq dataset to use ncem's imputation framework."""
+        metadata = self.celldata.uns["metadata"]
+
+        fetal_liver = sc.read(self.data_path + metadata["scRNAseq_fn"][0])
+        sorted_hsc = sc.read(self.data_path + metadata["scRNAseq_fn"][1])
+
+        self.celldata.uns['scRNA_fetal_liver'] = fetal_liver
+        self.celldata.uns['scRNA_sorted_hsc'] = sorted_hsc
+
+        markers = list(set.intersection(set(sorted_hsc.var_names), set(fetal_liver.var_names)))
+
+        fetal_liver = fetal_liver[:, markers]
+        sorted_hsc = sorted_hsc[:, markers]
+
+        sc.pp.highly_variable_genes(fetal_liver)
+        sc.pp.highly_variable_genes(sorted_hsc)
+
+        hvg_fetal_liver = [x for i, x in enumerate(fetal_liver.var_names) if list(fetal_liver.var['highly_variable'])[i]]
+        hvg_sorted_hsc = [x for i, x in enumerate(sorted_hsc.var_names) if list(sorted_hsc.var['highly_variable'])[i]]
+
+        hvg_markers = list(set.intersection(set(hvg_fetal_liver), set(hvg_sorted_hsc)))
+
+        sc.external.pp.mnn_correct(
+            fetal_liver[:, hvg_markers], sorted_hsc[:, hvg_markers], do_concatenate=True
+        )
 
 
 class DataLoaderLuTET2(DataLoader):
