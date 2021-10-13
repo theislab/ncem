@@ -10,10 +10,14 @@ class EstimatorNeighborhood(Estimator):
     """EstimatorGraph class for spatial models of the nieghborhood only (not full graph)."""
 
     n_features_in: int
-    _n_neighbors_padded: int
+    _n_neighbors_padded: Union[int, None]
     h0_in: bool
     idx_target_features: np.ndarray
     idx_neighbor_features: np.ndarray
+
+    def __init__(self):
+        super(EstimatorNeighborhood, self).__init__()
+        self._n_neighbors_padded = None
 
     def set_input_features(self, h0_in=True, target_feature_names=None, neighbor_feature_names=None):
         """
@@ -27,18 +31,19 @@ class EstimatorNeighborhood(Estimator):
             assert neighbor_feature_names is None
             self.n_features_in = self.n_features_0
         else:
-            self.idx_target_features = None  # TODO match names to feature names in h1 here, as np index array
-            self.idx_neighbor_features = None  # TODO match names to feature names in h1 here, as np index array
-            assert len(self.idx_target_features.tolist()) == len(self.idx_neighbor_features.tolist())
+            features = self.data.var_names.tolist()
+            self.idx_target_features = np.array([features.index(x) for x in target_feature_names])
+            self.idx_neighbor_features = np.array([features.index(x) for x in neighbor_feature_names])
+            assert len(self.idx_target_features) == len(self.idx_neighbor_features)
             assert len(set(self.idx_target_features.tolist()).intersection(set(self.idx_neighbor_features.tolist()))) == 0
             self.n_features_in = len(self.idx_target_features)
 
     @property
     def n_neighbors_padded(self):
         if self._n_neighbors_padded is None:
-            self._n_neighbors_padded = np.max(np.asarray([
+            self._n_neighbors_padded = int(np.max(np.asarray([
                 np.max(np.asarray(np.sum(a, axis=1)).flatten()) for a in self.a.values()
-            ]))
+            ])))
         return self._n_neighbors_padded
 
     def _get_output_signature(self, resampled: bool = False):
@@ -53,24 +58,25 @@ class EstimatorNeighborhood(Estimator):
         -------
         output_signature
         """
+        # target node features
         h_targets = tf.TensorSpec(
             shape=(self.n_eval_nodes_per_graph, self.n_features_in), dtype=tf.float32
-        )  # target node features
+        )
+        # neighbor node features
         h_neighbors = tf.TensorSpec(
-            shape=(self.n_neighbors_padded, self.n_features_in), dtype=tf.float32
-        )  # neighbor node features
+            shape=(self.n_eval_nodes_per_graph, self.n_neighbors_padded, self.n_features_in), dtype=tf.float32
+        )
         sf = tf.TensorSpec(shape=(self.n_eval_nodes_per_graph, 1), dtype=tf.float32)  # input node size factors
-        node_covar = tf.TensorSpec(
-            shape=(self.n_eval_nodes_per_graph, self.n_node_covariates), dtype=tf.float32
-        )  # node-level covariates
-        a = tf.TensorSpec(
-            shape=(self.n_eval_nodes_per_graph, self.n_neighbors_padded), dtype=tf.float32
-        )  # adjacency matrix
-        domain = tf.TensorSpec(shape=(self.n_domains,), dtype=tf.int32)  # domain
-        reconstruction = tf.TensorSpec(
-            shape=(self.n_eval_nodes_per_graph, self.n_features_1), dtype=tf.float32
-        )  # node features to reconstruct
-        kl_dummy = tf.TensorSpec(shape=(self.n_eval_nodes_per_graph,), dtype=tf.float32)  # dummy for kl loss
+        # node-level covariates
+        node_covar = tf.TensorSpec(shape=(self.n_eval_nodes_per_graph, self.n_node_covariates), dtype=tf.float32)
+        # adjacency matrix
+        a = tf.TensorSpec(shape=(self.n_eval_nodes_per_graph, self.n_neighbors_padded), dtype=tf.float32)
+        # domain
+        domain = tf.TensorSpec(shape=(self.n_domains,), dtype=tf.int32)
+        # node features to reconstruct
+        reconstruction = tf.TensorSpec(shape=(self.n_eval_nodes_per_graph, self.n_features_1), dtype=tf.float32)
+        # dummy for kl loss
+        kl_dummy = tf.TensorSpec(shape=(self.n_eval_nodes_per_graph,), dtype=tf.float32)
 
         if self.vi_model:
             if resampled:
@@ -94,9 +100,10 @@ class EstimatorNeighborhood(Estimator):
             else:
                 output_signature = ((h_targets, h_neighbors, sf, a, node_covar, domain),
                                     reconstruction)
+        print(output_signature)
         return output_signature
 
-    def _get_dataset_base(
+    def _get_dataset(
         self,
         image_keys: List[str],
         nodes_idx: Dict[str, np.ndarray],
@@ -172,7 +179,7 @@ class EstimatorNeighborhood(Estimator):
                     if self.h0_in:
                         h_targets = self.h_0[key][idx_nodes[indices], :]
                     else:
-                        h_targets = self.h_1[key][idx_nodes[indices], self.idx_target_features]
+                        h_targets = self.h_1[key][idx_nodes[indices], :][:, self.idx_target_features]
                     h_neighbors = []
                     a_neighborhood = np.zeros((self.n_eval_nodes_per_graph, self.n_neighbors_padded), "float32")
                     for i, j in enumerate(idx_nodes[indices]):
@@ -181,7 +188,7 @@ class EstimatorNeighborhood(Estimator):
                         if self.h0_in:
                             h_neighbors_j = self.h_0[key][idx_neighbors, :]
                         else:
-                            h_neighbors_j = self.h_1[key][idx_neighbors, self.idx_neighbor_features]
+                            h_neighbors_j = self.h_1[key][idx_neighbors, :][:, self.idx_neighbor_features]
                         h_neighbors_j = np.expand_dims(h_neighbors_j, axis=0)
                         # Pad neighborhoods:
                         diff = self.n_neighbors_padded - h_neighbors_j.shape[1]
@@ -189,16 +196,13 @@ class EstimatorNeighborhood(Estimator):
                         h_neighbors_j = np.concatenate([h_neighbors_j, zeros], axis=1)
                         h_neighbors.append(h_neighbors_j)
                         a_neighborhood[i, :len(idx_neighbors)] = a_j[idx_neighbors]
-                    h_neighbors = np.concatenate([h_neighbors], axis=0)
+                    h_neighbors = np.concatenate(h_neighbors, axis=0)
                     if self.log_transform:
                         h_targets = np.log(h_targets + 1.0)
                         h_neighbors = np.log(h_neighbors + 1.0)
 
-                    node_covar = self.node_covar[key][idx_nodes]
-                    node_covar = node_covar[indices, :]
-
-                    sf = np.expand_dims(self.size_factors[key][idx_nodes], axis=1)
-                    sf = sf[indices, :]
+                    node_covar = self.node_covar[key][idx_nodes][indices, :]
+                    sf = np.expand_dims(self.size_factors[key][idx_nodes][indices], axis=1)
 
                     g = np.zeros((self.n_domains,), dtype="int32")
                     g[self.domains[key]] = 1

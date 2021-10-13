@@ -57,13 +57,11 @@ class SingleGcnLayer(tf.keras.layers.Layer):
 
 class SingleLrGatLayer(tf.keras.layers.Layer):
 
-    def __init__(self, lr_dim, out_dim, dropout_rate, l2_reg, **kwargs):
+    def __init__(self, lr_dim, dropout_rate, l2_reg, **kwargs):
         """Initialize GCNLayer.
 
         Parameters
         ----------
-        out_dim
-            Output dimension.
         dropout_rate
             Dropout rate.
         activation
@@ -75,7 +73,6 @@ class SingleLrGatLayer(tf.keras.layers.Layer):
         """
         super().__init__(**kwargs)
         self.lr_dim = lr_dim
-        self.out_dim = out_dim
         self.dropout_rate = dropout_rate
         self.l2_reg = l2_reg
 
@@ -93,7 +90,7 @@ class SingleLrGatLayer(tf.keras.layers.Layer):
             initializer=tf.keras.initializers.glorot_uniform(),
             regularizer=tf.keras.regularizers.l2(self.l2_reg),
         )
-        self.bias_r = self.add_weight(name="bias_r", shape=(1, 1, 1, self.lr_dim,))
+        self.bias_r = self.add_weight(name="bias_r", shape=(1, 1, self.lr_dim,))
 
     def call(self, inputs, **kwargs):
         targets_receptor = inputs[0]  # (batch, target nodes, lr)

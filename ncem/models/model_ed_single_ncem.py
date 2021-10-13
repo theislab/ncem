@@ -54,14 +54,13 @@ class ModelEd2Ncem:
         categ_condition_dim = input_shapes[4]
         domain_dim = input_shapes[5]
 
-        # node features - reconstruction: Input Tensor - shape=(None, targets, F-out)
-        input_x_reconstruct = tf.keras.Input(shape=(num_targets_dim, out_feature_dim), name="node_features_reconstruct")
+        # node features - node representation of neighbors: Input Tensor - shape=(None, targets, F-in)
+        input_x_targets = tf.keras.Input(shape=(num_targets_dim, in_lr_feature_dim), name="node_features_targets")
+        # node features - node representation of neighbors: Input Tensor - shape=(None, neighbors, F-in)
+        input_x_neighbors = tf.keras.Input(shape=(num_targets_dim, neighbors_dim, in_lr_feature_dim),
+                                           name="node_features_neighbors")
         # node size - reconstruction: Input Tensor - shape=(None, targets, 1)
         input_node_size = tf.keras.Input(shape=(num_targets_dim, 1), name="node_size_reconstruct")
-        # node features - node representation of neighbors: Input Tensor - shape=(None, targets, F-in)
-        input_x_targets = tf.keras.Input(shape=(neighbors_dim, in_lr_feature_dim), name="node_features_targets")
-        # node features - node representation of neighbors: Input Tensor - shape=(None, neighbors, F-in)
-        input_x_neighbors = tf.keras.Input(shape=(neighbors_dim, in_lr_feature_dim), name="node_features_neighbors")
         # adj_matrices - A: Input Tensor - shape=(None, targets, neighbors)
         input_a = tf.keras.Input(shape=(num_targets_dim, neighbors_dim), name="adjacency_matrix")
         # Categorical predictors: Input Tensor - shape=(None, targets, P)
@@ -84,7 +83,6 @@ class ModelEd2Ncem:
         if cond_type == "lr_gat":
             x_encoder = SingleLrGatLayer(
                 lr_dim=in_lr_feature_dim,
-                latent_dim=latent_dim,
                 dropout_rate=dropout_rate,
                 l2_reg=l2_coef,
                 name=f"lr_gat_layer",
@@ -100,7 +98,7 @@ class ModelEd2Ncem:
         elif cond_type == "max":
             x_encoder = SingleMaxLayer(
                 name=f"max_layer"
-            )([input_x_neighbors,])
+            )([input_x_neighbors, ])
         elif cond_type == "gcn":
             x_encoder = SingleGcnLayer(
                 name=f"max_layer"
@@ -128,9 +126,9 @@ class ModelEd2Ncem:
 
         self.encoder = tf.keras.Model(
             inputs=[
-                input_x_reconstruct,
                 input_x_targets,
                 input_x_neighbors,
+                input_node_size,
                 input_a,
                 input_categ_condition,
                 input_g,
@@ -140,9 +138,9 @@ class ModelEd2Ncem:
         )
         self.training_model = tf.keras.Model(
             inputs=[
-                input_x_reconstruct,
                 input_x_targets,
                 input_x_neighbors,
+                input_node_size,
                 input_a,
                 input_categ_condition,
                 input_g,
