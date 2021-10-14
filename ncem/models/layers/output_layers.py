@@ -1,30 +1,30 @@
 import tensorflow as tf
 
 
-def get_out(output_layer: str, out_feature_dim, scale_node_size):
+def get_out(output_layer: str, out_feature_dim, scale_node_size, name: str = 'decoder'):
     if output_layer == "gaussian":
         output_decoder_layer = GaussianOutput(
             original_dim=out_feature_dim,
             use_node_scale=scale_node_size,
-            name="GaussianOutput_decoder",
+            name=f"GaussianOutput_{name}",
         )
     elif output_layer == "nb":
         output_decoder_layer = NegBinOutput(
             original_dim=out_feature_dim,
             use_node_scale=scale_node_size,
-            name="NegBinOutput_decoder",
+            name=f"NegBinOutput_{name}",
         )
     elif output_layer == "nb_shared_disp":
         output_decoder_layer = NegBinSharedDispOutput(
             original_dim=out_feature_dim,
             use_node_scale=scale_node_size,
-            name="NegBinSharedDispOutput_decoder",
+            name=f"NegBinSharedDispOutput_{name}",
         )
     elif output_layer == "nb_const_disp":
         output_decoder_layer = NegBinConstDispOutput(
             original_dim=out_feature_dim,
             use_node_scale=scale_node_size,
-            name="NegBinConstDispOutput_decoder",
+            name=f"NegBinConstDispOutput_{name}",
         )
     else:
         raise ValueError("tried to access a non-supported output layer %s" % output_layer)

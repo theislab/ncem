@@ -1,5 +1,3 @@
-from typing import Union
-
 import tensorflow as tf
 
 from ncem.models.layers import get_out, Decoder
