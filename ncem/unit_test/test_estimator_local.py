@@ -27,14 +27,14 @@ class HelperTestEstimator:
             self.est = ncem.train.EstimatorEDncem(cond_type="max")
         elif model == "ed_ncem_gcn":
             self.est = ncem.train.EstimatorEDncem(cond_type="gcn")
+        elif model == "ed_ncem2_max":
+            self.est = ncem.train.EstimatorEdNcemNeighborhood(cond_type="max")
         elif model == "ed_ncem2_lr_gat":
             self.est = ncem.train.EstimatorEdNcemNeighborhood(cond_type="lr_gat")
         elif model == "ed_ncem2_gat":
             self.est = ncem.train.EstimatorEdNcemNeighborhood(cond_type="gat")
         elif model == "ed_ncem2_gcn":
             self.est = ncem.train.EstimatorEdNcemNeighborhood(cond_type="gcn")
-        elif model == "ed_ncem2_max":
-            self.est = ncem.train.EstimatorEdNcemNeighborhood(cond_type="max")
         elif model == "cvae":
             self.est = ncem.train.EstimatorCVAE()
         elif model == "cvae_ncem_max":
@@ -56,6 +56,7 @@ class HelperTestEstimator:
         else:
             assert False
 
+        print('COND TYPE', self.est.cond_type)
         self.est.get_data(
             data_origin=data_origin,
             data_path=data_path,
@@ -138,7 +139,7 @@ class HelperTestEstimator:
                 "use_domain": True,
                 "use_bias": True,
                 "learning_rate": 1e-2,
-                "cond_type": "lr_gat",
+                "cond_type": self.est.cond_type,
                 "dec_intermediate_dim": 0,
                 "dec_n_hidden": 0,
                 "dec_dropout_rate": float,
@@ -204,6 +205,7 @@ def test_cvae(dataset: str, model: str):
 
 @pytest.mark.parametrize("dataset", ["luwt"])
 @pytest.mark.parametrize("model", ["ed_ncem2_max", "ed_ncem2_gcn", "ed_ncem2_lr_gat", "ed_ncem2_gat"])
+#@pytest.mark.parametrize("model", ["ed_ncem2_max"])
 def test_ed2(dataset: str, model: str):
     estim = HelperTestEstimator()
     estim.test_train(model=model, data_origin=dataset)

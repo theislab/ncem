@@ -79,6 +79,10 @@ class ModelEd2Ncem:
             categ_condition = input_categ_condition
 
         if cond_type == "lr_gat":
+            print("LRGAT")
+            #x_encoder = SingleMaxLayer(
+            #    name=f"max_layer"
+            #)([input_x_neighbors, ])
             x_encoder = SingleLrGatLayer(
                 lr_dim=in_lr_feature_dim,
                 dropout_rate=dropout_rate,
@@ -94,12 +98,13 @@ class ModelEd2Ncem:
                 name=f"lr_gat_layer",
             )([input_x_targets, input_x_neighbors, input_a])
         elif cond_type == "max":
+            print("MAX")
             x_encoder = SingleMaxLayer(
                 name=f"max_layer"
-            )([input_x_neighbors, ])
+            )([input_x_neighbors, input_a])
         elif cond_type == "gcn":
             x_encoder = SingleGcnLayer(
-                name=f"max_layer"
+                name=f"gcn_layer"
             )([input_x_targets, input_x_neighbors, input_a])
         else:
             raise ValueError("tried to access a non-supported conditional layer %s" % cond_type)

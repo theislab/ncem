@@ -2,15 +2,25 @@ import tensorflow as tf
 
 
 class SingleMaxLayer(tf.keras.layers.Layer):
-
+    """
+    TODO MAX implementation here is not complete yet.
+    """
     def call(self, inputs, **kwargs):
         x = inputs[0]
-        y = tf.where(x > 0.5, x=tf.divide(x, x), y=tf.multiply(x, tf.constant(0.0, dtype=tf.float32)))
+        a = inputs[1]
+
+        a = tf.expand_dims(a, axis=-1)  # (batch, target nodes, padded neighbor nodes, 1)
+        t = x * a
+        t = tf.reduce_sum(t, axis=2)
+
+        y = tf.where(t > 0.5, x=tf.divide(t, t), y=tf.multiply(t, tf.constant(0.0, dtype=tf.float32)))
         return y
 
 
 class SingleGcnLayer(tf.keras.layers.Layer):
-
+    """
+    TODO GCN implementation here is not complete yet.
+    """
     def __init__(self, input_dim, latent_dim, dropout_rate, activation, l2_reg, use_bias: bool = False, **kwargs):
         super().__init__(**kwargs)
         self.input_dim = input_dim
@@ -94,6 +104,7 @@ class SingleLrGatLayer(tf.keras.layers.Layer):
 
     def call(self, inputs, **kwargs):
         targets_receptor = inputs[0]  # (batch, target nodes, lr)
+        print(targets_receptor.shape)
         neighbors_ligand = inputs[1]  # (batch, target nodes, padded neighbor nodes, lr)
         a = inputs[2]  # (batch, target nodes, padded neighbor nodes)
 
@@ -101,6 +112,7 @@ class SingleLrGatLayer(tf.keras.layers.Layer):
         neighbors_ligand = neighbors_ligand * self.kernel_l + self.bias_l  # (batch, target nodes, padded neighbor nodes, lr)
         targets_receptor = tf.expand_dims(targets_receptor, axis=-2)  # (batch, target nodes, 1, lr)
         weights = targets_receptor * neighbors_ligand
+        print(weights.shape)
         # Mask embeddings to neighbors
         a = tf.expand_dims(a, axis=-1)  # (batch, target nodes, padded neighbor nodes, 1)
         weights = weights * a
