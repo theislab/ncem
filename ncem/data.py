@@ -2820,15 +2820,15 @@ class DataLoaderLuWT(DataLoader):
     """DataLoaderLuWT class. Inherits all functions from DataLoader."""
 
     cell_type_merge_dict = {
-        1: "AEC",
-        2: "SEC",
-        3: "MK",
-        4: "Hepatocyte",
-        5: "Macrophage",
-        6: "Myeloid",
-        7: "Erythroid progenitor",
-        8: "Erythroid cell",
-        9: "Unknown",
+        "1": "AEC",
+        "2": "SEC",
+        "3": "MK",
+        "4": "Hepatocyte",
+        "5": "Macrophage",
+        "6": "Myeloid",
+        "7": "Erythroid progenitor",
+        "8": "Erythroid cell",
+        "9": "Unknown",
     }
 
     def _register_celldata(self):
@@ -3090,15 +3090,15 @@ class DataLoaderLuTET2(DataLoader):
     """DataLoaderLuTET2 class. Inherits all functions from DataLoader."""
 
     cell_type_merge_dict = {
-        1: "AEC",
-        2: "SEC",
-        3: "MK",
-        4: "Hepatocyte",
-        5: "Macrophage",
-        6: "Myeloid",
-        7: "Erythroid progenitor",
-        8: "Erythroid cell",
-        9: "Unknown",
+        "1": "AEC",
+        "2": "SEC",
+        "3": "MK",
+        "4": "Hepatocyte",
+        "5": "Macrophage",
+        "6": "Myeloid",
+        "7": "Erythroid progenitor",
+        "8": "Erythroid cell",
+        "9": "Unknown",
     }
 
     def _register_celldata(self):
