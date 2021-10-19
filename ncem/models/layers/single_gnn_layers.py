@@ -21,9 +21,8 @@ class SingleGcnLayer(tf.keras.layers.Layer):
     """
     TODO GCN implementation here is not complete yet.
     """
-    def __init__(self, input_dim, latent_dim, dropout_rate, activation, l2_reg, use_bias: bool = False, **kwargs):
+    def __init__(self, latent_dim, dropout_rate, activation, l2_reg, use_bias: bool = False, **kwargs):
         super().__init__(**kwargs)
-        self.input_dim = input_dim
         self.latent_dim = latent_dim
         self.dropout_rate = dropout_rate
         self.activation = tf.keras.activations.get(activation)
@@ -32,15 +31,19 @@ class SingleGcnLayer(tf.keras.layers.Layer):
 
         self.kernel = None
         self.bias = None
+
+    def build(self, input_shapes):
+        input_shape = input_shapes[0]
+        # Layer kernel
         self.kernel = self.add_weight(
             name="kernel",
-            shape=(self.input_dim, self.latent_dim),
+            shape=(int(input_shape[2]), self.latent_dim),
             initializer=tf.keras.initializers.glorot_uniform(),
             regularizer=tf.keras.regularizers.l2(self.l2_reg),
         )
         # Layer bias
         if self.use_bias:
-            self.bias = self.add_weight(name="bias", shape=(self.output_dim,))
+            self.bias = self.add_weight(name="bias", shape=(self.latent_dim,))
 
     def call(self, inputs, **kwargs):
         targets = inputs[0]  # (batch, target nodes, features)
@@ -49,7 +52,7 @@ class SingleGcnLayer(tf.keras.layers.Layer):
         a = inputs[2]  # (batch, target nodes, padded neighbor nodes)
 
         # (batch, target nodes, padded neighbor nodes, latent)
-        y = tf.matmul(neighborhood, self.kernel, axes=1)
+        y = tf.matmul(neighborhood, self.kernel)
         y = tf.reduce_sum(y, axis=-2)  # (batch, target nodes, latent)
         # Normalise neighborhood size in embedding:
         factor = tf.reduce_sum(a, axis=-1, keepdims=True)  # (batch, target nodes, 1)

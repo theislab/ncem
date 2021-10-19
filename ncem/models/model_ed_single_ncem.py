@@ -104,6 +104,11 @@ class ModelEd2Ncem:
             )([input_x_neighbors, input_a])
         elif cond_type == "gcn":
             x_encoder = SingleGcnLayer(
+                latent_dim=latent_dim,
+                dropout_rate=dropout_rate,
+                activation="relu",
+                l2_reg=l2_coef,
+                use_bias=True,
                 name=f"gcn_layer"
             )([input_x_targets, input_x_neighbors, input_a])
         else:
