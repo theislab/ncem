@@ -88,7 +88,8 @@ class Estimator:
         self,
         data_origin: str,
         data_path: str,
-        radius: int,
+        radius: Optional[int] = None,
+        n_rings: int = 1,
         label_selection: Optional[List[str]] = None,
     ):
         """Initialize a DataLoader object.
@@ -109,6 +110,8 @@ class Estimator:
         ValueError
             If `data_origin` not recognized.
         """
+        coord_type = 'generic'
+
         if data_origin == "zhang":
             from ncem.data import DataLoaderZhang as DataLoader
 
@@ -145,16 +148,24 @@ class Estimator:
             from ncem.data import DataLoaderLuTET2 as DataLoader
 
             self.undefined_node_types = ['Unknown']
+        elif data_origin == "10xvisium":
+            from ncem.data import DataLoader10xVisiumMouseBrain as DataLoader
+
+            self.undefined_node_types = None
+            coord_type = 'grid'
         else:
             raise ValueError(f"data_origin {data_origin} not recognized")
 
-        self.data = DataLoader(data_path, radius=radius, label_selection=label_selection)
+        self.data = DataLoader(
+            data_path, radius=radius, coord_type=coord_type, n_rings=n_rings, label_selection=label_selection
+        )
 
     def get_data(
         self,
         data_origin: str,
         data_path: str,
-        radius: int,
+        radius: Optional[int],
+        n_rings: int = 1,
         graph_covar_selection: Optional[Union[List[str], Tuple[str]]] = None,
         node_label_space_id: str = "type",
         node_feature_space_id: str = "standard",
@@ -171,8 +182,10 @@ class Estimator:
             Data origin.
         data_path : str
             Data path.
-        radius : int
+        radius : int, optional
             Radius.
+        n_rings : int
+            Number of rings of neighbors for grid data.
         graph_covar_selection : list, tuple, optional
             Selected graph covariates.
         node_label_space_id : str
@@ -203,6 +216,7 @@ class Estimator:
             data_origin=data_origin,
             data_path=data_path,
             radius=radius,
+            n_rings=n_rings,
             label_selection=labels_to_load,
         )
         # Validate graph-wise covariate selection:
