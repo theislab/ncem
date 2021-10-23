@@ -3343,15 +3343,12 @@ class DataLoader10xVisiumMouseBrain(DataLoader):
         }
 
         celldata = read_h5ad(self.data_path + metadata["fn"]).copy()
+        celldata.X = celldata.X.toarray()
         celldata.uns["metadata"] = metadata
         celldata.uns["img_keys"] = list(np.unique(celldata.obs[metadata["image_col"]]))
 
-        img_to_patient_dict = {
-            str(x): celldata.obs[metadata["patient_col"]].values[i].split("_")[0]
-            for i, x in enumerate(celldata.obs[metadata["image_col"]].values)
-        }
-        celldata.uns["img_to_patient_dict"] = img_to_patient_dict
-        self.img_to_patient_dict = img_to_patient_dict
+        celldata.uns["img_to_patient_dict"] = {"image": "patient"}
+        self.img_to_patient_dict = {"image": "patient"}
 
         # add clean cluster column which removes regular expression from cluster_col
         celldata.obs[metadata["cluster_col_preprocessed"]] = list(
