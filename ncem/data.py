@@ -3351,8 +3351,8 @@ class DataLoader10xVisiumMouseBrain(DataLoader):
         celldata.uns["metadata"] = metadata
         celldata.uns["img_keys"] = list(np.unique(celldata.obs[metadata["image_col"]]))
 
-        celldata.uns["img_to_patient_dict"] = {"image": "patient"}
-        self.img_to_patient_dict = {"image": "patient"}
+        celldata.uns["img_to_patient_dict"] = {"1": "1"}
+        self.img_to_patient_dict = {"1": "1"}
 
         # add clean cluster column which removes regular expression from cluster_col
         celldata.obs[metadata["cluster_col_preprocessed"]] = list(
