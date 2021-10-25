@@ -3340,9 +3340,13 @@ class DataLoader10xVisiumMouseBrain(DataLoader):
             "cluster_col": "cluster",
             "cluster_col_preprocessed": "cluster_preprocessed",
             "patient_col": "in_tissue",
+            "n_top_genes": 600
         }
 
         celldata = read_h5ad(self.data_path + metadata["fn"]).copy()
+        sc.pp.highly_variable_genes(celldata, n_top_genes=500)
+        celldata = celldata[:, celldata.var.highly_variable].copy()
+
         celldata.X = celldata.X.toarray()
         celldata.uns["metadata"] = metadata
         celldata.uns["img_keys"] = list(np.unique(celldata.obs[metadata["image_col"]]))
