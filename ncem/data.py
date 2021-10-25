@@ -26,13 +26,19 @@ class GraphTools:
     celldata: AnnData
     img_celldata: Dict[str, AnnData]
 
-    def compute_adjacency_matrices(self, radius: int, transform: str = None):
+    def compute_adjacency_matrices(
+        self, radius: int, coord_type: str = 'generic', n_rings: int = 1, transform: str = None
+    ):
         """Compute adjacency matrix for each image in dataset (uses `squidpy.gr.spatial_neighbors`).
 
         Parameters
         ----------
         radius : int
             Radius of neighbors for non-grid data.
+        coord_type : str
+            Type of coordinate system.
+        n_rings : int
+            Number of rings of neighbors for grid data.
         transform : str
             Type of adjacency matrix transform. Valid options are:
 
@@ -43,7 +49,14 @@ class GraphTools:
         pbar_total = len(self.img_celldata.keys())
         with tqdm(total=pbar_total) as pbar:
             for _k, adata in self.img_celldata.items():
-                sq.gr.spatial_neighbors(adata=adata, radius=radius, transform=transform, key_added="adjacency_matrix")
+                sq.gr.spatial_neighbors(
+                    adata=adata,
+                    coord_type=coord_type,
+                    radius=radius,
+                    n_rings=n_rings,
+                    transform=transform,
+                    key_added="adjacency_matrix"
+                )
                 pbar.update(1)
 
     @staticmethod
@@ -1623,7 +1636,9 @@ class DataLoader(GraphTools, PlottingTools):
     def __init__(
         self,
         data_path: str,
-        radius: int,
+        radius: Optional[int] = None,
+        coord_type: str = 'generic',
+        n_rings: int = 1,
         label_selection: Optional[List[str]] = None,
     ):
         """Initialize DataLoader.
@@ -1643,7 +1658,7 @@ class DataLoader(GraphTools, PlottingTools):
         self.register_celldata()
         self.register_img_celldata()
         self.register_graph_features(label_selection=label_selection)
-        self.compute_adjacency_matrices(radius=radius)
+        self.compute_adjacency_matrices(radius=radius, coord_type=coord_type, n_rings=n_rings)
         self.radius = radius
 
         print(
@@ -3245,6 +3260,109 @@ class DataLoaderLuTET2(DataLoader):
         # register node type names
         node_type_names = list(np.unique(celldata.obs[metadata["cluster_col_preprocessed"]]))
         print(node_type_names)
+        celldata.uns["node_type_names"] = {x: x for x in node_type_names}
+        node_types = np.zeros((celldata.shape[0], len(node_type_names)))
+        node_type_idx = np.array(
+            [
+                node_type_names.index(x) for x in celldata.obs[metadata["cluster_col_preprocessed"]].values
+            ]  # index in encoding vector
+        )
+        node_types[np.arange(0, node_type_idx.shape[0]), node_type_idx] = 1
+        celldata.obsm["node_types"] = node_types
+
+        self.celldata = celldata
+
+    def _register_img_celldata(self):
+        """Load dictionary of of image-wise celldata objects with {imgage key : anndata object of image}."""
+        image_col = self.celldata.uns["metadata"]["image_col"]
+        img_celldata = {}
+        for k in self.celldata.uns["img_keys"]:
+            img_celldata[str(k)] = self.celldata[self.celldata.obs[image_col] == k].copy()
+        self.img_celldata = img_celldata
+
+    def _register_graph_features(self, label_selection):
+        """Load graph level covariates.
+
+        Parameters
+        ----------
+        label_selection
+            Label selection.
+        """
+        # Save processed data to attributes.
+        for adata in self.img_celldata.values():
+            graph_covariates = {
+                "label_names": {},
+                "label_tensors": {},
+                "label_selection": [],
+                "continuous_mean": {},
+                "continuous_std": {},
+                "label_data_types": {},
+            }
+            adata.uns["graph_covariates"] = graph_covariates
+
+        graph_covariates = {
+            "label_names": {},
+            "label_selection": [],
+            "continuous_mean": {},
+            "continuous_std": {},
+            "label_data_types": {},
+        }
+        self.celldata.uns["graph_covariates"] = graph_covariates
+
+
+class DataLoader10xVisiumMouseBrain(DataLoader):
+    """DataLoader10xVisiumMouseBrain class. Inherits all functions from DataLoader."""
+
+    cell_type_merge_dict = {
+        'Cortex_1': 'Cortex 1',
+        'Cortex_2': 'Cortex 2',
+        'Cortex_3': 'Cortex 3',
+        'Cortex_4': 'Cortex 4',
+        'Cortex_5': 'Cortex 5',
+        'Fiber_tract': 'Fiber tract',
+        'Hippocampus': 'Hippocampus',
+        'Hypothalamus_1': 'Hypothalamus 1',
+        'Hypothalamus_2': 'Hypothalamus 2',
+        'Lateral_ventricle': 'Lateral ventricle',
+        'Pyramidal_layer': 'Pyramidal layer',
+        'Pyramidal_layer_dentate_gyrus': 'Pyramidal layer dentate gyrus',
+        'Striatum': 'Striatum',
+        'Thalamus_1': 'Thalamus 1',
+        'Thalamus_2': 'Thalamus 2'
+    }
+
+    def _register_celldata(self):
+        """Load AnnData object of complete dataset."""
+        metadata = {
+            "lateral_resolution": 1.,
+            "fn": "visium_hne_adata.h5ad",
+            "image_col": "in_tissue",
+            "cluster_col": "cluster",
+            "cluster_col_preprocessed": "cluster_preprocessed",
+            "patient_col": "in_tissue",
+            "n_top_genes": 600
+        }
+
+        celldata = read_h5ad(self.data_path + metadata["fn"]).copy()
+        sc.pp.highly_variable_genes(celldata, n_top_genes=500)
+        celldata = celldata[:, celldata.var.highly_variable].copy()
+
+        celldata.X = celldata.X.toarray()
+        celldata.uns["metadata"] = metadata
+        celldata.uns["img_keys"] = list(np.unique(celldata.obs[metadata["image_col"]]))
+
+        celldata.uns["img_to_patient_dict"] = {"image": "patient"}
+        self.img_to_patient_dict = {"image": "patient"}
+
+        # add clean cluster column which removes regular expression from cluster_col
+        celldata.obs[metadata["cluster_col_preprocessed"]] = list(
+            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="category").map(self.cell_type_merge_dict)
+        )
+        celldata.obs[metadata["cluster_col_preprocessed"]] = celldata.obs[metadata["cluster_col_preprocessed"]].astype(
+            "category"
+        )
+        # register node type names
+        node_type_names = list(np.unique(celldata.obs[metadata["cluster_col_preprocessed"]]))
         celldata.uns["node_type_names"] = {x: x for x in node_type_names}
         node_types = np.zeros((celldata.shape[0], len(node_type_names)))
         node_type_idx = np.array(
