@@ -152,7 +152,12 @@ class Estimator:
             from ncem.data import DataLoader10xVisiumMouseBrain as DataLoader
 
             self.undefined_node_types = None
-            coord_type = 'visium'
+            if n_rings > 1:
+                coord_type = 'visium'
+            else:
+                n_rings = 1
+                coord_type = 'generic'
+                radius = 0
         else:
             raise ValueError(f"data_origin {data_origin} not recognized")
 
