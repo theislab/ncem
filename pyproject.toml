@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ncem"
-version = "0.3.1"  # <<COOKIETEMPLE_FORCE_BUMP>>
+version = "0.3.2"  # <<COOKIETEMPLE_FORCE_BUMP>>
 description = "ncem. Learning cell communication from spatial graphs of cells."
 authors = ["David S. Fischer <david.fischer@helmholtz-muenchen.de>", "Anna C. Schaar <anna.schaar@helmholtz-muenchen.de>"]
 license = "BSD"
