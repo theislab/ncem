@@ -3344,6 +3344,7 @@ class DataLoader10xVisiumMouseBrain(DataLoader):
         }
 
         celldata = read_h5ad(self.data_path + metadata["fn"]).copy()
+        # only loading top 500 genes
         sc.pp.highly_variable_genes(celldata, n_top_genes=500)
         celldata = celldata[:, celldata.var.highly_variable].copy()
 
