@@ -3340,7 +3340,7 @@ class DataLoader10xVisiumMouseBrain(DataLoader):
             "cluster_col": "cluster",
             "cluster_col_preprocessed": "cluster_preprocessed",
             "patient_col": "in_tissue",
-            "n_top_genes": 600
+            "n_top_genes": 500
         }
 
         celldata = read_h5ad(self.data_path + metadata["fn"]).copy()
