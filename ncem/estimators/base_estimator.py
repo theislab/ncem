@@ -178,6 +178,8 @@ class Estimator:
         use_covar_node_label: bool = False,
         use_covar_graph_covar: bool = False,
         domain_type: str = "image",
+        robustness: Optional[float] = None,
+        robustness_seed: int = 1
     ):
         """Get data used in estimator classes.
 
@@ -205,7 +207,10 @@ class Estimator:
             Whether to use graph covariates.
         domain_type : str
             Covariate that is used as domain.
-
+        robustness : float, optional
+            Optional fraction of images for robustness test.
+        robustness_seed: int
+            Seed for robustness analysis
         Raises
         ------
         ValueError
@@ -224,6 +229,28 @@ class Estimator:
             n_rings=n_rings,
             label_selection=labels_to_load,
         )
+        if robustness:
+            np.random.seed(robustness_seed)
+            n_images = np.round(len(self.data.img_celldata) * robustness)
+            image_keys = list(np.random.choice(
+                a=list(self.data.img_celldata.keys()),
+                size=n_images,
+                replace=False,
+            ))
+            self.data.img_celldata = {k: self.data.img_celldata[k] for k in image_keys}
+            metadata = self.data.celldata.uns["metadata"]
+
+            self.data.celldata = self.data.celldata[self.data.celldata.obs[metadata['image_col']].isin(image_keys)]
+
+            print(
+                "\nAttention: Running robustness model with a fraction %f images, so [%i] images. \n"
+                "\nThis also adjusts celldata and img_celldata."
+                % (
+                    robustness,
+                    n_images,
+                )
+            )
+
         # Validate graph-wise covariate selection:
         if len(graph_covar_selection) > 0:
             if (
