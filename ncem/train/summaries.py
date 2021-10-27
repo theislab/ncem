@@ -181,12 +181,13 @@ class GridSearchContainer:
                     else "none",
                     "gs_id": [runparams[x]["gs_id"] for x in run_ids_clean],
                     "model_id": [runparams[x]["model_id"] for x in run_ids_clean],
-                    "split_mode": [runparams[x]["split_mode"] for x in run_ids_clean],
-                    "radius": [runparams[x]["max_dist"] for x in run_ids_clean],
+                    #"split_mode": [runparams[x]["split_mode"] for x in run_ids_clean],
+                    "radius": [runparams[x]["radius"] for x in run_ids_clean],
+                    "n_rings": [runparams[x]["n_rings"] for x in run_ids_clean] if "n_rings" in list(runparams[x].keys()) else "none",
                     "graph_covar_selection": [runparams[x]["graph_covar_selection"] for x in run_ids_clean],
-                    "node_label_space_id": [runparams[x]["node_feature_space_id_0"] for x in run_ids_clean],
-                    "node_feature_space_id": [runparams[x]["node_feature_space_id_1"] for x in run_ids_clean],
-                    "feature_transformation": [runparams[x]["feature_transformation"] for x in run_ids_clean],
+                    "node_label_space_id": [runparams[x]["node_label_space_id"] for x in run_ids_clean],
+                    "node_feature_space_id": [runparams[x]["node_feature_space_id"] for x in run_ids_clean],
+                    #"feature_transformation": [runparams[x]["feature_transformation"] for x in run_ids_clean],
                     "use_covar_node_position": [runparams[x]["use_covar_node_position"] for x in run_ids_clean],
                     "use_covar_node_label": [runparams[x]["use_covar_node_label"] for x in run_ids_clean],
                     "use_covar_graph_covar": [runparams[x]["use_covar_graph_covar"] for x in run_ids_clean],
@@ -245,12 +246,14 @@ class GridSearchContainer:
                     else "none",
                     "use_domain": [runparams[x]["use_domain"] for x in run_ids_clean],
                     "domain_type": [runparams[x]["domain_type"] for x in run_ids_clean],
-                    "use_batch_norm": [runparams[x]["use_batch_norm"] for x in run_ids_clean],
+                    "use_batch_norm": [runparams[x]["use_batch_norm"] for x in run_ids_clean] if "use_batch_norm" in list(runparams[x].keys())
+                    else "none",
                     "use_type_cond": [runparams[x]["use_type_cond"] for x in run_ids_clean]
                     if "use_type_cond" in list(runparams[x].keys())
                     else "none",
                     "scale_node_size": [runparams[x]["scale_node_size"] for x in run_ids_clean],
-                    "transform_input": [runparams[x]["transform_input"] for x in run_ids_clean],
+                    "transform_input": [runparams[x]["transform_input"] for x in run_ids_clean] if "transform_input" in list(runparams[x].keys())
+                    else "none",
                     "output_layer": [runparams[x]["output_layer"] for x in run_ids_clean],
                     "log_transform": [runparams[x]["log_transform"] for x in run_ids_clean]
                     if "log_transform" in list(runparams[x].keys())
@@ -436,7 +439,7 @@ class GridSearchContainer:
 
         self.summary_table = pd.concat(self.summary_table)
         self.runparams_table = pd.concat(self.runparams_table)
-        self.summary_table["um_radius"] = (self.summary_table["radius"] * self.lateral_resolution).astype(int)
+        #self.summary_table["um_radius"] = (self.summary_table["radius"] * self.lateral_resolution).astype(int)
 
     def load_target_cell_evaluation(self, report_unsuccessful_runs: bool = False):
         """Load all metrics from grid search output files of target cell evaluation.
@@ -538,20 +541,20 @@ class GridSearchContainer:
                                                         else "none",
                                                         "gs_id": [runparams[x]["gs_id"]],
                                                         "model_id": [runparams[x]["model_id"]],
-                                                        "split_mode": [runparams[x]["split_mode"]],
-                                                        "radius": [runparams[x]["max_dist"]],
+                                                        #"split_mode": [runparams[x]["split_mode"]],
+                                                        "radius": [runparams[x]["radius"]],
                                                         "graph_covar_selection": [
                                                             runparams[x]["graph_covar_selection"]
                                                         ],
                                                         "node_label_space_id": [
-                                                            runparams[x]["node_feature_space_id_0"]
+                                                            runparams[x]["node_label_space_id"]
                                                         ],
                                                         "node_feature_space_id": [
-                                                            runparams[x]["node_feature_space_id_1"]
+                                                            runparams[x]["node_feature_space_id"]
                                                         ],
-                                                        "feature_transformation": [
-                                                            runparams[x]["feature_transformation"]
-                                                        ],
+                                                        #"feature_transformation": [
+                                                        #    runparams[x]["feature_transformation"]
+                                                        #],
                                                         "use_covar_node_position": [
                                                             runparams[x]["use_covar_node_position"]
                                                         ],
@@ -562,19 +565,19 @@ class GridSearchContainer:
                                                         # "hold_out_covariate": [runparams[x]['hold_out_covariate']],
                                                         "optimizer": [runparams[x]["optimizer"]],
                                                         "learning_rate": [runparams[x]["learning_rate"]],
-                                                        "intermediate_dim_enc": [runparams[x]["intermediate_dim_enc"]],
-                                                        "intermediate_dim_dec": [runparams[x]["intermediate_dim_dec"]],
-                                                        "latent_dim": [runparams[x]["latent_dim"]],
+                                                        #"intermediate_dim_enc": [runparams[x]["intermediate_dim_enc"]],
+                                                        #"intermediate_dim_dec": [runparams[x]["intermediate_dim_dec"]],
+                                                        #"latent_dim": [runparams[x]["latent_dim"]],
                                                         # "depth_enc": [runparams[x]['depth_enc']],
                                                         # "depth_dec": [runparams[x]['depth_dec']],
-                                                        "dropout_rate": [runparams[x]["dropout_rate"]],
+                                                        #"dropout_rate": [runparams[x]["dropout_rate"]],
                                                         "l2_coef": [runparams[x]["l2_coef"]],
                                                         "l1_coef": [runparams[x]["l1_coef"]],
                                                         "use_domain": [runparams[x]["use_domain"]],
                                                         "domain_type": [runparams[x]["domain_type"]],
-                                                        "use_batch_norm": [runparams[x]["use_batch_norm"]],
+                                                        #"use_batch_norm": [runparams[x]["use_batch_norm"]],
                                                         "scale_node_size": [runparams[x]["scale_node_size"]],
-                                                        "transform_input": [runparams[x]["transform_input"]],
+                                                        #"transform_input": [runparams[x]["transform_input"]],
                                                         "output_layer": [runparams[x]["output_layer"]],
                                                         "log_transform": [runparams[x]["log_transform"]]
                                                         if "log_transform" in list(runparams[x].keys())
