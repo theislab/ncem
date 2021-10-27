@@ -231,7 +231,8 @@ class Estimator:
         )
         if robustness:
             np.random.seed(robustness_seed)
-            n_images = np.round(len(self.data.img_celldata) * robustness)
+            n_images = np.int(len(self.data.img_celldata) * robustness)
+            print(n_images)
             image_keys = list(np.random.choice(
                 a=list(self.data.img_celldata.keys()),
                 size=n_images,
