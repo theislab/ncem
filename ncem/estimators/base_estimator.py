@@ -15,6 +15,29 @@ from ncem.utils.metrics import (custom_kl, custom_mae, custom_mean_sd,
                                 r_squared_linreg)
 
 
+def transfer_layers(model1, model2):
+    """
+    Transfer layer weights from model 1 to model 2.
+
+    :param model1: Input model.
+    :param model2: Output model.
+    """
+    layer_names_model1 = [x.name for x in model1.layers]
+    layer_names_model2 = [x.name for x in model2.layers]
+    layers_updated = []
+    layer_not_updated = set(layer_names_model2)
+    for x in layer_names_model1:
+        w = model1.get_layer(name=x).get_weights()
+        if x in layer_names_model2:
+            # Only update layers with parameters:
+            if len(w) > 0:
+                model2.get_layer(x).set_weights(w)
+                layers_updated.append(x)
+                layer_not_updated = layer_not_updated.difference({x})
+    print(f"updated layers: {layers_updated}")
+    print(f"did not update layers: {layer_not_updated}")
+
+
 class Estimator:
     """Estimator class for models.
 

@@ -1,11 +1,52 @@
+import abc
 import tensorflow as tf
-from typing import Tuple
+from typing import Tuple, Union
 
-from ncem.estimators import EstimatorGraph, EstimatorNeighborhood
+from ncem.estimators import Estimator, EstimatorGraph, EstimatorNeighborhood
+from ncem.estimators.base_estimator import transfer_layers
 from ncem.models import ModelEDncem, ModelEd2Ncem
+from ncem.models.layers.output_layers import IDENTIFIER_OUTPUT_LAYER
 
 
-class EstimatorEDncem(EstimatorGraph):
+class EstimatorEDncemBase(Estimator, abc.ABC):
+    model: Union[ModelEDncem, ModelEd2Ncem]
+
+    def predict_embedding_any(self, img_keys, node_idx, batch_size: int = 1):
+        """Predict embedding on any given data set.
+
+        Parameters
+        ----------
+        img_keys
+            Image keys.
+        node_idx
+            Nodes indices.
+        batch_size : int
+            Number of samples. If unspecified, it will default to 1.
+
+        Returns
+        -------
+        eval_dict
+        """
+        ds = self._get_dataset(
+            image_keys=img_keys,
+            nodes_idx=node_idx,
+            batch_size=batch_size,
+            shuffle_buffer_size=1,
+            train=False,
+            seed=None,
+            reinit_n_eval=None,
+        )
+        transfer_layers(model1=self.model.training_model, model2=self.model.encoder)
+        return self.model.encoder.predict(ds)
+
+    def get_decoding_weights(self):
+        layer_name_out = [x.name for x in self.model.training_model.layers if IDENTIFIER_OUTPUT_LAYER in x.name]
+        assert len(layer_name_out) == 1, "there should only be one output layer for this operation"
+        w = self.model.training_model.get_layer(name=layer_name_out[0]).get_weights()
+        return w
+
+
+class EstimatorEDncem(EstimatorGraph, EstimatorEDncemBase):
     """Estimator class for encoder-decoder NCEM models. Subclass of EstimatorGraph."""
 
     def __init__(
@@ -164,7 +205,7 @@ class EstimatorEDncem(EstimatorGraph):
         self._compile_model(optimizer=optimizer, output_layer=output_layer)
 
 
-class EstimatorEdNcemNeighborhood(EstimatorNeighborhood):
+class EstimatorEdNcemNeighborhood(EstimatorNeighborhood, EstimatorEDncemBase):
     """Estimator class for encoder-decoder NCEM models with single graph layer. Subclass of EstimatorNeighborhood."""
 
     def __init__(
