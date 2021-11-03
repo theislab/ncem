@@ -3340,10 +3340,11 @@ class DataLoader10xVisiumMouseBrain(DataLoader):
             "cluster_col": "cluster",
             "cluster_col_preprocessed": "cluster_preprocessed",
             "patient_col": "in_tissue",
-            "n_top_genes": 600
+            "n_top_genes": 500
         }
 
         celldata = read_h5ad(self.data_path + metadata["fn"]).copy()
+        # only loading top 500 genes
         sc.pp.highly_variable_genes(celldata, n_top_genes=500)
         celldata = celldata[:, celldata.var.highly_variable].copy()
 
@@ -3351,15 +3352,15 @@ class DataLoader10xVisiumMouseBrain(DataLoader):
         celldata.uns["metadata"] = metadata
         celldata.uns["img_keys"] = list(np.unique(celldata.obs[metadata["image_col"]]))
 
-        celldata.uns["img_to_patient_dict"] = {"image": "patient"}
-        self.img_to_patient_dict = {"image": "patient"}
+        celldata.uns["img_to_patient_dict"] = {"1": "1"}
+        self.img_to_patient_dict = {"1": "1"}
 
         # add clean cluster column which removes regular expression from cluster_col
         celldata.obs[metadata["cluster_col_preprocessed"]] = list(
             pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="category").map(self.cell_type_merge_dict)
         )
         celldata.obs[metadata["cluster_col_preprocessed"]] = celldata.obs[metadata["cluster_col_preprocessed"]].astype(
-            "category"
+            "str"
         )
         # register node type names
         node_type_names = list(np.unique(celldata.obs[metadata["cluster_col_preprocessed"]]))
