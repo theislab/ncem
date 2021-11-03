@@ -439,7 +439,7 @@ class GridSearchContainer:
 
         self.summary_table = pd.concat(self.summary_table)
         self.runparams_table = pd.concat(self.runparams_table)
-        #self.summary_table["um_radius"] = (self.summary_table["radius"] * self.lateral_resolution).astype(int)
+        self.summary_table["um_radius"] = (self.summary_table["radius"] * self.lateral_resolution).astype(int)
 
     def load_target_cell_evaluation(self, report_unsuccessful_runs: bool = False):
         """Load all metrics from grid search output files of target cell evaluation.
@@ -543,6 +543,7 @@ class GridSearchContainer:
                                                         "model_id": [runparams[x]["model_id"]],
                                                         #"split_mode": [runparams[x]["split_mode"]],
                                                         "radius": [runparams[x]["radius"]],
+                                                        "n_rings": [runparams[x]["n_rings"]] if "n_rings" in list(runparams[x].keys()) else "none",
                                                         "graph_covar_selection": [
                                                             runparams[x]["graph_covar_selection"]
                                                         ],
