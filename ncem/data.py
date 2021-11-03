@@ -1794,6 +1794,7 @@ class DataLoaderZhang(DataLoader):
             str(x): celldata.obs[metadata["patient_col"]].values[i].split("_")[0]
             for i, x in enumerate(celldata.obs[metadata["image_col"]].values)
         }
+
         celldata.uns["img_to_patient_dict"] = img_to_patient_dict
         self.img_to_patient_dict = img_to_patient_dict
 
@@ -1802,10 +1803,10 @@ class DataLoaderZhang(DataLoader):
 
         # add clean cluster column which removes regular expression from cluster_col
         celldata.obs[metadata["cluster_col_preprocessed"]] = list(
-            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="category").map(self.cell_type_merge_dict)
+            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="str").map(self.cell_type_merge_dict)
         )
         celldata.obs[metadata["cluster_col_preprocessed"]] = celldata.obs[metadata["cluster_col_preprocessed"]].astype(
-            "category"
+            "str"
         )
 
         # register node type names
@@ -3015,6 +3016,8 @@ class DataLoaderLuWT(DataLoader):
         celldata.obs[metadata["cluster_col_preprocessed"]] = celldata.obs[metadata["cluster_col_preprocessed"]].astype(
             "category"
         )
+        celldata = celldata[celldata.obs[metadata["cluster_col_preprocessed"]] != 'Unknown']
+
         # register node type names
         node_type_names = list(np.unique(celldata.obs[metadata["cluster_col_preprocessed"]]))
         print(node_type_names)
@@ -3028,6 +3031,75 @@ class DataLoaderLuWT(DataLoader):
         node_types[np.arange(0, node_type_idx.shape[0]), node_type_idx] = 1
         celldata.obsm["node_types"] = node_types
 
+        self.celldata = celldata
+
+    def _register_img_celldata(self):
+        """Load dictionary of of image-wise celldata objects with {imgage key : anndata object of image}."""
+        image_col = self.celldata.uns["metadata"]["image_col"]
+        img_celldata = {}
+        for k in self.celldata.uns["img_keys"]:
+            img_celldata[str(k)] = self.celldata[self.celldata.obs[image_col] == k].copy()
+        self.img_celldata = img_celldata
+
+    def _register_graph_features(self, label_selection):
+        """Load graph level covariates.
+
+        Parameters
+        ----------
+        label_selection
+            Label selection.
+        """
+        # Save processed data to attributes.
+        for adata in self.img_celldata.values():
+            graph_covariates = {
+                "label_names": {},
+                "label_tensors": {},
+                "label_selection": [],
+                "continuous_mean": {},
+                "continuous_std": {},
+                "label_data_types": {},
+            }
+            adata.uns["graph_covariates"] = graph_covariates
+
+        graph_covariates = {
+            "label_names": {},
+            "label_selection": [],
+            "continuous_mean": {},
+            "continuous_std": {},
+            "label_data_types": {},
+        }
+        self.celldata.uns["graph_covariates"] = graph_covariates
+
+
+class DataLoaderLuWTimputed(DataLoader):
+    """DataLoaderLuWTimputed class. Inherits all functions from DataLoader."""
+
+    cell_type_merge_dict = {
+        1: "AEC",
+        2: "SEC",
+        3: "MK",
+        4: "Hepatocyte",
+        5: "Macrophage",
+        6: "Myeloid",
+        7: "Erythroid progenitor",
+        8: "Erythroid cell",
+    }
+
+    def _register_celldata(self):
+        """Load AnnData object of complete dataset."""
+        metadata = {
+            "lateral_resolution": 0.1079,
+            "fn": "merfish_wt_imputed_fetal_liver.h5ad",
+            "image_col": "FOV",
+            "pos_cols": ["Center_x", "Center_y"],
+            "cluster_col": "CellTypeID_new",
+            "cluster_col_preprocessed": "CellTypeID_new_preprocessed",
+        }
+        celldata = read_h5ad(self.data_path + metadata["fn"])
+        celldata.uns["metadata"] = metadata
+        # only loading top 500 genes
+        sc.pp.highly_variable_genes(celldata, n_top_genes=500)
+        celldata = celldata[:, celldata.var.highly_variable].copy()
         self.celldata = celldata
 
     def _register_img_celldata(self):
@@ -3355,9 +3427,12 @@ class DataLoader10xVisiumMouseBrain(DataLoader):
         celldata.uns["img_to_patient_dict"] = {"1": "1"}
         self.img_to_patient_dict = {"1": "1"}
 
+        celldata.obs[metadata["cluster_col"]] = celldata.obs[metadata["cluster_col"]].astype(
+            "str"
+        )
         # add clean cluster column which removes regular expression from cluster_col
         celldata.obs[metadata["cluster_col_preprocessed"]] = list(
-            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="category").map(self.cell_type_merge_dict)
+            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="str").map(self.cell_type_merge_dict)
         )
         celldata.obs[metadata["cluster_col_preprocessed"]] = celldata.obs[metadata["cluster_col_preprocessed"]].astype(
             "str"

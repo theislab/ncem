@@ -112,15 +112,15 @@ class Estimator:
         """
         coord_type = 'generic'
 
-        if data_origin == "zhang":
+        if data_origin.startswith("zhang"):
             from ncem.data import DataLoaderZhang as DataLoader
 
             self.undefined_node_types = ["other"]
-        elif data_origin == "jarosch":
+        elif data_origin.startswith("jarosch"):
             from ncem.data import DataLoaderJarosch as DataLoader
 
             self.undefined_node_types = None
-        elif data_origin == "hartmann":
+        elif data_origin.startswith("hartmann"):
             from ncem.data import DataLoaderHartmann as DataLoader
 
             self.undefined_node_types = None
@@ -128,7 +128,7 @@ class Estimator:
             from ncem.data import DataLoaderPascualReguant as DataLoader
 
             self.undefined_node_types = ["other"]
-        elif data_origin == "schuerch":
+        elif data_origin.startswith("schuerch"):
             from ncem.data import DataLoaderSchuerch as DataLoader
 
             self.undefined_node_types = [
@@ -137,14 +137,17 @@ class Estimator:
                 "tumor cells / immune cells",
                 "immune cells / vasculature",
             ]
-        elif data_origin == 'lohoff':
+        elif data_origin.startswith('lohoff'):
             from ncem.data import DataLoaderLohoff as DataLoader
             self.undefined_node_types = ['Low quality']
-        elif data_origin == "luwt":
-            from ncem.data import DataLoaderLuWT as DataLoader
+        elif data_origin.startswith("luwt"):
+            if data_origin == "luwt_imputation":
+                from ncem.data import DataLoaderLuWTimputed as DataLoader
+            else:
+                from ncem.data import DataLoaderLuWT as DataLoader
 
             self.undefined_node_types = ['Unknown']
-        elif data_origin == "lutet2":
+        elif data_origin.startswith("lutet2"):
             from ncem.data import DataLoaderLuTET2 as DataLoader
 
             self.undefined_node_types = ['Unknown']
@@ -231,7 +234,8 @@ class Estimator:
         )
         if robustness:
             np.random.seed(robustness_seed)
-            n_images = np.round(len(self.data.img_celldata) * robustness)
+            n_images = np.int(len(self.data.img_celldata) * robustness)
+            print(n_images)
             image_keys = list(np.random.choice(
                 a=list(self.data.img_celldata.keys()),
                 size=n_images,
