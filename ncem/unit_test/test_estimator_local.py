@@ -51,6 +51,7 @@ class TestEstimator(unittest.TestCase):
             radius=radius,
             node_label_space_id=node_label_space_id,
             node_feature_space_id=node_feature_space_id,
+            robustness=0.5
         )
 
     def _test_train(self, model: str, data_origin: str = "zhang"):

@@ -141,7 +141,10 @@ class Estimator:
             from ncem.data import DataLoaderLohoff as DataLoader
             self.undefined_node_types = ['Low quality']
         elif data_origin.startswith("luwt"):
-            from ncem.data import DataLoaderLuWT as DataLoader
+            if data_origin == "luwt_imputation":
+                from ncem.data import DataLoaderLuWTimputed as DataLoader
+            else:
+                from ncem.data import DataLoaderLuWT as DataLoader
 
             self.undefined_node_types = ['Unknown']
         elif data_origin.startswith("lutet2"):
