@@ -3097,6 +3097,9 @@ class DataLoaderLuWTimputed(DataLoader):
         }
         celldata = read_h5ad(self.data_path + metadata["fn"])
         celldata.uns["metadata"] = metadata
+        # only loading top 500 genes
+        sc.pp.highly_variable_genes(celldata, n_top_genes=500)
+        celldata = celldata[:, celldata.var.highly_variable].copy()
         self.celldata = celldata
 
     def _register_img_celldata(self):
