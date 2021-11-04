@@ -1640,6 +1640,7 @@ class DataLoader(GraphTools, PlottingTools):
         coord_type: str = 'generic',
         n_rings: int = 1,
         label_selection: Optional[List[str]] = None,
+        n_top_genes: Optional[int] = None
     ):
         """Initialize DataLoader.
 
@@ -1655,7 +1656,7 @@ class DataLoader(GraphTools, PlottingTools):
         self.data_path = data_path
 
         print("Loading data from raw files")
-        self.register_celldata()
+        self.register_celldata(n_top_genes=n_top_genes)
         self.register_img_celldata()
         self.register_graph_features(label_selection=label_selection)
         self.compute_adjacency_matrices(radius=radius, coord_type=coord_type, n_rings=n_rings)
@@ -1683,10 +1684,10 @@ class DataLoader(GraphTools, PlottingTools):
         """
         return np.unique(np.asarray(list(self.celldata.uns["img_to_patient_dict"].values())))
 
-    def register_celldata(self):
+    def register_celldata(self, n_top_genes: Optional[int] = None):
         """Load AnnData object of complete dataset."""
         print("registering celldata")
-        self._register_celldata()
+        self._register_celldata(n_top_genes=n_top_genes)
         assert self.celldata is not None, "celldata was not loaded"
 
     def register_img_celldata(self):
@@ -1707,7 +1708,7 @@ class DataLoader(GraphTools, PlottingTools):
         self._register_graph_features(label_selection=label_selection)
 
     @abc.abstractmethod
-    def _register_celldata(self):
+    def _register_celldata(self, n_top_genes: Optional[int] = None):
         """Load AnnData object of complete dataset."""
         pass
 
@@ -1774,7 +1775,7 @@ class DataLoaderZhang(DataLoader):
         "other": "other",
     }
 
-    def _register_celldata(self):
+    def _register_celldata(self, n_top_genes: Optional[int] = None):
         """Load AnnData object of complete dataset."""
         metadata = {
             "lateral_resolution": 0.109,
@@ -1880,7 +1881,7 @@ class DataLoaderJarosch(DataLoader):
         "other Lymphocytes": "other Lymphocytes",
     }
 
-    def _register_celldata(self):
+    def _register_celldata(self, n_top_genes: Optional[int] = None):
         """Load AnnData object of complete dataset."""
         metadata = {
             "lateral_resolution": 0.5,
@@ -1979,7 +1980,7 @@ class DataLoaderHartmann(DataLoader):
         "Myeloid_CD11c": "CD11c Myeloid",
     }
 
-    def _register_celldata(self):
+    def _register_celldata(self, n_top_genes: Optional[int] = None):
         """Load AnnData object of complete dataset."""
         metadata = {
             "lateral_resolution": 400 / 1024,
@@ -2218,7 +2219,7 @@ class DataLoaderPascualReguant(DataLoader):
         "other": "other",
     }
 
-    def _register_celldata(self):
+    def _register_celldata(self, n_top_genes: Optional[int] = None):
         """Load AnnData object of complete dataset."""
         metadata = {
             "lateral_resolution": 0.325,
@@ -2391,7 +2392,7 @@ class DataLoaderSchuerch(DataLoader):
         "vasculature": "vasculature",
     }
 
-    def _register_celldata(self):
+    def _register_celldata(self, n_top_genes: Optional[int] = None):
         """Load AnnData object of complete dataset."""
         metadata = {
             "lateral_resolution": 0.377442,
@@ -2742,7 +2743,7 @@ class DataLoaderLohoff(DataLoader):
         'Surface ectoderm': 'Surface ectoderm'
     }
 
-    def _register_celldata(self):
+    def _register_celldata(self, n_top_genes: Optional[int] = None):
         """Load AnnData object of complete dataset."""
         metadata = {
             "lateral_resolution": 1.,
@@ -2842,7 +2843,7 @@ class DataLoaderLuWT(DataLoader):
         9: "Unknown",
     }
 
-    def _register_celldata(self):
+    def _register_celldata(self, n_top_genes: Optional[int] = None):
         """Load AnnData object of complete dataset."""
         metadata = {
             "lateral_resolution": 0.1079,
@@ -3085,7 +3086,7 @@ class DataLoaderLuWTimputed(DataLoader):
         8: "Erythroid cell",
     }
 
-    def _register_celldata(self):
+    def _register_celldata(self, n_top_genes: Optional[int] = None):
         """Load AnnData object of complete dataset."""
         metadata = {
             "lateral_resolution": 0.1079,
@@ -3094,12 +3095,13 @@ class DataLoaderLuWTimputed(DataLoader):
             "pos_cols": ["Center_x", "Center_y"],
             "cluster_col": "CellTypeID_new",
             "cluster_col_preprocessed": "CellTypeID_new_preprocessed",
+            "n_top_genes": n_top_genes
         }
         celldata = read_h5ad(self.data_path + metadata["fn"])
         celldata.uns["metadata"] = metadata
-        # only loading top 500 genes
-        sc.pp.highly_variable_genes(celldata, n_top_genes=500)
-        celldata = celldata[:, celldata.var.highly_variable].copy()
+        if n_top_genes:
+            sc.pp.highly_variable_genes(celldata, n_top_genes=n_top_genes)
+            celldata = celldata[:, celldata.var.highly_variable].copy()
         self.celldata = celldata
 
     def _register_img_celldata(self):
@@ -3155,7 +3157,7 @@ class DataLoaderLuTET2(DataLoader):
         9: "Unknown",
     }
 
-    def _register_celldata(self):
+    def _register_celldata(self, n_top_genes: Optional[int] = None):
         """Load AnnData object of complete dataset."""
         metadata = {
             "lateral_resolution": 0.1079,
@@ -3403,7 +3405,7 @@ class DataLoader10xVisiumMouseBrain(DataLoader):
         'Thalamus_2': 'Thalamus 2'
     }
 
-    def _register_celldata(self):
+    def _register_celldata(self, n_top_genes: Optional[int] = None):
         """Load AnnData object of complete dataset."""
         metadata = {
             "lateral_resolution": 1.,
@@ -3412,13 +3414,13 @@ class DataLoader10xVisiumMouseBrain(DataLoader):
             "cluster_col": "cluster",
             "cluster_col_preprocessed": "cluster_preprocessed",
             "patient_col": "in_tissue",
-            "n_top_genes": 500
+            "n_top_genes": n_top_genes
         }
 
         celldata = read_h5ad(self.data_path + metadata["fn"]).copy()
-        # only loading top 500 genes
-        sc.pp.highly_variable_genes(celldata, n_top_genes=500)
-        celldata = celldata[:, celldata.var.highly_variable].copy()
+        if n_top_genes:
+            sc.pp.highly_variable_genes(celldata, n_top_genes=n_top_genes)
+            celldata = celldata[:, celldata.var.highly_variable].copy()
 
         celldata.X = celldata.X.toarray()
         celldata.uns["metadata"] = metadata
