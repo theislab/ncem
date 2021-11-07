@@ -1,14 +1,14 @@
-import unittest
+import pytest
+from typing import Union
 
 import ncem.api as ncem
+from ncem.estimators import Estimator
+
+from ncem.unit_test.directories import DATA_PATH_ZHANG, DATA_PATH_HARTMANN, DATA_PATH_LU
 
 
-class TestEstimator(unittest.TestCase):
-    base_path = "/Users/anna.schaar/phd/datasets/"
-    data_path_zhang = base_path + "zhang/"
-    data_path_jarosch = base_path + "busch/"
-    data_path_hartmann = base_path + "hartmann/"
-    data_path_schuerch = base_path + "buffer/"
+class HelperTestEstimator:
+    est: Estimator
 
     def get_estimator(
         self,
@@ -27,6 +27,14 @@ class TestEstimator(unittest.TestCase):
             self.est = ncem.train.EstimatorEDncem(cond_type="max")
         elif model == "ed_ncem_gcn":
             self.est = ncem.train.EstimatorEDncem(cond_type="gcn")
+        elif model == "ed_ncem2_max":
+            self.est = ncem.train.EstimatorEdNcemNeighborhood(cond_type="max")
+        elif model == "ed_ncem2_lr_gat":
+            self.est = ncem.train.EstimatorEdNcemNeighborhood(cond_type="lr_gat")
+        elif model == "ed_ncem2_gat":
+            self.est = ncem.train.EstimatorEdNcemNeighborhood(cond_type="gat")
+        elif model == "ed_ncem2_gcn":
+            self.est = ncem.train.EstimatorEdNcemNeighborhood(cond_type="gcn")
         elif model == "cvae":
             self.est = ncem.train.EstimatorCVAE()
         elif model == "cvae_ncem_max":
@@ -38,10 +46,13 @@ class TestEstimator(unittest.TestCase):
 
         if data_origin == "zhang":
             radius = 100
-            data_path = self.data_path_zhang
+            data_path = DATA_PATH_ZHANG
         elif data_origin == "hartmann":
             radius = 100
-            data_path = self.data_path_hartmann
+            data_path = DATA_PATH_HARTMANN
+        elif data_origin.startswith("lu"):
+            radius = 100
+            data_path = DATA_PATH_LU
         else:
             assert False
 
@@ -53,8 +64,19 @@ class TestEstimator(unittest.TestCase):
             node_feature_space_id=node_feature_space_id,
         )
 
-    def _test_train(self, model: str, data_origin: str = "zhang"):
+    def test_train(self, model: str, data_origin: str = "zhang"):
         self.get_estimator(model=model, data_origin=data_origin)
+
+        kwargs_shared = {
+            'optimizer': "adam",
+            'latent_dim': 4,
+            'dropout_rate': 0.,
+            'l2_coef': 0.,
+            'l1_coef': 0.,
+            'n_eval_nodes_per_graph': 4,
+            'scale_node_size': False,
+            'output_layer': "gaussian"
+        }
 
         if model == "linear":
             kwargs = {"use_source_type": True, "use_domain": True, "learning_rate": 1e-2}
@@ -110,6 +132,25 @@ class TestEstimator(unittest.TestCase):
                 "beta": 0.1,
             }
             train_kwargs = {}
+        elif model.startswith("ed_ncem2"):
+            kwargs = kwargs_shared
+            kwargs.update({
+                "use_domain": True,
+                "use_bias": True,
+                "learning_rate": 1e-2,
+                "cond_type": self.est.cond_type,
+                "dec_intermediate_dim": 0,
+                "dec_n_hidden": 0,
+                "dec_dropout_rate": float,
+                "dec_l1_coef": 0.,
+                "dec_l2_coef": 0.,
+                "dec_use_batch_norm": False,
+            })
+            train_kwargs = {}
+            self.est.set_input_features(
+                h0_in=False,
+                target_feature_names=["Abcb4", "Abcc3"],
+                neighbor_feature_names=["Adgre1", "Ammecr1"])
         else:
             assert False
         self._model_kwargs = kwargs
@@ -139,18 +180,44 @@ class TestEstimator(unittest.TestCase):
         )
         self.est.model.training_model.summary()
 
-    def test_linear(self):
-        # self._test_train(model='linear_baseline', data_origin='hartmann')
-        # self._test_train(model="linear", data_origin="hartmann")
-        # self._test_train(model='interactions_baseline', data_origin='hartmann')
-        self._test_train(model="interactions", data_origin="hartmann")
 
-    def test_ed(self):
-        # self._test_train(model="ed", data_origin="hartmann")
-        self._test_train(model="ed_ncem_max", data_origin="hartmann")
-        # self._test_train(model="ed_ncem_gcn", data_origin="hartmann")
+class HelperTestEstimatorEd(HelperTestEstimator):
 
-    def test_cvae(self):
-        # self._test_train(model="cvae", data_origin="hartmann")
-        self._test_train(model="cvae_ncem_max", data_origin="hartmann")
-        # self._test_train(model="cvae_ncem_gcn", data_origin="hartmann")
+    est: Union[ncem.train.EstimatorED, ncem.train.EstimatorEDncem, ncem.train.EstimatorEdNcemNeighborhood]
+
+    def test_embedding(self):
+        _ = self.est.predict_embedding_any(img_keys=self.est.img_keys_test, node_idx=self.est.nodes_idx_test)
+
+    def test_decoding_weights(self):
+        _ = self.est.get_decoding_weights()
+
+
+@pytest.mark.parametrize("dataset", ["luwt"])
+@pytest.mark.parametrize("model", ["interactions"])
+def test_linear(dataset: str, model: str):
+    estim = HelperTestEstimator()
+    estim.test_train(model=model, data_origin=dataset)
+
+
+@pytest.mark.parametrize("dataset", ["luwt"])
+@pytest.mark.parametrize("model", ["ed_ncem_max"])
+def test_ed(dataset: str, model: str):
+    estim = HelperTestEstimator()
+    estim.test_train(model=model, data_origin=dataset)
+
+
+@pytest.mark.parametrize("dataset", ["luwt"])
+@pytest.mark.parametrize("model", ["cvae_ncem_max"])
+def test_cvae(dataset: str, model: str):
+    estim = HelperTestEstimator()
+    estim.test_train(model=model, data_origin=dataset)
+
+
+@pytest.mark.parametrize("dataset", ["luwt"])
+#@pytest.mark.parametrize("model", ["ed_ncem2_max", "ed_ncem2_gcn", "ed_ncem2_lr_gat", "ed_ncem2_gat"])
+@pytest.mark.parametrize("model", ["ed_ncem2_lr_gat"])
+def test_ed2(dataset: str, model: str):
+    estim = HelperTestEstimatorEd()
+    estim.test_train(model=model, data_origin=dataset)
+    estim.test_embedding()
+    estim.test_decoding_weights()

@@ -9,5 +9,7 @@ from ncem.models.layers.output_layers import (GaussianConstDispOutput,
                                               LinearOutput,
                                               NegBinConstDispOutput,
                                               NegBinOutput,
-                                              NegBinSharedDispOutput)
+                                              NegBinSharedDispOutput,
+                                              get_out)
 from ncem.models.layers.preproc_input import DenseInteractions, PreprocInput
+from ncem.models.layers.single_gnn_layers import SingleLrGatLayer, SingleGatLayer

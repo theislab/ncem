@@ -15,6 +15,29 @@ from ncem.utils.metrics import (custom_kl, custom_mae, custom_mean_sd,
                                 r_squared_linreg)
 
 
+def transfer_layers(model1, model2):
+    """
+    Transfer layer weights from model 1 to model 2.
+
+    :param model1: Input model.
+    :param model2: Output model.
+    """
+    layer_names_model1 = [x.name for x in model1.layers]
+    layer_names_model2 = [x.name for x in model2.layers]
+    layers_updated = []
+    layer_not_updated = set(layer_names_model2)
+    for x in layer_names_model1:
+        w = model1.get_layer(name=x).get_weights()
+        if x in layer_names_model2:
+            # Only update layers with parameters:
+            if len(w) > 0:
+                model2.get_layer(x).set_weights(w)
+                layers_updated.append(x)
+                layer_not_updated = layer_not_updated.difference({x})
+    print(f"updated layers: {layers_updated}")
+    print(f"did not update layers: {layer_not_updated}")
+
+
 class Estimator:
     """Estimator class for models.
 
@@ -91,6 +114,7 @@ class Estimator:
         radius: Optional[int] = None,
         n_rings: int = 1,
         label_selection: Optional[List[str]] = None,
+        n_top_genes: Optional[int] = None
     ):
         """Initialize a DataLoader object.
 
@@ -104,6 +128,8 @@ class Estimator:
             Radius.
         label_selection : list, optional
             Label selection.
+        n_top_genes: int, optional
+            N top genes for highly variable gene selection.
 
         Raises
         ------
@@ -165,7 +191,8 @@ class Estimator:
             raise ValueError(f"data_origin {data_origin} not recognized")
 
         self.data = DataLoader(
-            data_path, radius=radius, coord_type=coord_type, n_rings=n_rings, label_selection=label_selection
+            data_path, radius=radius, coord_type=coord_type, n_rings=n_rings, label_selection=label_selection,
+            n_top_genes=n_top_genes
         )
 
     def get_data(
@@ -182,7 +209,8 @@ class Estimator:
         use_covar_graph_covar: bool = False,
         domain_type: str = "image",
         robustness: Optional[float] = None,
-        robustness_seed: int = 1
+        robustness_seed: int = 1,
+        n_top_genes: Optional[int] = None
     ):
         """Get data used in estimator classes.
 
@@ -214,6 +242,8 @@ class Estimator:
             Optional fraction of images for robustness test.
         robustness_seed: int
             Seed for robustness analysis
+        n_top_genes: int, optional
+            N top genes for highly variable gene selection.
         Raises
         ------
         ValueError
@@ -231,6 +261,7 @@ class Estimator:
             radius=radius,
             n_rings=n_rings,
             label_selection=labels_to_load,
+            n_top_genes=n_top_genes
         )
         if robustness:
             np.random.seed(robustness_seed)
