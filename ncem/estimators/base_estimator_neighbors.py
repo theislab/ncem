@@ -12,6 +12,9 @@ class EstimatorNeighborhood(Estimator):
     n_features_in: int
     _n_neighbors_padded: Union[int, None]
     h0_in: bool
+    features: list
+    target_feature_names: list
+    neighbor_feature_names: list
     idx_target_features: np.ndarray
     idx_neighbor_features: np.ndarray
 
@@ -32,6 +35,9 @@ class EstimatorNeighborhood(Estimator):
             self.n_features_in = self.n_features_0
         else:
             features = self.data.var_names.tolist()
+            self.features = features
+            self.target_feature_names = target_feature_names
+            self.neighbor_feature_names = neighbor_feature_names
             self.idx_target_features = np.array([features.index(x) for x in target_feature_names])
             self.idx_neighbor_features = np.array([features.index(x) for x in neighbor_feature_names])
             assert len(self.idx_target_features) == len(self.idx_neighbor_features)
@@ -100,7 +106,7 @@ class EstimatorNeighborhood(Estimator):
             else:
                 output_signature = ((h_targets, h_neighbors, sf, a, node_covar, domain),
                                     reconstruction)
-        print(output_signature)
+        # print(output_signature)
         return output_signature
 
     def _get_dataset(

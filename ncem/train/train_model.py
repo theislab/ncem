@@ -165,8 +165,17 @@ class TrainModelEdSingleNcem(TrainModel, TrainModelEDncemBase):
     def init_estim(self, **kwargs):
         self.estimator = EstimatorEdNcemNeighborhood(**kwargs)
 
+    def _save_lr_feature_names(self, fn):
+        feature_names = {
+            "features": self.estimator.features,
+            "target_feature_names": self.estimator.target_feature_names,
+            "neighbor_feature_names": self.estimator.neighbor_feature_names,
+        }
+        self._try_save(fn + "_lr_features.pickle", feature_names)
+
     def _save_specific(self, fn):
         self._save_evaluation_per_node_type(fn=fn)
+        self._save_lr_feature_names(fn=fn)
 
 
 class TrainModelCVAEBase(TrainModel):

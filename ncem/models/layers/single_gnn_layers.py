@@ -107,7 +107,7 @@ class SingleLrGatLayer(tf.keras.layers.Layer):
 
     def call(self, inputs, **kwargs):
         targets_receptor = inputs[0]  # (batch, target nodes, lr)
-        print(targets_receptor.shape)
+        # print('targets_receptor', targets_receptor.shape)
         neighbors_ligand = inputs[1]  # (batch, target nodes, padded neighbor nodes, lr)
         a = inputs[2]  # (batch, target nodes, padded neighbor nodes)
 
@@ -115,7 +115,7 @@ class SingleLrGatLayer(tf.keras.layers.Layer):
         neighbors_ligand = neighbors_ligand * self.kernel_l + self.bias_l  # (batch, target nodes, padded neighbor nodes, lr)
         targets_receptor = tf.expand_dims(targets_receptor, axis=-2)  # (batch, target nodes, 1, lr)
         weights = targets_receptor * neighbors_ligand
-        print(weights.shape)
+        # print('weights', weights.shape)
         # Mask embeddings to neighbors
         a = tf.expand_dims(a, axis=-1)  # (batch, target nodes, padded neighbor nodes, 1)
         weights = weights * a

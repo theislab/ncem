@@ -56,14 +56,12 @@ class HelperTestEstimator:
         else:
             assert False
 
-        print('COND TYPE', self.est.cond_type)
         self.est.get_data(
             data_origin=data_origin,
             data_path=data_path,
             radius=radius,
             node_label_space_id=node_label_space_id,
             node_feature_space_id=node_feature_space_id,
-            robustness=0.5
         )
 
     def test_train(self, model: str, data_origin: str = "zhang"):
@@ -216,7 +214,8 @@ def test_cvae(dataset: str, model: str):
 
 
 @pytest.mark.parametrize("dataset", ["luwt"])
-@pytest.mark.parametrize("model", ["ed_ncem2_max", "ed_ncem2_gcn", "ed_ncem2_lr_gat", "ed_ncem2_gat"])
+#@pytest.mark.parametrize("model", ["ed_ncem2_max", "ed_ncem2_gcn", "ed_ncem2_lr_gat", "ed_ncem2_gat"])
+@pytest.mark.parametrize("model", ["ed_ncem2_lr_gat"])
 def test_ed2(dataset: str, model: str):
     estim = HelperTestEstimatorEd()
     estim.test_train(model=model, data_origin=dataset)
