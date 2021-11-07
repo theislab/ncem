@@ -15,7 +15,7 @@ from diffxpy.testing.correction import correct
 from matplotlib.ticker import FormatStrFormatter
 from matplotlib.tri import Triangulation
 from omnipath.interactions import import_intercell_network
-from pandas import read_csv, read_excel
+from pandas import read_csv, read_excel, DataFrame
 from scipy import sparse, stats
 from tqdm import tqdm
 
@@ -2464,8 +2464,67 @@ class DataLoaderSchuerch(DataLoader):
             "CD57 - NK cells:Cyc_17_ch_4",
             "MMP12 - matrix metalloproteinase:Cyc_21_ch_4",
         ]
-
-        celldata = AnnData(X=celldata_df[feature_cols], obs=celldata_df[["File Name", "patients", "ClusterName"]])
+        feature_cols_hgnc_names = [
+            'CD44',
+            'FOXP3',
+            'CD8A',
+            'TP53',
+            'GATA3',
+            'PTPRC',
+            'TBX21',
+            'CTNNB1',
+            'HLA-DR',
+            'CD274',
+            'MKI67',
+            'PTPRC',
+            'CD4',
+            'CR2',
+            'MUC1',
+            'TNFRSF8',
+            'CD2',
+            'VIM',
+            'MS4A1',
+            'LAG3',
+            'ATP1A1',
+            'CD5',
+            'IDO1',
+            'KRT1',
+            'ITGAM',
+            'NCAM1',
+            'ACTA1',
+            'BCL2',
+            'IL2RA',
+            'ITGAX',
+            'PDCD1',
+            'GZMB',
+            'EGFR',
+            'VISTA',
+            'FUT4',
+            'ICOS',
+            'SYP',
+            'GFAP',
+            'CD7',
+            'CD247',
+            'CHGA',
+            'CD163',
+            'PTPRC',
+            'CD68',
+            'PECAM1',
+            'PDPN',
+            'CD34',
+            'CD38',
+            'SDC1',
+            'HOECHST1:Cyc_1_ch_1',  ##
+            'CDX2',
+            'COL6A1',
+            'CCR4',
+            'MMP9',
+            'TFRC',
+            'B3GAT1',
+            'MMP12'
+        ]
+        X = DataFrame(np.array(celldata_df[feature_cols]), columns=feature_cols_hgnc_names)
+        celldata = AnnData(X=X, obs=celldata_df[["File Name", "patients", "ClusterName"]])
 
         celldata.uns["metadata"] = metadata
         img_keys = list(np.unique(celldata_df[metadata["image_col"]]))
