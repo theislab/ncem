@@ -1,10 +1,10 @@
 import pytest
+from typing import Union
 
 import ncem.api as ncem
 from ncem.estimators import Estimator
 
-from ncem.unit_test.directories import DATA_PATH_ZHANG, DATA_PATH_JAROSCH, DATA_PATH_HARTMANN, DATA_PATH_SCHUERCH, \
-    DATA_PATH_LU
+from ncem.unit_test.directories import DATA_PATH_ZHANG, DATA_PATH_HARTMANN, DATA_PATH_LU
 
 
 class HelperTestEstimator:
@@ -56,7 +56,6 @@ class HelperTestEstimator:
         else:
             assert False
 
-        print('COND TYPE', self.est.cond_type)
         self.est.get_data(
             data_origin=data_origin,
             data_path=data_path,
@@ -182,6 +181,17 @@ class HelperTestEstimator:
         self.est.model.training_model.summary()
 
 
+class HelperTestEstimatorEd(HelperTestEstimator):
+
+    est: Union[ncem.train.EstimatorED, ncem.train.EstimatorEDncem, ncem.train.EstimatorEdNcemNeighborhood]
+
+    def test_embedding(self):
+        _ = self.est.predict_embedding_any(img_keys=self.est.img_keys_test, node_idx=self.est.nodes_idx_test)
+
+    def test_decoding_weights(self):
+        _ = self.est.get_decoding_weights()
+
+
 @pytest.mark.parametrize("dataset", ["luwt"])
 @pytest.mark.parametrize("model", ["interactions"])
 def test_linear(dataset: str, model: str):
@@ -204,8 +214,10 @@ def test_cvae(dataset: str, model: str):
 
 
 @pytest.mark.parametrize("dataset", ["luwt"])
-@pytest.mark.parametrize("model", ["ed_ncem2_max", "ed_ncem2_gcn", "ed_ncem2_lr_gat", "ed_ncem2_gat"])
-#@pytest.mark.parametrize("model", ["ed_ncem2_max"])
+#@pytest.mark.parametrize("model", ["ed_ncem2_max", "ed_ncem2_gcn", "ed_ncem2_lr_gat", "ed_ncem2_gat"])
+@pytest.mark.parametrize("model", ["ed_ncem2_lr_gat"])
 def test_ed2(dataset: str, model: str):
-    estim = HelperTestEstimator()
+    estim = HelperTestEstimatorEd()
     estim.test_train(model=model, data_origin=dataset)
+    estim.test_embedding()
+    estim.test_decoding_weights()

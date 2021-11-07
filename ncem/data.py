@@ -16,7 +16,7 @@ from diffxpy.testing.correction import correct
 from matplotlib.ticker import FormatStrFormatter
 from matplotlib.tri import Triangulation
 from omnipath.interactions import import_intercell_network
-from pandas import read_csv, read_excel
+from pandas import read_csv, read_excel, DataFrame
 from scipy import sparse, stats
 from tqdm import tqdm
 
@@ -27,13 +27,19 @@ class GraphTools:
     celldata: AnnData
     img_celldata: Dict[str, AnnData]
 
-    def compute_adjacency_matrices(self, radius: int, transform: str = None):
+    def compute_adjacency_matrices(
+        self, radius: int, coord_type: str = 'generic', n_rings: int = 1, transform: str = None
+    ):
         """Compute adjacency matrix for each image in dataset (uses `squidpy.gr.spatial_neighbors`).
 
         Parameters
         ----------
         radius : int
             Radius of neighbors for non-grid data.
+        coord_type : str
+            Type of coordinate system.
+        n_rings : int
+            Number of rings of neighbors for grid data.
         transform : str
             Type of adjacency matrix transform. Valid options are:
 
@@ -44,7 +50,14 @@ class GraphTools:
         pbar_total = len(self.img_celldata.keys())
         with tqdm(total=pbar_total) as pbar:
             for _k, adata in self.img_celldata.items():
-                sq.gr.spatial_neighbors(adata=adata, radius=radius, transform=transform, key_added="adjacency_matrix")
+                sq.gr.spatial_neighbors(
+                    adata=adata,
+                    coord_type=coord_type,
+                    radius=radius,
+                    n_rings=n_rings,
+                    transform=transform,
+                    key_added="adjacency_matrix"
+                )
                 pbar.update(1)
 
     @staticmethod
@@ -1624,8 +1637,11 @@ class DataLoader(GraphTools, PlottingTools):
     def __init__(
         self,
         data_path: str,
-        radius: int,
+        radius: Optional[int] = None,
+        coord_type: str = 'generic',
+        n_rings: int = 1,
         label_selection: Optional[List[str]] = None,
+        n_top_genes: Optional[int] = None
     ):
         """Initialize DataLoader.
 
@@ -1641,10 +1657,10 @@ class DataLoader(GraphTools, PlottingTools):
         self.data_path = data_path
 
         print("Loading data from raw files")
-        self.register_celldata()
+        self.register_celldata(n_top_genes=n_top_genes)
         self.register_img_celldata()
         self.register_graph_features(label_selection=label_selection)
-        self.compute_adjacency_matrices(radius=radius)
+        self.compute_adjacency_matrices(radius=radius, coord_type=coord_type, n_rings=n_rings)
         self.radius = radius
 
         print(
@@ -1669,10 +1685,10 @@ class DataLoader(GraphTools, PlottingTools):
         """
         return np.unique(np.asarray(list(self.celldata.uns["img_to_patient_dict"].values())))
 
-    def register_celldata(self):
+    def register_celldata(self, n_top_genes: Optional[int] = None):
         """Load AnnData object of complete dataset."""
         print("registering celldata")
-        self._register_celldata()
+        self._register_celldata(n_top_genes=n_top_genes)
         assert self.celldata is not None, "celldata was not loaded"
 
     def register_img_celldata(self):
@@ -1693,7 +1709,7 @@ class DataLoader(GraphTools, PlottingTools):
         self._register_graph_features(label_selection=label_selection)
 
     @abc.abstractmethod
-    def _register_celldata(self):
+    def _register_celldata(self, n_top_genes: Optional[int] = None):
         """Load AnnData object of complete dataset."""
         pass
 
@@ -1764,7 +1780,7 @@ class DataLoaderZhang(DataLoader):
         "other": "other",
     }
 
-    def _register_celldata(self):
+    def _register_celldata(self, n_top_genes: Optional[int] = None):
         """Load AnnData object of complete dataset."""
         metadata = {
             "lateral_resolution": 0.109,
@@ -1784,6 +1800,7 @@ class DataLoaderZhang(DataLoader):
             str(x): celldata.obs[metadata["patient_col"]].values[i].split("_")[0]
             for i, x in enumerate(celldata.obs[metadata["image_col"]].values)
         }
+
         celldata.uns["img_to_patient_dict"] = img_to_patient_dict
         self.img_to_patient_dict = img_to_patient_dict
 
@@ -1792,10 +1809,10 @@ class DataLoaderZhang(DataLoader):
 
         # add clean cluster column which removes regular expression from cluster_col
         celldata.obs[metadata["cluster_col_preprocessed"]] = list(
-            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="category").map(self.cell_type_merge_dict)
+            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="str").map(self.cell_type_merge_dict)
         )
         celldata.obs[metadata["cluster_col_preprocessed"]] = celldata.obs[metadata["cluster_col_preprocessed"]].astype(
-            "category"
+            "str"
         )
 
         # register node type names
@@ -1869,7 +1886,7 @@ class DataLoaderJarosch(DataLoader):
         "other Lymphocytes": "other Lymphocytes",
     }
 
-    def _register_celldata(self):
+    def _register_celldata(self, n_top_genes: Optional[int] = None):
         """Load AnnData object of complete dataset."""
         metadata = {
             "lateral_resolution": 0.5,
@@ -1968,7 +1985,7 @@ class DataLoaderHartmann(DataLoader):
         "Myeloid_CD11c": "CD11c Myeloid",
     }
 
-    def _register_celldata(self):
+    def _register_celldata(self, n_top_genes: Optional[int] = None):
         """Load AnnData object of complete dataset."""
         metadata = {
             "lateral_resolution": 400 / 1024,
@@ -2207,7 +2224,7 @@ class DataLoaderPascualReguant(DataLoader):
         "other": "other",
     }
 
-    def _register_celldata(self):
+    def _register_celldata(self, n_top_genes: Optional[int] = None):
         """Load AnnData object of complete dataset."""
         metadata = {
             "lateral_resolution": 0.325,
@@ -2380,7 +2397,7 @@ class DataLoaderSchuerch(DataLoader):
         "vasculature": "vasculature",
     }
 
-    def _register_celldata(self):
+    def _register_celldata(self, n_top_genes: Optional[int] = None):
         """Load AnnData object of complete dataset."""
         metadata = {
             "lateral_resolution": 0.377442,
@@ -2452,8 +2469,67 @@ class DataLoaderSchuerch(DataLoader):
             "CD57 - NK cells:Cyc_17_ch_4",
             "MMP12 - matrix metalloproteinase:Cyc_21_ch_4",
         ]
-
-        celldata = AnnData(X=celldata_df[feature_cols], obs=celldata_df[["File Name", "patients", "ClusterName"]])
+        feature_cols_hgnc_names = [
+            'CD44',
+            'FOXP3',
+            'CD8A',
+            'TP53',
+            'GATA3',
+            'PTPRC',
+            'TBX21',
+            'CTNNB1',
+            'HLA-DR',
+            'CD274',
+            'MKI67',
+            'PTPRC',
+            'CD4',
+            'CR2',
+            'MUC1',
+            'TNFRSF8',
+            'CD2',
+            'VIM',
+            'MS4A1',
+            'LAG3',
+            'ATP1A1',
+            'CD5',
+            'IDO1',
+            'KRT1',
+            'ITGAM',
+            'NCAM1',
+            'ACTA1',
+            'BCL2',
+            'IL2RA',
+            'ITGAX',
+            'PDCD1',
+            'GZMB',
+            'EGFR',
+            'VISTA',
+            'FUT4',
+            'ICOS',
+            'SYP',
+            'GFAP',
+            'CD7',
+            'CD247',
+            'CHGA',
+            'CD163',
+            'PTPRC',
+            'CD68',
+            'PECAM1',
+            'PDPN',
+            'CD34',
+            'CD38',
+            'SDC1',
+            'HOECHST1:Cyc_1_ch_1',  ##
+            'CDX2',
+            'COL6A1',
+            'CCR4',
+            'MMP9',
+            'TFRC',
+            'B3GAT1',
+            'MMP12'
+        ]
+        X = DataFrame(np.array(celldata_df[feature_cols]), columns=feature_cols_hgnc_names)
+        celldata = AnnData(X=X, obs=celldata_df[["File Name", "patients", "ClusterName"]])
 
         celldata.uns["metadata"] = metadata
         img_keys = list(np.unique(celldata_df[metadata["image_col"]]))
@@ -2731,7 +2807,7 @@ class DataLoaderLohoff(DataLoader):
         'Surface ectoderm': 'Surface ectoderm'
     }
 
-    def _register_celldata(self):
+    def _register_celldata(self, n_top_genes: Optional[int] = None):
         """Load AnnData object of complete dataset."""
         metadata = {
             "lateral_resolution": 1.,
@@ -2831,7 +2907,7 @@ class DataLoaderLuWT(DataLoader):
         "9": "Unknown",
     }
 
-    def _register_celldata(self):
+    def _register_celldata(self, n_top_genes: Optional[int] = None):
         """Load AnnData object of complete dataset."""
         metadata = {
             "lateral_resolution": 0.1079,
@@ -2840,7 +2916,6 @@ class DataLoaderLuWT(DataLoader):
             "pos_cols": ["Center_x", "Center_y"],
             "cluster_col": "CellTypeID_new",
             "cluster_col_preprocessed": "CellTypeID_new_preprocessed",
-            "scRNAseq_fn": ['fetal_liver.h5ad', 'sorted_HSC.h5ad']
         }
         celldata_df = read_csv(os.path.join(self.data_path, metadata["fn"]))
 
@@ -3006,6 +3081,8 @@ class DataLoaderLuWT(DataLoader):
         celldata.obs[metadata["cluster_col_preprocessed"]] = celldata.obs[metadata["cluster_col_preprocessed"]].astype(
             "str"
         )
+        celldata = celldata[celldata.obs[metadata["cluster_col_preprocessed"]] != 'Unknown']
+
         # register node type names
         node_type_names = list(np.unique(celldata.obs[metadata["cluster_col_preprocessed"]]))
         print(node_type_names)
@@ -3058,32 +3135,75 @@ class DataLoaderLuWT(DataLoader):
         }
         self.celldata.uns["graph_covariates"] = graph_covariates
 
-    def _register_scRNA_seq(self):
-        """Load scRNA-seq dataset to use ncem's imputation framework."""
-        metadata = self.celldata.uns["metadata"]
 
-        fetal_liver = sc.read(self.data_path + metadata["scRNAseq_fn"][0])
-        sorted_hsc = sc.read(self.data_path + metadata["scRNAseq_fn"][1])
+class DataLoaderLuWTimputed(DataLoader):
+    """DataLoaderLuWTimputed class. Inherits all functions from DataLoader."""
 
-        self.celldata.uns['scRNA_fetal_liver'] = fetal_liver
-        self.celldata.uns['scRNA_sorted_hsc'] = sorted_hsc
+    cell_type_merge_dict = {
+        1: "AEC",
+        2: "SEC",
+        3: "MK",
+        4: "Hepatocyte",
+        5: "Macrophage",
+        6: "Myeloid",
+        7: "Erythroid progenitor",
+        8: "Erythroid cell",
+    }
 
-        markers = list(set.intersection(set(sorted_hsc.var_names), set(fetal_liver.var_names)))
+    def _register_celldata(self, n_top_genes: Optional[int] = None):
+        """Load AnnData object of complete dataset."""
+        metadata = {
+            "lateral_resolution": 0.1079,
+            "fn": "merfish_wt_imputed_fetal_liver.h5ad",
+            "image_col": "FOV",
+            "pos_cols": ["Center_x", "Center_y"],
+            "cluster_col": "CellTypeID_new",
+            "cluster_col_preprocessed": "CellTypeID_new_preprocessed",
+            "n_top_genes": n_top_genes
+        }
+        celldata = read_h5ad(self.data_path + metadata["fn"])
+        celldata.uns["metadata"] = metadata
+        if n_top_genes:
+            sc.pp.highly_variable_genes(celldata, n_top_genes=n_top_genes)
+            celldata = celldata[:, celldata.var.highly_variable].copy()
+        self.celldata = celldata
 
-        fetal_liver = fetal_liver[:, markers]
-        sorted_hsc = sorted_hsc[:, markers]
+    def _register_img_celldata(self):
+        """Load dictionary of of image-wise celldata objects with {imgage key : anndata object of image}."""
+        image_col = self.celldata.uns["metadata"]["image_col"]
+        img_celldata = {}
+        for k in self.celldata.uns["img_keys"]:
+            img_celldata[str(k)] = self.celldata[self.celldata.obs[image_col] == k].copy()
+        self.img_celldata = img_celldata
 
-        sc.pp.highly_variable_genes(fetal_liver)
-        sc.pp.highly_variable_genes(sorted_hsc)
+    def _register_graph_features(self, label_selection):
+        """Load graph level covariates.
 
-        hvg_fetal_liver = [x for i, x in enumerate(fetal_liver.var_names) if list(fetal_liver.var['highly_variable'])[i]]
-        hvg_sorted_hsc = [x for i, x in enumerate(sorted_hsc.var_names) if list(sorted_hsc.var['highly_variable'])[i]]
+        Parameters
+        ----------
+        label_selection
+            Label selection.
+        """
+        # Save processed data to attributes.
+        for adata in self.img_celldata.values():
+            graph_covariates = {
+                "label_names": {},
+                "label_tensors": {},
+                "label_selection": [],
+                "continuous_mean": {},
+                "continuous_std": {},
+                "label_data_types": {},
+            }
+            adata.uns["graph_covariates"] = graph_covariates
 
-        hvg_markers = list(set.intersection(set(hvg_fetal_liver), set(hvg_sorted_hsc)))
-
-        sc.external.pp.mnn_correct(
-            fetal_liver[:, hvg_markers], sorted_hsc[:, hvg_markers], do_concatenate=True
-        )
+        graph_covariates = {
+            "label_names": {},
+            "label_selection": [],
+            "continuous_mean": {},
+            "continuous_std": {},
+            "label_data_types": {},
+        }
+        self.celldata.uns["graph_covariates"] = graph_covariates
 
 
 class DataLoaderLuTET2(DataLoader):
@@ -3101,7 +3221,7 @@ class DataLoaderLuTET2(DataLoader):
         "9": "Unknown",
     }
 
-    def _register_celldata(self):
+    def _register_celldata(self, n_top_genes: Optional[int] = None):
         """Load AnnData object of complete dataset."""
         metadata = {
             "lateral_resolution": 0.1079,
@@ -3278,6 +3398,113 @@ class DataLoaderLuTET2(DataLoader):
         # register node type names
         node_type_names = list(np.unique(celldata.obs[metadata["cluster_col_preprocessed"]]))
         print(node_type_names)
+        celldata.uns["node_type_names"] = {x: x for x in node_type_names}
+        node_types = np.zeros((celldata.shape[0], len(node_type_names)))
+        node_type_idx = np.array(
+            [
+                node_type_names.index(x) for x in celldata.obs[metadata["cluster_col_preprocessed"]].values
+            ]  # index in encoding vector
+        )
+        node_types[np.arange(0, node_type_idx.shape[0]), node_type_idx] = 1
+        celldata.obsm["node_types"] = node_types
+
+        self.celldata = celldata
+
+    def _register_img_celldata(self):
+        """Load dictionary of of image-wise celldata objects with {imgage key : anndata object of image}."""
+        image_col = self.celldata.uns["metadata"]["image_col"]
+        img_celldata = {}
+        for k in self.celldata.uns["img_keys"]:
+            img_celldata[str(k)] = self.celldata[self.celldata.obs[image_col] == k].copy()
+        self.img_celldata = img_celldata
+
+    def _register_graph_features(self, label_selection):
+        """Load graph level covariates.
+
+        Parameters
+        ----------
+        label_selection
+            Label selection.
+        """
+        # Save processed data to attributes.
+        for adata in self.img_celldata.values():
+            graph_covariates = {
+                "label_names": {},
+                "label_tensors": {},
+                "label_selection": [],
+                "continuous_mean": {},
+                "continuous_std": {},
+                "label_data_types": {},
+            }
+            adata.uns["graph_covariates"] = graph_covariates
+
+        graph_covariates = {
+            "label_names": {},
+            "label_selection": [],
+            "continuous_mean": {},
+            "continuous_std": {},
+            "label_data_types": {},
+        }
+        self.celldata.uns["graph_covariates"] = graph_covariates
+
+
+class DataLoader10xVisiumMouseBrain(DataLoader):
+    """DataLoader10xVisiumMouseBrain class. Inherits all functions from DataLoader."""
+
+    cell_type_merge_dict = {
+        'Cortex_1': 'Cortex 1',
+        'Cortex_2': 'Cortex 2',
+        'Cortex_3': 'Cortex 3',
+        'Cortex_4': 'Cortex 4',
+        'Cortex_5': 'Cortex 5',
+        'Fiber_tract': 'Fiber tract',
+        'Hippocampus': 'Hippocampus',
+        'Hypothalamus_1': 'Hypothalamus 1',
+        'Hypothalamus_2': 'Hypothalamus 2',
+        'Lateral_ventricle': 'Lateral ventricle',
+        'Pyramidal_layer': 'Pyramidal layer',
+        'Pyramidal_layer_dentate_gyrus': 'Pyramidal layer dentate gyrus',
+        'Striatum': 'Striatum',
+        'Thalamus_1': 'Thalamus 1',
+        'Thalamus_2': 'Thalamus 2'
+    }
+
+    def _register_celldata(self, n_top_genes: Optional[int] = None):
+        """Load AnnData object of complete dataset."""
+        metadata = {
+            "lateral_resolution": 1.,
+            "fn": "visium_hne_adata.h5ad",
+            "image_col": "in_tissue",
+            "cluster_col": "cluster",
+            "cluster_col_preprocessed": "cluster_preprocessed",
+            "patient_col": "in_tissue",
+            "n_top_genes": n_top_genes
+        }
+
+        celldata = read_h5ad(self.data_path + metadata["fn"]).copy()
+        if n_top_genes:
+            sc.pp.highly_variable_genes(celldata, n_top_genes=n_top_genes)
+            celldata = celldata[:, celldata.var.highly_variable].copy()
+
+        celldata.X = celldata.X.toarray()
+        celldata.uns["metadata"] = metadata
+        celldata.uns["img_keys"] = list(np.unique(celldata.obs[metadata["image_col"]]))
+
+        celldata.uns["img_to_patient_dict"] = {"1": "1"}
+        self.img_to_patient_dict = {"1": "1"}
+
+        celldata.obs[metadata["cluster_col"]] = celldata.obs[metadata["cluster_col"]].astype(
+            "str"
+        )
+        # add clean cluster column which removes regular expression from cluster_col
+        celldata.obs[metadata["cluster_col_preprocessed"]] = list(
+            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="str").map(self.cell_type_merge_dict)
+        )
+        celldata.obs[metadata["cluster_col_preprocessed"]] = celldata.obs[metadata["cluster_col_preprocessed"]].astype(
+            "str"
+        )
+        # register node type names
+        node_type_names = list(np.unique(celldata.obs[metadata["cluster_col_preprocessed"]]))
         celldata.uns["node_type_names"] = {x: x for x in node_type_names}
         node_types = np.zeros((celldata.shape[0], len(node_type_names)))
         node_type_idx = np.array(
