@@ -3,7 +3,7 @@ import pickle
 from typing import Union
 
 from ncem.estimators import (EstimatorCVAE, EstimatorCVAEncem, EstimatorED,
-                             EstimatorEDncem, EstimatorInteractions,
+                             EstimatorEDncem, EstimatorEdNcemNeighborhood, EstimatorInteractions,
                              EstimatorLinear)
 
 
@@ -127,11 +127,43 @@ class TrainModelED(TrainModel):
         self._save_evaluation_per_node_type(fn=fn)
 
 
-class TrainModelEDncem(TrainModel):
+class TrainModelEDncemBase:
+
+    estimator: Union[EstimatorEDncem, EstimatorEdNcemNeighborhood]
+
+    def _save_embedding(self, fn):
+        splits = {
+            "eval": {"img_keys": self.estimator.img_keys_eval, "node_idx": self.estimator.nodes_idx_eval},
+            "test": {"img_keys": self.estimator.img_keys_test, "node_idx": self.estimator.nodes_idx_test},
+            "train": {"img_keys": self.estimator.img_keys_train, "node_idx": self.estimator.nodes_idx_train},
+        }
+        embeddings = {}
+        for k, v in splits.items():
+            embeddings[k] = self.estimator.predict_embedding_any(**v)
+        with open(fn + "_embeddings.pickle", "wb") as f:
+            pickle.dump(obj=embeddings, file=f)
+
+    def _save_output_weights(self, fn):
+        w = self.estimator.get_decoding_weights()
+        with open(fn + "_output_weights.pickle", "wb") as f:
+            pickle.dump(obj=w, file=f)
+
+
+class TrainModelEDncem(TrainModel, TrainModelEDncemBase):
     estimator: EstimatorEDncem
 
     def init_estim(self, **kwargs):
         self.estimator = EstimatorEDncem(**kwargs)
+
+    def _save_specific(self, fn):
+        self._save_evaluation_per_node_type(fn=fn)
+
+
+class TrainModelEdSingleNcem(TrainModel, TrainModelEDncemBase):
+    estimator: EstimatorEdNcemNeighborhood
+
+    def init_estim(self, **kwargs):
+        self.estimator = EstimatorEdNcemNeighborhood(**kwargs)
 
     def _save_specific(self, fn):
         self._save_evaluation_per_node_type(fn=fn)
