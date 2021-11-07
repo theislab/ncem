@@ -1,8 +1,6 @@
 import tensorflow as tf
 
-from ncem.models.layers import (Decoder, Encoder, GaussianOutput,
-                                NegBinConstDispOutput, NegBinOutput,
-                                NegBinSharedDispOutput)
+from ncem.models.layers import (Decoder, Encoder, get_out)
 
 
 class ModelED:
@@ -133,52 +131,13 @@ class ModelED:
         output_decoder = self.decoder_model((z, categ_condition))
         sampling_decoder = self.decoder_model((latent_sampling_reshaped, categ_condition))
 
-        if output_layer == "gaussian":
-            output_decoder_layer = GaussianOutput(
-                original_dim=out_node_feature_dim,
-                use_node_scale=scale_node_size,
-                name="GaussianOutput_decoder",
-            )((output_decoder, input_node_size))
-            output_sampling_decoder = GaussianOutput(
-                original_dim=out_node_feature_dim,
-                use_node_scale=scale_node_size,
-                name="GaussianOutput_sampling",
-            )((sampling_decoder, input_node_size))
-        elif output_layer == "nb":
-            output_decoder_layer = NegBinOutput(
-                original_dim=out_node_feature_dim,
-                use_node_scale=scale_node_size,
-                name="NegBinOutput_decoder",
-            )((output_decoder, input_node_size))
-            output_sampling_decoder = NegBinOutput(
-                original_dim=out_node_feature_dim,
-                use_node_scale=scale_node_size,
-                name="NegBinOutput_sampling",
-            )((sampling_decoder, input_node_size))
-        elif output_layer == "nb_shared_disp":
-            output_decoder_layer = NegBinSharedDispOutput(
-                original_dim=out_node_feature_dim,
-                use_node_scale=scale_node_size,
-                name="NegBinSharedDispOutput_decoder",
-            )((output_decoder, input_node_size))
-            output_sampling_decoder = NegBinSharedDispOutput(
-                original_dim=out_node_feature_dim,
-                use_node_scale=scale_node_size,
-                name="NegBinSharedDispOutput_sampling",
-            )((sampling_decoder, input_node_size))
-        elif output_layer == "nb_const_disp":
-            output_decoder_layer = NegBinConstDispOutput(
-                original_dim=out_node_feature_dim,
-                use_node_scale=scale_node_size,
-                name="NegBinConstDispOutput_decoder",
-            )((output_decoder, input_node_size))
-            output_sampling_decoder = NegBinConstDispOutput(
-                original_dim=out_node_feature_dim,
-                use_node_scale=scale_node_size,
-                name="NegBinConstDispOutput_sampling",
-            )((sampling_decoder, input_node_size))
-        else:
-            raise ValueError("tried to access a non-supported output layer %s" % output_layer)
+        output_decoder_layer = get_out(
+            output_layer=output_layer, out_feature_dim=out_node_feature_dim, scale_node_size=scale_node_size
+        )((output_decoder, input_node_size))
+        output_sampling_decoder = get_out(
+            output_layer=output_layer, out_feature_dim=out_node_feature_dim, scale_node_size=scale_node_size,
+            name='sampling'
+        )((sampling_decoder, input_node_size))
 
         output_decoder_concat = tf.keras.layers.Concatenate(axis=2, name="reconstruction")(output_decoder_layer)
         output_sampling_concat = tf.keras.layers.Concatenate(axis=2, name="reconstruction")(output_sampling_decoder)
