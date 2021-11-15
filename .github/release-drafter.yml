@@ -1,9 +1,9 @@
 <<<<<<< HEAD
-name-template: "0.4.11 🌈" # <<COOKIETEMPLE_FORCE_BUMP>>
-tag-template: 0.4.11 # <<COOKIETEMPLE_FORCE_BUMP>>
+name-template: "0.4.12 🌈" # <<COOKIETEMPLE_FORCE_BUMP>>
+tag-template: 0.4.12 # <<COOKIETEMPLE_FORCE_BUMP>>
 =======
-name-template: "0.4.11 🌈" # <<COOKIETEMPLE_FORCE_BUMP>>
-tag-template: 0.4.11 # <<COOKIETEMPLE_FORCE_BUMP>>
+name-template: "0.4.12 🌈" # <<COOKIETEMPLE_FORCE_BUMP>>
+tag-template: 0.4.12 # <<COOKIETEMPLE_FORCE_BUMP>>
 >>>>>>> a602092480da26e9dd2e6cdfea66a485b515f277
 categories:
     - title: "🚀 Features"
