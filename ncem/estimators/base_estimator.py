@@ -210,7 +210,8 @@ class Estimator:
         domain_type: str = "image",
         robustness: Optional[float] = None,
         robustness_seed: int = 1,
-        n_top_genes: Optional[int] = None
+        n_top_genes: Optional[int] = None,
+        segmentation_robustness_node_fraction: Optional[List[float]] = None,
     ):
         """Get data used in estimator classes.
 
@@ -244,6 +245,8 @@ class Estimator:
             Seed for robustness analysis
         n_top_genes: int, optional
             N top genes for highly variable gene selection.
+        segmentation_robustness: list, optional
+            Parameters for segmentation robustness fit, float for fraction of nodes and float for signal overflow.
         Raises
         ------
         ValueError
@@ -283,6 +286,32 @@ class Estimator:
                 % (
                     robustness,
                     n_images,
+                )
+            )
+        if segmentation_robustness:
+            node_fraction = segmentation_robustness[0]
+            overflow_fraction = segmentation_robustness[1]
+            total_size = np.int(self.data.celldata[0] * node_fraction)
+
+            err_img_celldata = {}
+            for key, ad in self.data.img_celldata.items():
+                size = np.int(ad.shape[0] * node_fraction)
+                random_indices = np.random.choice(ad.shape[0], size=size, replace=False)
+                A = ad.obsp['adjacency_matrix_connectivities'].toarray()
+                err_ad = ad.copy()
+                for idx in random_indices:
+                    adj = A[idx, :]
+                    neigh_idx = np.random.choice(np.where(adj == 1.)[0], size=1, replace=False)
+                    err_ad.X[idx, :] = ad.X[idx, :] + overflow_fraction * ad.X[neigh_idx, :]
+                self.data.img_celldata[key] = err_ad
+
+            print(
+                "\nAttention: Running segmentation robustness model on %f % of all nodes, so [%i] nodes. \n"
+                "\nSignal overflow is set to %f %. This adjusts img_celldata, celldata remains unchanged.\n"
+                % (
+                    node_fraction * 100,
+                    total_size,
+                    error_fraction
                 )
             )
 
