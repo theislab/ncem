@@ -291,7 +291,7 @@ class Estimator:
         if segmentation_robustness:
             node_fraction = segmentation_robustness[0]
             overflow_fraction = segmentation_robustness[1]
-            total_size = np.int(self.data.celldata[0] * node_fraction)
+            total_size = np.int(self.data.celldata.shape[0] * node_fraction)
 
             err_img_celldata = {}
             for key, ad in self.data.img_celldata.items():
