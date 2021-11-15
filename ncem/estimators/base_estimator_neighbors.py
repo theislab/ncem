@@ -41,7 +41,7 @@ class EstimatorNeighborhood(Estimator):
             self.idx_target_features = np.array([features.index(x) for x in target_feature_names])
             self.idx_neighbor_features = np.array([features.index(x) for x in neighbor_feature_names])
             assert len(self.idx_target_features) == len(self.idx_neighbor_features)
-            assert len(set(self.idx_target_features.tolist()).intersection(set(self.idx_neighbor_features.tolist()))) == 0
+            #assert len(set(self.idx_target_features.tolist()).intersection(set(self.idx_neighbor_features.tolist()))) == 0
             self.n_features_in = len(self.idx_target_features)
 
     @property

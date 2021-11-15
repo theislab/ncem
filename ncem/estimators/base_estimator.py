@@ -297,12 +297,13 @@ class Estimator:
             for key, ad in self.data.img_celldata.items():
                 size = np.int(ad.shape[0] * node_fraction)
                 random_indices = np.random.choice(ad.shape[0], size=size, replace=False)
-                A = ad.obsp['adjacency_matrix_connectivities'].toarray()
+                a = ad.obsp['adjacency_matrix_connectivities'].toarray()
                 err_ad = ad.copy()
                 for idx in random_indices:
-                    adj = A[idx, :]
+                    adj = a[idx, :]
                     neigh_idx = np.random.choice(np.where(adj == 1.)[0], size=1, replace=False)
                     err_ad.X[idx, :] = ad.X[idx, :] + overflow_fraction * ad.X[neigh_idx, :]
+                    err_ad.X[neigh_idx, :] = (1. - overflow_fraction) * ad.X[neigh_idx, :]
                 self.data.img_celldata[key] = err_ad
 
             print(
