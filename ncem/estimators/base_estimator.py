@@ -211,7 +211,7 @@ class Estimator:
         robustness: Optional[float] = None,
         robustness_seed: int = 1,
         n_top_genes: Optional[int] = None,
-        segmentation_robustness_node_fraction: Optional[List[float]] = None,
+        segmentation_robustness: Optional[List[float]] = None,
     ):
         """Get data used in estimator classes.
 
@@ -311,7 +311,7 @@ class Estimator:
                 % (
                     node_fraction * 100,
                     total_size,
-                    error_fraction
+                    overflow_fraction
                 )
             )
 
