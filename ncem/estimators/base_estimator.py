@@ -306,10 +306,10 @@ class Estimator:
                 self.data.img_celldata[key] = err_ad
 
             print(
-                "\nAttention: Running segmentation robustness model on %f % of all nodes, so [%i] nodes. \n"
-                "\nSignal overflow is set to %f %. This adjusts img_celldata, celldata remains unchanged.\n"
+                "\nAttention: Running segmentation robustness model on %f of all nodes, so [%i] nodes. \n"
+                "\nSignal overflow is set to %f . This adjusts img_celldata, celldata remains unchanged.\n"
                 % (
-                    node_fraction * 100,
+                    node_fraction,
                     total_size,
                     overflow_fraction
                 )
