@@ -1787,9 +1787,14 @@ class DataLoaderZhang(DataLoader):
         }
 
         celldata = read_h5ad(self.data_path + metadata["fn"]).copy()
+        
+        for col in list(celldata.obs.select_dtypes(include=['category']).columns):
+            print(col)
+            celldata.obs[col] = [x.decode('utf-8') for x in celldata.obs[col]]
+
         celldata.uns["metadata"] = metadata
         celldata.uns["img_keys"] = list(np.unique(celldata.obs[metadata["image_col"]]))
-
+        
         img_to_patient_dict = {
             str(x): celldata.obs[metadata["patient_col"]].values[i].split("_")[0]
             for i, x in enumerate(celldata.obs[metadata["image_col"]].values)
@@ -1893,6 +1898,9 @@ class DataLoaderJarosch(DataLoader):
         }
 
         celldata = read_h5ad(self.data_path + metadata["fn"])
+        for col in list(celldata.obs.select_dtypes(include=['category']).columns):
+            print(col)
+            celldata.obs[col] = [x.decode('utf-8') for x in celldata.obs[col]]
         celldata = celldata[celldata.obs[metadata["image_col"]] != "Dirt"].copy()
         celldata.uns["metadata"] = metadata
         img_keys = list(np.unique(celldata.obs[metadata["image_col"]]))
@@ -1907,10 +1915,10 @@ class DataLoaderJarosch(DataLoader):
 
         # add clean cluster column which removes regular expression from cluster_col
         celldata.obs[metadata["cluster_col_preprocessed"]] = list(
-            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="category").map(self.cell_type_merge_dict)
+            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="str").map(self.cell_type_merge_dict)
         )
         celldata.obs[metadata["cluster_col_preprocessed"]] = celldata.obs[metadata["cluster_col_preprocessed"]].astype(
-            "category"
+            "str"
         )
 
         # register node type names
@@ -3016,7 +3024,7 @@ class DataLoaderLuWT(DataLoader):
         celldata.obs[metadata["cluster_col_preprocessed"]] = celldata.obs[metadata["cluster_col_preprocessed"]].astype(
             "category"
         )
-        celldata = celldata[celldata.obs[metadata["cluster_col_preprocessed"]] != 'Unknown']
+        #celldata = celldata[celldata.obs[metadata["cluster_col_preprocessed"]] != 'Unknown']
 
         # register node type names
         node_type_names = list(np.unique(celldata.obs[metadata["cluster_col_preprocessed"]]))
@@ -3098,7 +3106,7 @@ class DataLoaderLuWTimputed(DataLoader):
         celldata = read_h5ad(self.data_path + metadata["fn"])
         celldata.uns["metadata"] = metadata
         # only loading top 500 genes
-        sc.pp.highly_variable_genes(celldata, n_top_genes=500)
+        sc.pp.highly_variable_genes(celldata, n_top_genes=4000)
         celldata = celldata[:, celldata.var.highly_variable].copy()
         self.celldata = celldata
 
