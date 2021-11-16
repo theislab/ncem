@@ -15,5 +15,5 @@ full_name: Anna Schaar
 email: anna.schaar@helmholtz-muenchen.de
 project_name: ncem
 project_short_description: ncem.  Learning cell communication from spatial graphs of cells.
-version: 0.4.7
+version: 0.4.15
 license: BSD-3-Clause

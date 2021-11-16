@@ -1,5 +1,37 @@
 import tensorflow as tf
 
+IDENTIFIER_OUTPUT_LAYER = "Output"
+
+
+def get_out(output_layer: str, out_feature_dim, scale_node_size, name: str = 'decoder'):
+    if output_layer == "gaussian":
+        output_decoder_layer = GaussianOutput(
+            original_dim=out_feature_dim,
+            use_node_scale=scale_node_size,
+            name=f"Gaussian{IDENTIFIER_OUTPUT_LAYER}_{name}",
+        )
+    elif output_layer == "nb":
+        output_decoder_layer = NegBinOutput(
+            original_dim=out_feature_dim,
+            use_node_scale=scale_node_size,
+            name=f"NegBin{IDENTIFIER_OUTPUT_LAYER}_{name}",
+        )
+    elif output_layer == "nb_shared_disp":
+        output_decoder_layer = NegBinSharedDispOutput(
+            original_dim=out_feature_dim,
+            use_node_scale=scale_node_size,
+            name=f"NegBinSharedDisp{IDENTIFIER_OUTPUT_LAYER}_{name}",
+        )
+    elif output_layer == "nb_const_disp":
+        output_decoder_layer = NegBinConstDispOutput(
+            original_dim=out_feature_dim,
+            use_node_scale=scale_node_size,
+            name=f"NegBinConstDisp{IDENTIFIER_OUTPUT_LAYER}_{name}",
+        )
+    else:
+        raise ValueError("tried to access a non-supported output layer %s" % output_layer)
+    return output_decoder_layer
+
 
 class LinearOutput(tf.keras.layers.Layer):
     """Linear output layer."""

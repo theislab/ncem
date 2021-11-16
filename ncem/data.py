@@ -1,6 +1,7 @@
 import abc
 import warnings
 from collections import OrderedDict
+import os
 from typing import Dict, List, Optional, Sequence, Tuple, Union
 
 import matplotlib.colors as colors
@@ -15,7 +16,7 @@ from diffxpy.testing.correction import correct
 from matplotlib.ticker import FormatStrFormatter
 from matplotlib.tri import Triangulation
 from omnipath.interactions import import_intercell_network
-from pandas import read_csv, read_excel
+from pandas import read_csv, read_excel, DataFrame
 from scipy import sparse, stats
 from tqdm import tqdm
 
@@ -1640,6 +1641,7 @@ class DataLoader(GraphTools, PlottingTools):
         coord_type: str = 'generic',
         n_rings: int = 1,
         label_selection: Optional[List[str]] = None,
+        n_top_genes: Optional[int] = None
     ):
         """Initialize DataLoader.
 
@@ -1655,7 +1657,7 @@ class DataLoader(GraphTools, PlottingTools):
         self.data_path = data_path
 
         print("Loading data from raw files")
-        self.register_celldata()
+        self.register_celldata(n_top_genes=n_top_genes)
         self.register_img_celldata()
         self.register_graph_features(label_selection=label_selection)
         self.compute_adjacency_matrices(radius=radius, coord_type=coord_type, n_rings=n_rings)
@@ -1683,10 +1685,10 @@ class DataLoader(GraphTools, PlottingTools):
         """
         return np.unique(np.asarray(list(self.celldata.uns["img_to_patient_dict"].values())))
 
-    def register_celldata(self):
+    def register_celldata(self, n_top_genes: Optional[int] = None):
         """Load AnnData object of complete dataset."""
         print("registering celldata")
-        self._register_celldata()
+        self._register_celldata(n_top_genes=n_top_genes)
         assert self.celldata is not None, "celldata was not loaded"
 
     def register_img_celldata(self):
@@ -1707,7 +1709,7 @@ class DataLoader(GraphTools, PlottingTools):
         self._register_graph_features(label_selection=label_selection)
 
     @abc.abstractmethod
-    def _register_celldata(self):
+    def _register_celldata(self, n_top_genes: Optional[int] = None):
         """Load AnnData object of complete dataset."""
         pass
 
@@ -1742,6 +1744,10 @@ class DataLoader(GraphTools, PlottingTools):
         global_mean_per_node = self.celldata.X.sum(axis=1).mean(axis=0)
         return {i: global_mean_per_node / np.sum(adata.X, axis=1) for i, adata in self.img_celldata.items()}
 
+    @property
+    def var_names(self):
+        return self.celldata.var_names
+
 
 class DataLoaderZhang(DataLoader):
     """DataLoaderZhang class. Inherits all functions from DataLoader."""
@@ -1774,7 +1780,7 @@ class DataLoaderZhang(DataLoader):
         "other": "other",
     }
 
-    def _register_celldata(self):
+    def _register_celldata(self, n_top_genes: Optional[int] = None):
         """Load AnnData object of complete dataset."""
         metadata = {
             "lateral_resolution": 0.109,
@@ -1785,7 +1791,6 @@ class DataLoaderZhang(DataLoader):
             "cluster_col_preprocessed": "subclass_preprocessed",
             "patient_col": "mouse",
         }
-
         celldata = read_h5ad(self.data_path + metadata["fn"]).copy()
         
         for col in list(celldata.obs.select_dtypes(include=['category']).columns):
@@ -1885,7 +1890,7 @@ class DataLoaderJarosch(DataLoader):
         "other Lymphocytes": "other Lymphocytes",
     }
 
-    def _register_celldata(self):
+    def _register_celldata(self, n_top_genes: Optional[int] = None):
         """Load AnnData object of complete dataset."""
         metadata = {
             "lateral_resolution": 0.5,
@@ -1896,11 +1901,11 @@ class DataLoaderJarosch(DataLoader):
             "cluster_col_preprocessed": "celltype_Level_2_preprocessed",
             "patient_col": None,
         }
-
         celldata = read_h5ad(self.data_path + metadata["fn"])
         for col in list(celldata.obs.select_dtypes(include=['category']).columns):
             print(col)
             celldata.obs[col] = [x.decode('utf-8') for x in celldata.obs[col]]
+            
         celldata = celldata[celldata.obs[metadata["image_col"]] != "Dirt"].copy()
         celldata.uns["metadata"] = metadata
         img_keys = list(np.unique(celldata.obs[metadata["image_col"]]))
@@ -1987,7 +1992,7 @@ class DataLoaderHartmann(DataLoader):
         "Myeloid_CD11c": "CD11c Myeloid",
     }
 
-    def _register_celldata(self):
+    def _register_celldata(self, n_top_genes: Optional[int] = None):
         """Load AnnData object of complete dataset."""
         metadata = {
             "lateral_resolution": 400 / 1024,
@@ -1998,7 +2003,7 @@ class DataLoaderHartmann(DataLoader):
             "cluster_col_preprocessed": "Cluster_preprocessed",
             "patient_col": "donor",
         }
-        celldata_df = read_csv(self.data_path + metadata["fn"][0])
+        celldata_df = read_csv(os.path.join(self.data_path, metadata["fn"][0]))
         celldata_df["point"] = [f"scMEP_point_{str(x)}" for x in celldata_df["point"]]
         celldata_df = celldata_df.fillna(0)
         # celldata_df = celldata_df.dropna(inplace=False).reset_index()
@@ -2122,7 +2127,7 @@ class DataLoaderHartmann(DataLoader):
         label_cols_toread = list(label_selection.intersection(set(list(label_cols.keys()))))
         usecols = label_cols_toread + [patient_col]
 
-        tissue_meta_data = read_excel(self.data_path + "scMEP_sample_description.xlsx", usecols=usecols)
+        tissue_meta_data = read_excel(os.path.join(self.data_path, "scMEP_sample_description.xlsx"), usecols=usecols)
         # BUILD LABEL VECTORS FROM LABEL COLUMNS
         # The columns contain unprocessed numeric and categorical entries that are now processed to prediction-ready
         # numeric tensors. Here we first generate a dictionary of tensors for each label (label_tensors). We then
@@ -2226,7 +2231,7 @@ class DataLoaderPascualReguant(DataLoader):
         "other": "other",
     }
 
-    def _register_celldata(self):
+    def _register_celldata(self, n_top_genes: Optional[int] = None):
         """Load AnnData object of complete dataset."""
         metadata = {
             "lateral_resolution": 0.325,
@@ -2237,8 +2242,8 @@ class DataLoaderPascualReguant(DataLoader):
             "cluster_col_preprocessed": "cell_class_preprocessed",
             "patient_col": None,
         }
-        nuclei_df = read_excel(self.data_path + metadata["fn"][0])
-        membranes_df = read_excel(self.data_path + metadata["fn"][1])
+        nuclei_df = read_excel(os.path.join(self.data_path, metadata["fn"][0]))
+        membranes_df = read_excel(os.path.join(self.data_path, metadata["fn"][1]))
 
         celldata_df = nuclei_df.join(membranes_df.set_index("ObjectNumber"), on="ObjectNumber")
 
@@ -2399,7 +2404,7 @@ class DataLoaderSchuerch(DataLoader):
         "vasculature": "vasculature",
     }
 
-    def _register_celldata(self):
+    def _register_celldata(self, n_top_genes: Optional[int] = None):
         """Load AnnData object of complete dataset."""
         metadata = {
             "lateral_resolution": 0.377442,
@@ -2410,7 +2415,7 @@ class DataLoaderSchuerch(DataLoader):
             "cluster_col_preprocessed": "ClusterName_preprocessed",
             "patient_col": "patients",
         }
-        celldata_df = read_csv(self.data_path + metadata["fn"])
+        celldata_df = read_csv(os.path.join(self.data_path, metadata["fn"]))
 
         feature_cols = [
             "CD44 - stroma:Cyc_2_ch_2",
@@ -2471,8 +2476,67 @@ class DataLoaderSchuerch(DataLoader):
             "CD57 - NK cells:Cyc_17_ch_4",
             "MMP12 - matrix metalloproteinase:Cyc_21_ch_4",
         ]
-
-        celldata = AnnData(X=celldata_df[feature_cols], obs=celldata_df[["File Name", "patients", "ClusterName"]])
+        feature_cols_hgnc_names = [
+            'CD44',
+            'FOXP3',
+            'CD8A',
+            'TP53',
+            'GATA3',
+            'PTPRC',
+            'TBX21',
+            'CTNNB1',
+            'HLA-DR',
+            'CD274',
+            'MKI67',
+            'PTPRC',
+            'CD4',
+            'CR2',
+            'MUC1',
+            'TNFRSF8',
+            'CD2',
+            'VIM',
+            'MS4A1',
+            'LAG3',
+            'ATP1A1',
+            'CD5',
+            'IDO1',
+            'KRT1',
+            'ITGAM',
+            'NCAM1',
+            'ACTA1',
+            'BCL2',
+            'IL2RA',
+            'ITGAX',
+            'PDCD1',
+            'GZMB',
+            'EGFR',
+            'VISTA',
+            'FUT4',
+            'ICOS',
+            'SYP',
+            'GFAP',
+            'CD7',
+            'CD247',
+            'CHGA',
+            'CD163',
+            'PTPRC',
+            'CD68',
+            'PECAM1',
+            'PDPN',
+            'CD34',
+            'CD38',
+            'SDC1',
+            'HOECHST1:Cyc_1_ch_1',  ##
+            'CDX2',
+            'COL6A1',
+            'CCR4',
+            'MMP9',
+            'TFRC',
+            'B3GAT1',
+            'MMP12'
+        ]
+        X = DataFrame(np.array(celldata_df[feature_cols]), columns=feature_cols_hgnc_names)
+        celldata = AnnData(X=X, obs=celldata_df[["File Name", "patients", "ClusterName"]])
 
         celldata.uns["metadata"] = metadata
         img_keys = list(np.unique(celldata_df[metadata["image_col"]]))
@@ -2569,7 +2633,7 @@ class DataLoaderSchuerch(DataLoader):
 
         usecols = label_cols_toread_csv + [patient_col]
         tissue_meta_data = read_csv(
-            self.data_path + "CRC_TMAs_patient_annotations.csv",
+            os.path.join(self.data_path, "CRC_TMAs_patient_annotations.csv"),
             # sep='\t',
             usecols=usecols,
         )[usecols]
@@ -2750,7 +2814,7 @@ class DataLoaderLohoff(DataLoader):
         'Surface ectoderm': 'Surface ectoderm'
     }
 
-    def _register_celldata(self):
+    def _register_celldata(self, n_top_genes: Optional[int] = None):
         """Load AnnData object of complete dataset."""
         metadata = {
             "lateral_resolution": 1.,
@@ -2762,7 +2826,7 @@ class DataLoaderLohoff(DataLoader):
             "patient_col": "embryo",
         }
 
-        celldata = read_h5ad(self.data_path + metadata["fn"]).copy()
+        celldata = read_h5ad(os.path.join(self.data_path, metadata["fn"])).copy()
         celldata.uns["metadata"] = metadata
         celldata.uns["img_keys"] = list(np.unique(celldata.obs[metadata["image_col"]]))
 
@@ -2839,18 +2903,18 @@ class DataLoaderLuWT(DataLoader):
     """DataLoaderLuWT class. Inherits all functions from DataLoader."""
 
     cell_type_merge_dict = {
-        1: "AEC",
-        2: "SEC",
-        3: "MK",
-        4: "Hepatocyte",
-        5: "Macrophage",
-        6: "Myeloid",
-        7: "Erythroid progenitor",
-        8: "Erythroid cell",
-        9: "Unknown",
+        "1": "AEC",
+        "2": "SEC",
+        "3": "MK",
+        "4": "Hepatocyte",
+        "5": "Macrophage",
+        "6": "Myeloid",
+        "7": "Erythroid progenitor",
+        "8": "Erythroid cell",
+        "9": "Unknown",
     }
 
-    def _register_celldata(self):
+    def _register_celldata(self, n_top_genes: Optional[int] = None):
         """Load AnnData object of complete dataset."""
         metadata = {
             "lateral_resolution": 0.1079,
@@ -2860,7 +2924,7 @@ class DataLoaderLuWT(DataLoader):
             "cluster_col": "CellTypeID_new",
             "cluster_col_preprocessed": "CellTypeID_new_preprocessed",
         }
-        celldata_df = read_csv(self.data_path + metadata["fn"])
+        celldata_df = read_csv(os.path.join(self.data_path, metadata["fn"]))
 
         feature_cols = [
             "Abcb4",
@@ -3019,10 +3083,10 @@ class DataLoaderLuWT(DataLoader):
 
         # add clean cluster column which removes regular expression from cluster_col
         celldata.obs[metadata["cluster_col_preprocessed"]] = list(
-            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="category").map(self.cell_type_merge_dict)
+            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="str").map(self.cell_type_merge_dict)
         )
         celldata.obs[metadata["cluster_col_preprocessed"]] = celldata.obs[metadata["cluster_col_preprocessed"]].astype(
-            "category"
+            "str"
         )
         #celldata = celldata[celldata.obs[metadata["cluster_col_preprocessed"]] != 'Unknown']
 
@@ -3093,7 +3157,7 @@ class DataLoaderLuWTimputed(DataLoader):
         8: "Erythroid cell",
     }
 
-    def _register_celldata(self):
+    def _register_celldata(self, n_top_genes: Optional[int] = None):
         """Load AnnData object of complete dataset."""
         metadata = {
             "lateral_resolution": 0.1079,
@@ -3102,12 +3166,14 @@ class DataLoaderLuWTimputed(DataLoader):
             "pos_cols": ["Center_x", "Center_y"],
             "cluster_col": "CellTypeID_new",
             "cluster_col_preprocessed": "CellTypeID_new_preprocessed",
+            "n_top_genes": n_top_genes
         }
         celldata = read_h5ad(self.data_path + metadata["fn"])
         celldata.uns["metadata"] = metadata
-        # only loading top 500 genes
-        sc.pp.highly_variable_genes(celldata, n_top_genes=4000)
-        celldata = celldata[:, celldata.var.highly_variable].copy()
+        if n_top_genes:
+            sc.pp.highly_variable_genes(celldata, n_top_genes=n_top_genes)
+            celldata = celldata[:, celldata.var.highly_variable].copy()
+            
         self.celldata = celldata
 
     def _register_img_celldata(self):
@@ -3152,18 +3218,18 @@ class DataLoaderLuTET2(DataLoader):
     """DataLoaderLuTET2 class. Inherits all functions from DataLoader."""
 
     cell_type_merge_dict = {
-        1: "AEC",
-        2: "SEC",
-        3: "MK",
-        4: "Hepatocyte",
-        5: "Macrophage",
-        6: "Myeloid",
-        7: "Erythroid progenitor",
-        8: "Erythroid cell",
-        9: "Unknown",
+        "1": "AEC",
+        "2": "SEC",
+        "3": "MK",
+        "4": "Hepatocyte",
+        "5": "Macrophage",
+        "6": "Myeloid",
+        "7": "Erythroid progenitor",
+        "8": "Erythroid cell",
+        "9": "Unknown",
     }
 
-    def _register_celldata(self):
+    def _register_celldata(self, n_top_genes: Optional[int] = None):
         """Load AnnData object of complete dataset."""
         metadata = {
             "lateral_resolution": 0.1079,
@@ -3173,7 +3239,7 @@ class DataLoaderLuTET2(DataLoader):
             "cluster_col": "CellTypeID_new",
             "cluster_col_preprocessed": "CellTypeID_new_preprocessed",
         }
-        celldata_df = read_csv(self.data_path + metadata["fn"])
+        celldata_df = read_csv(os.path.join(self.data_path, metadata["fn"]))
 
         feature_cols = [
             "Abcb4",
@@ -3411,7 +3477,7 @@ class DataLoader10xVisiumMouseBrain(DataLoader):
         'Thalamus_2': 'Thalamus 2'
     }
 
-    def _register_celldata(self):
+    def _register_celldata(self, n_top_genes: Optional[int] = None):
         """Load AnnData object of complete dataset."""
         metadata = {
             "lateral_resolution": 1.,
@@ -3420,13 +3486,13 @@ class DataLoader10xVisiumMouseBrain(DataLoader):
             "cluster_col": "cluster",
             "cluster_col_preprocessed": "cluster_preprocessed",
             "patient_col": "in_tissue",
-            "n_top_genes": 500
+            "n_top_genes": n_top_genes
         }
 
         celldata = read_h5ad(self.data_path + metadata["fn"]).copy()
-        # only loading top 500 genes
-        sc.pp.highly_variable_genes(celldata, n_top_genes=500)
-        celldata = celldata[:, celldata.var.highly_variable].copy()
+        if n_top_genes:
+            sc.pp.highly_variable_genes(celldata, n_top_genes=n_top_genes)
+            celldata = celldata[:, celldata.var.highly_variable].copy()
 
         celldata.X = celldata.X.toarray()
         celldata.uns["metadata"] = metadata

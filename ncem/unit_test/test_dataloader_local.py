@@ -1,84 +1,57 @@
-import unittest
+import pytest
+
+from ncem.unit_test.directories import DATA_PATH_ZHANG, DATA_PATH_JAROSCH, DATA_PATH_HARTMANN, DATA_PATH_SCHUERCH, \
+    DATA_PATH_LU
 
 
-class TestDataLoader(unittest.TestCase):
+class HelperTestDataLoader:
     data_origin: str
-    data_path: str
 
-    def get_dataloader(self):
-        if self.data_origin == "zhang":
+    def get_dataloader(self, data_origin: str):
+        if data_origin == "zhang":
             from ncem.data import DataLoaderZhang as DataLoader
 
             radius = 100
             label_selection = []
-        elif self.data_origin == "jarosch":
+            data_path = DATA_PATH_ZHANG
+        elif data_origin == "jarosch":
             from ncem.data import DataLoaderJarosch as DataLoader
 
             radius = 100
             label_selection = []
-        elif self.data_origin == "hartmann":
+            data_path = DATA_PATH_JAROSCH
+        elif data_origin == "hartmann":
             from ncem.data import DataLoaderHartmann as DataLoader
 
             radius = 100
             label_selection = ["Diagnosis", "Age", "Sex"]
-        elif self.data_origin == "pascualreguant":
+            data_path = DATA_PATH_HARTMANN
+        elif data_origin == "pascualreguant":
             from ncem.data import DataLoaderPascualReguant as DataLoader
 
             radius = 100
             label_selection = []
-        elif self.data_origin == "schuerch":
+            data_path = None  # TODO
+        elif data_origin == "schuerch":
             from ncem.data import DataLoaderSchuerch as DataLoader
 
             radius = 100
             label_selection = ["Group"]
-        else:
-            from ncem.data import DataLoaderZhang as DataLoader
+            data_path = DATA_PATH_SCHUERCH
+        elif data_origin == "luwt":
+            from ncem.data import DataLoaderSchuerch as DataLoader
 
             radius = 100
-            label_selection = []
+            label_selection = ["Group"]
+            data_path = DATA_PATH_LU
+        else:
+            assert False
 
-        self.data = DataLoader(data_path=self.data_path, radius=radius, label_selection=label_selection)
-
-
-class TestDataLoaderZang(TestDataLoader, unittest.TestCase):
-    data_path = "/Users/anna.schaar/phd/datasets/zhang/"
-    data_origin = "zhang"
-
-    def test_data_types(self):
-        self.get_dataloader()
+        self.data = DataLoader(data_path=data_path, radius=radius, label_selection=label_selection)
+        self.data_origin = data_origin
 
 
-class TestDataLoaderJarosch(TestDataLoader, unittest.TestCase):
-    data_path = "/Users/anna.schaar/phd/datasets/busch/"
-    data_origin = "jarosch"
-
-    def test_data_types(self):
-        self.get_dataloader()
-
-
-class TestDataLoaderHartmann(TestDataLoader, unittest.TestCase):
-    data_path = "/Users/anna.schaar/phd/datasets/hartmann/"
-    data_origin = "hartmann"
-
-    def test_data_types(self):
-        self.get_dataloader()
-
-
-class TestDataLoaderPascualReguant(TestDataLoader, unittest.TestCase):
-    data_path = "/Users/anna.schaar/phd/datasets/pascualreguant/"
-    data_origin = "pascualreguant"
-
-    def test_data_types(self):
-        self.get_dataloader()
-
-
-class TestDataLoaderSchuerch(TestDataLoader, unittest.TestCase):
-    data_path = "/Users/anna.schaar/phd/datasets/schuerch/"
-    data_origin = "schuerch"
-
-    def test_data_types(self):
-        self.get_dataloader()
-
-
-if __name__ == "__main__":
-    unittest.main()
+@pytest.mark.parametrize("dataset", ["luwt", "zhang", "jarosch", "hartmann", "lu"])
+def test_data_types(dataset):
+    loader = HelperTestDataLoader
+    loader.get_dataloader(data_origin=dataset)
