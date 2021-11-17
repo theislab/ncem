@@ -1922,7 +1922,7 @@ class DataLoaderJarosch(DataLoader):
         ]
         X = DataFrame(celldata.X, columns=feature_cols_hgnc_names)
         celldata = AnnData(
-            X=X, obs=celldata.obs, var=celldata.var, uns=celldata.uns, obsm=celldata.obsm,
+            X=X, obs=celldata.obs, uns=celldata.uns, obsm=celldata.obsm,
             varm=celldata.varm, obsp=celldata.obsp
         )
         celldata.var_names_make_unique()
