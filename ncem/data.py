@@ -1899,6 +1899,33 @@ class DataLoaderJarosch(DataLoader):
         }
 
         celldata = read_h5ad(os.path.join(self.data_path, metadata["fn"]))
+        feature_cols_hgnc_names = [
+            'CD14',
+            'MS4A1',
+            'IL2RA',
+            'CD3G',
+            'CD4',
+            'PTPRC',
+            'PTPRC',
+            'PTPRC',
+            'CD68',
+            'CD8A',
+            'KRT5',  # 'KRT1', 'KRT14'
+            'FOXP3',
+            'GATA3',
+            'MKI67',
+            'Nuclei',
+            'PDCD1',
+            'CD274',
+            'SMN1',
+            'VIM'
+        ]
+        X = DataFrame(celldata.X, columns=feature_cols_hgnc_names)
+        celldata = AnnData(
+            X=X, obs=celldata.obs, var=celldata.var, uns=celldata.uns, obsm=celldata.obsm,
+            varm=celldata.varm, obsp=celldata.obsp
+        )
+        celldata.var_names_make_unique()
         celldata = celldata[celldata.obs[metadata["image_col"]] != "Dirt"].copy()
         celldata.uns["metadata"] = metadata
         img_keys = list(np.unique(celldata.obs[metadata["image_col"]]))
@@ -2530,6 +2557,7 @@ class DataLoaderSchuerch(DataLoader):
         ]
         X = DataFrame(np.array(celldata_df[feature_cols]), columns=feature_cols_hgnc_names)
         celldata = AnnData(X=X, obs=celldata_df[["File Name", "patients", "ClusterName"]])
+        celldata.var_names_make_unique()
 
         celldata.uns["metadata"] = metadata
         img_keys = list(np.unique(celldata_df[metadata["image_col"]]))

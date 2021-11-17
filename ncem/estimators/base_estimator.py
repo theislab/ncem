@@ -293,7 +293,6 @@ class Estimator:
             overflow_fraction = segmentation_robustness[1]
             total_size = np.int(self.data.celldata.shape[0] * node_fraction)
 
-            err_img_celldata = {}
             for key, ad in self.data.img_celldata.items():
                 size = np.int(ad.shape[0] * node_fraction)
                 random_indices = np.random.choice(ad.shape[0], size=size, replace=False)
