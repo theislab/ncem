@@ -357,6 +357,9 @@ class Estimator:
                 # Pairwise dependencies: Effect (self cell type, neighbor cell type, feature)
                 effect_neighbors = np.random.uniform(low=4., high=6.,
                                                      size=(n_target_cell_types, n_target_cell_types, nfeatures))
+                # Simulate sparse effects:
+                sparsity_rate = 0.8  # fraction of zero effects
+                effect_neighbors[np.random.binomial(n=1, p=sparsity_rate, size=effect_neighbors.shape)] = 0.
             else:
                 effect_neighbors = np.zeros((n_target_cell_types, n_target_cell_types, nfeatures))
             sigma_sq = 1.
