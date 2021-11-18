@@ -213,6 +213,7 @@ class Estimator:
         n_top_genes: Optional[int] = None,
         segmentation_robustness: Optional[List[float]] = None,
         resimulate_nodes: bool = False,
+        resimulate_nodes_w_depdency: bool = False,
     ):
         """Get data used in estimator classes.
 
@@ -317,7 +318,7 @@ class Estimator:
                 )
             )
         if resimulate_nodes:
-            n_target_cell_types = 2
+            n_target_cell_types = 2 if resimulate_nodes_w_depdency else 1
             dependencies_per_type = 1
 
             # Create map from real cell types to simulated ones (can be coarser):
@@ -346,15 +347,18 @@ class Estimator:
             # Create dependency structure of cell types.
             # Base line dependency structure with all dependencies as 0.
             cov_ct = np.zeros((n_target_cell_types, n_target_cell_types))
-            # Add dependencies_per_type for each cell type:
-            for i in range(n_target_cell_types):
-                # Sample desired dependencies from non-self cell types:
-                js = np.random.choice(a=[ii for ii in range(n_target_cell_types) if i == ii],
-                                      size=dependencies_per_type, replace=False)
-                cov_ct[i, js] = 1.
-            # Pairwise dependencies: Effect (self cell type, neighbor cell type, feature)
-            effect_neighbors = np.random.uniform(low=4., high=6.,
-                                                 size=(n_target_cell_types, n_target_cell_types, nfeatures))
+            if resimulate_nodes_w_depdency:
+                # Add dependencies_per_type for each cell type:
+                for i in range(n_target_cell_types):
+                    # Sample desired dependencies from non-self cell types:
+                    js = np.random.choice(a=[ii for ii in range(n_target_cell_types) if i == ii],
+                                          size=dependencies_per_type, replace=False)
+                    cov_ct[i, js] = 1.
+                # Pairwise dependencies: Effect (self cell type, neighbor cell type, feature)
+                effect_neighbors = np.random.uniform(low=4., high=6.,
+                                                     size=(n_target_cell_types, n_target_cell_types, nfeatures))
+            else:
+                effect_neighbors = np.zeros((n_target_cell_types, n_target_cell_types, nfeatures))
             sigma_sq = 1.
 
             self._simulation_parameters = {
@@ -384,10 +388,11 @@ class Estimator:
                     ct = np.where(dmat_ct[i, :] == 1.)[0]
                     ct = ct[0]  # flatten list of length 1
                     dmat_neighhors_i = np.zeros((1, n_target_cell_types,))
-                    for j in np.where(np.asarray(adj[i, :]).flatten() > 0)[0]:
-                        ct_j = np.where(dmat_ct[j, :] == 1.)[0]
-                        ct_j = ct_j[0]  # flatten list of length 1
-                        dmat_neighhors_i[0, ct_j] = 1.
+                    if resimulate_nodes_w_depdency:
+                        for j in np.where(np.asarray(adj[i, :]).flatten() > 0)[0]:
+                            ct_j = np.where(dmat_ct[j, :] == 1.)[0]
+                            ct_j = ct_j[0]  # flatten list of length 1
+                            dmat_neighhors_i[0, ct_j] = 1.
                     loc_neighbors[i, :] = np.matmul(dmat_neighhors_i, effect_neighbors[ct])[0]
                 loc = np.matmul(dmat_ct, effect_ct) + loc_neighbors
                 sim_ad.X = np.random.normal(loc=loc, scale=sigma_sq)

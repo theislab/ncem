@@ -195,7 +195,8 @@ class HelperTestEstimatorEd(HelperTestEstimator):
 
 
 @pytest.mark.parametrize("transformation_kwargs", [
-    {"resimulate_nodes": True},
+    {"resimulate_nodes": True, "resimulate_nodes_w_depdency": True},
+    {"resimulate_nodes": True, "resimulate_nodes_w_depdency": False},
     {"robustness": True},
 ])
 def test_data_transformations(transformation_kwargs: dict):
