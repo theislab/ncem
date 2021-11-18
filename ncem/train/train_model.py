@@ -176,6 +176,8 @@ class TrainModelEdSingleNcem(TrainModel, TrainModelEDncemBase):
     def _save_specific(self, fn):
         self._save_evaluation_per_node_type(fn=fn)
         self._save_lr_feature_names(fn=fn)
+        self._save_embedding(fn=fn)
+        self._save_output_weights(fn=fn)
 
 
 class TrainModelCVAEBase(TrainModel):

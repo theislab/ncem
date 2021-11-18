@@ -31,6 +31,8 @@ class HelperTestEstimator:
             self.est = ncem.train.EstimatorEdNcemNeighborhood(cond_type="max")
         elif model == "ed_ncem2_lr_gat":
             self.est = ncem.train.EstimatorEdNcemNeighborhood(cond_type="lr_gat")
+        elif model == "ed_ncem2_none":
+            self.est = ncem.train.EstimatorEdNcemNeighborhood(cond_type="none")
         elif model == "ed_ncem2_gat":
             self.est = ncem.train.EstimatorEdNcemNeighborhood(cond_type="gat")
         elif model == "ed_ncem2_gcn":
@@ -215,7 +217,7 @@ def test_cvae(dataset: str, model: str):
 
 @pytest.mark.parametrize("dataset", ["luwt"])
 #@pytest.mark.parametrize("model", ["ed_ncem2_max", "ed_ncem2_gcn", "ed_ncem2_lr_gat", "ed_ncem2_gat"])
-@pytest.mark.parametrize("model", ["ed_ncem2_lr_gat"])
+@pytest.mark.parametrize("model", ["ed_ncem2_none"])
 def test_ed2(dataset: str, model: str):
     estim = HelperTestEstimatorEd()
     estim.test_train(model=model, data_origin=dataset)
