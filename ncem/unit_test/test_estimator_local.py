@@ -14,6 +14,7 @@ class HelperTestEstimator:
         self,
         model: str,
         data_origin: str = "zhang",
+        **kwargs
     ):
         node_label_space_id = "type"
         node_feature_space_id = "standard"
@@ -64,10 +65,11 @@ class HelperTestEstimator:
             radius=radius,
             node_label_space_id=node_label_space_id,
             node_feature_space_id=node_feature_space_id,
+            **kwargs
         )
 
-    def test_train(self, model: str, data_origin: str = "zhang"):
-        self.get_estimator(model=model, data_origin=data_origin)
+    def test_train(self, model: str, data_origin: str = "zhang", **kwargs):
+        self.get_estimator(model=model, data_origin=data_origin, **kwargs)
 
         kwargs_shared = {
             'optimizer': "adam",
@@ -192,6 +194,16 @@ class HelperTestEstimatorEd(HelperTestEstimator):
 
     def test_decoding_weights(self):
         _ = self.est.get_decoding_weights()
+
+
+@pytest.mark.parametrize("transformation_kwargs", [
+    {"resimulate_nodes": True, "resimulate_nodes_w_depdency": True},
+    {"resimulate_nodes": True, "resimulate_nodes_w_depdency": False},
+    {"robustness": True},
+])
+def test_data_transformations(transformation_kwargs: dict):
+    estim = HelperTestEstimator()
+    estim.test_train(model="interactions", data_origin="luwt", **transformation_kwargs)
 
 
 @pytest.mark.parametrize("dataset", ["luwt"])
