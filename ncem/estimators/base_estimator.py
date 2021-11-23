@@ -316,7 +316,9 @@ class Estimator:
                     overflow_fraction
                 )
             )
+        self.simulation = False
         if resimulate_nodes:
+            self.simulation = True
             n_target_cell_types = 2 if resimulate_nodes_w_depdency else 1
             dependencies_per_type = 1
 
@@ -1755,28 +1757,32 @@ class Estimator:
         -------
         split_per_node_type, evaluation_per_node_type
         """
-        evaluation_per_node_type = {}
-        split_per_node_type = {}
-        node_types = list(self.node_type_names.keys())
-        for nt in node_types:
-            img_keys = list(self.complete_img_keys)
-            nodes_idx = {k: np.where(self.node_types[k][:, node_types.index(nt)] == 1)[0] for k in img_keys}
-            split_per_node_type.update({nt: {"img_keys": img_keys, "nodes_idx": nodes_idx}})
-            test = {k: len(np.where(self.node_types[k][:, node_types.index(nt)] == 1)[0]) for k in img_keys}
-            print("Evaluation for %s with %i cells" % (nt, sum(test.values())))
-            ds = self._get_dataset(
-                image_keys=img_keys,
-                nodes_idx=nodes_idx,
-                batch_size=batch_size,
-                shuffle_buffer_size=1,
-                train=False,
-                seed=None,
-                reinit_n_eval=None,
-            )
-            results = self.model.training_model.evaluate(ds, verbose=False)
-            eval_dict = dict(zip(self.model.training_model.metrics_names, results))
-            print(eval_dict)
-            evaluation_per_node_type.update({nt: eval_dict})
+        if self.simulation:
+            split_per_node_type = None
+            evaluation_per_node_type = None
+        else:
+            evaluation_per_node_type = {}
+            split_per_node_type = {}
+            node_types = list(self.node_type_names.keys())
+            for nt in node_types:
+                img_keys = list(self.complete_img_keys)
+                nodes_idx = {k: np.where(self.node_types[k][:, node_types.index(nt)] == 1)[0] for k in img_keys}
+                split_per_node_type.update({nt: {"img_keys": img_keys, "nodes_idx": nodes_idx}})
+                test = {k: len(np.where(self.node_types[k][:, node_types.index(nt)] == 1)[0]) for k in img_keys}
+                print("Evaluation for %s with %i cells" % (nt, sum(test.values())))
+                ds = self._get_dataset(
+                    image_keys=img_keys,
+                    nodes_idx=nodes_idx,
+                    batch_size=batch_size,
+                    shuffle_buffer_size=1,
+                    train=False,
+                    seed=None,
+                    reinit_n_eval=None,
+                )
+                results = self.model.training_model.evaluate(ds, verbose=False)
+                eval_dict = dict(zip(self.model.training_model.metrics_names, results))
+                print(eval_dict)
+                evaluation_per_node_type.update({nt: eval_dict})
         return split_per_node_type, evaluation_per_node_type
 
 
