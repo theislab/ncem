@@ -214,6 +214,7 @@ class Estimator:
         segmentation_robustness: Optional[List[float]] = None,
         resimulate_nodes: bool = False,
         resimulate_nodes_w_depdency: bool = False,
+        resimulate_nodes_sparsity_rate: float = 0.5,
     ):
         """Get data used in estimator classes.
 
@@ -358,7 +359,7 @@ class Estimator:
                 effect_neighbors = np.random.uniform(low=4., high=6.,
                                                      size=(n_target_cell_types, n_target_cell_types, nfeatures))
                 # Simulate sparse effects:
-                sparsity_rate = 0.5  # fraction of zero effects
+                sparsity_rate = resimulate_nodes_sparsity_rate  # fraction of zero effects
                 effect_neighbors[np.random.binomial(n=1, p=sparsity_rate, size=effect_neighbors.shape) == 1.] = 0.
             else:
                 effect_neighbors = np.zeros((n_target_cell_types, n_target_cell_types, nfeatures))
