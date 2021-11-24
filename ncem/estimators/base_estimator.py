@@ -351,15 +351,15 @@ class Estimator:
                 # Add dependencies_per_type for each cell type:
                 for i in range(n_target_cell_types):
                     # Sample desired dependencies from non-self cell types:
-                    js = np.random.choice(a=[ii for ii in range(n_target_cell_types) if i == ii],
+                    js = np.random.choice(a=[ii for ii in range(n_target_cell_types) if i != ii],
                                           size=dependencies_per_type, replace=False)
                     cov_ct[i, js] = 1.
                 # Pairwise dependencies: Effect (self cell type, neighbor cell type, feature)
                 effect_neighbors = np.random.uniform(low=4., high=6.,
                                                      size=(n_target_cell_types, n_target_cell_types, nfeatures))
                 # Simulate sparse effects:
-                sparsity_rate = 0.8  # fraction of zero effects
-                effect_neighbors[np.random.binomial(n=1, p=sparsity_rate, size=effect_neighbors.shape)] = 0.
+                sparsity_rate = 0.5  # fraction of zero effects
+                effect_neighbors[np.random.binomial(n=1, p=sparsity_rate, size=effect_neighbors.shape) == 1.] = 0.
             else:
                 effect_neighbors = np.zeros((n_target_cell_types, n_target_cell_types, nfeatures))
             sigma_sq = 1.
