@@ -118,7 +118,7 @@ class GraphTools:
         return (diff * diff).sum(1)
 
     def _get_degrees(self, max_distances: list):
-        """Get dgrees.
+        """Get degrees.
 
         Parameters
         ----------
@@ -138,6 +138,123 @@ class GraphTools:
         for dist in max_distances:
             degrees[dist] = [deg[dist] for deg in degs.values()]
         return degrees
+
+    def prepare_spectral_clusters(
+            self,
+            a_dict,
+            n_cluster,
+            k_neighbors=10,
+    ):
+        """
+        Computes spectral clusterings for all graphs of the dataset.
+
+        Parameters
+        ----------
+        a_dict
+            A dict of adjacency matrices.
+        n_cluster : int
+            The number of spectral clusters to be produced for the self-supervision task.
+        k_neighbors : int
+            The number of neighbors used of the knn graph construction.
+
+        Returns
+        -------
+        node_to_cluster_mapping
+            Dictionary mapping image keys to a one hot encoded matrix (n_nodes, n_clusters) assigning graph nodes
+            to their cluster.
+        within_cluster_a
+            Dictionary mapping image keys to transformed adjacency matrices with edges between clusters removed.
+        between_cluster_a
+            Dictionary mapping image keys to adjacency matrices describing the connectivity of the clusters.
+
+        """
+        from sklearn.cluster import SpectralClustering
+        from sklearn.neighbors import kneighbors_graph
+
+        # Compute knn matrices
+        knn_matrices = {
+            image_key: kneighbors_graph(
+                adata.obsm['spatial'],
+                n_neighbors=k_neighbors,
+                mode='connectivity',  # also 'distance' possible
+                include_self=True
+            )
+            for image_key, adata in self.img_celldata.items()
+        }
+
+        # Compute spectral clusters and one-hot encoded assignments from graph nodes to clusters
+        clusterer = SpectralClustering(
+            n_clusters=n_cluster,
+            affinity='precomputed',
+        )
+
+        def to_one_hot(a):
+            res = np.zeros((len(a), np.max(a) + 1))
+            res[np.arange(len(a)), a] = 1
+            return res
+
+        node_to_cluster_mapping = {
+            image_key: to_one_hot(clusterer.fit_predict(X=value))
+            for image_key, value in knn_matrices.items()
+        }
+
+        # Compute adjacency matrices containing only within-cluster edges
+        within_cluster_a = {
+            image_key: a_dict[image_key].multiply(value @ np.transpose(value))
+            for image_key, value in node_to_cluster_mapping.items()
+        }
+
+        # Compute connectivity of clusters
+        between_cluster_a = {
+            key: (np.transpose(node_to_cluster_mapping[key]) @ value @ node_to_cluster_mapping[key] > 0).astype(float)
+                 - np.eye(node_to_cluster_mapping[key].shape[1])
+            for key, value in knn_matrices.items()
+        }
+
+        return node_to_cluster_mapping, within_cluster_a, between_cluster_a
+
+    def get_self_supervision_label(
+        self,
+        label,
+        node_to_cluster_mapping,
+        between_cluster_a,
+
+    ):
+        """
+        Computes a label per cluster used for a self-supervision task. This is usually some form of description of the
+        surrounding of a cluster.
+
+        Parameters
+        ----------
+        label : str
+            Name of the supervision label to be prepared. Valid options are:
+
+            - 'relative_cell_types' - the cell type frequency of all clusters connected to one cluster.
+        node_to_cluster_mapping
+            Dictionary mapping image keys to a one hot encoded matrix (n_nodes, n_clusters) assigning graph nodes
+            to their cluster.
+        between_cluster_a
+            Dictionary mapping image keys to adjacency matrices describing the connectivity of the clusters.
+
+        Returns
+        -------
+        A dict mapping image keys to matrix (n_clusters, n_types) containing the cell type frequencies of all nodes
+        within clusters connected to one cluster for all the cluster.
+        """
+
+        if label == 'relative_cell_types':
+            surrounding_cell_types = {
+                image_key: between_cluster_a[image_key] @ np.transpose(node_to_cluster_mapping[image_key])
+                           @ self.img_celldata[image_key].obsm['node_types']
+                for image_key in node_to_cluster_mapping.keys()
+            }
+            rel_cell_types = {
+                key: value / np.maximum(np.sum(value, axis=1, keepdims=True), np.ones((value.shape[0], 1)))
+                for key, value in surrounding_cell_types.items()
+            }
+            return rel_cell_types
+        else:
+            raise ValueError(f'Self-supervision label {label} not recognized')
 
     def plot_degree_vs_dist(
         self,
