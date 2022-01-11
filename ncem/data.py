@@ -256,6 +256,62 @@ class GraphTools:
         else:
             raise ValueError(f'Self-supervision label {label} not recognized')
 
+    def process_node_features(
+        self,
+        feature_transformation: str,
+    ):
+        # Process node-wise features:
+        if feature_transformation == 'standardize_per_image':
+            self._standardize_features_per_image()
+        elif feature_transformation == 'standardize_globally':
+            self._standardize_overall()
+        elif feature_transformation == 'scale_observations':
+            self._scale_observations()
+        elif feature_transformation == 'logxp1':
+            self._logxp1()
+        elif feature_transformation is None or feature_transformation == "none":
+            pass
+        else:
+            raise ValueError('Feature transformation %s not recognized!' % feature_transformation)
+
+    def _standardize_features_per_image(self):
+        self.node_features = {
+            i: (features - features.mean(axis=0)) / (features.std(axis=0) + 1e-8)
+            for i, features in self.node_features.items()
+        }
+
+    def _standardize_overall(self):
+        data = np.concatenate(list(self.node_features.values()), axis=0)
+        mean = data.mean(axis=0)
+        std = data.std(axis=0)
+        self.node_features = {i: (features - mean) / std for i, features in self.node_features.items()}
+
+    def _scale_observations(self, n: int = 100):
+        """
+        TPM-like scaling of observation vectors.
+        Only makes sense with positive input.
+        :param n: Total feature count to linearly scale observations into.
+        :return:
+        """
+        self.node_features = {
+            i: (features / features.mean(axis=1)) * n
+            for i, features in self.node_features.items()
+        }
+
+    def _logxp1(self):
+        """
+        log(x+1) of observations. Only makes sense with positive input.
+        :return: Dict[str, np.nparray] dictonary of np.log(x+1) transformed node features
+        """
+        # Check if nan's will be introduced:
+        for i, features in self.node_features.items():
+            if np.any(features < 0):
+                raise ValueError("found non-positive entries for image %s" % str(i))
+        self.node_features = {
+            i: np.log(features + 1.)
+            for i, features in self.node_features.items()
+        }
+
     def plot_degree_vs_dist(
         self,
         degree_matrices: Optional[list] = None,
