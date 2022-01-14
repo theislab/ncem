@@ -1795,7 +1795,8 @@ class DataLoader(GraphTools, PlottingTools):
         coord_type: str = 'generic',
         n_rings: int = 1,
         label_selection: Optional[List[str]] = None,
-        n_top_genes: Optional[int] = None
+        n_top_genes: Optional[int] = None,
+        cell_type_coarseness: str = 'fine',
     ):
         """Initialize DataLoader.
 
@@ -1816,6 +1817,7 @@ class DataLoader(GraphTools, PlottingTools):
         self.register_graph_features(label_selection=label_selection)
         self.compute_adjacency_matrices(radius=radius, coord_type=coord_type, n_rings=n_rings)
         self.radius = radius
+        self.cell_type_coarseness = cell_type_coarseness
 
         print(
             "Loaded %i images with complete data from %i patients "
@@ -1907,31 +1909,33 @@ class DataLoaderZhang(DataLoader):
     """DataLoaderZhang class. Inherits all functions from DataLoader."""
 
     cell_type_merge_dict = {
-        "Astrocytes": "Astrocytes",
-        "Endothelial": "Endothelial",
-        "L23_IT": "L2/3 IT",
-        "L45_IT": "L4/5 IT",
-        "L5_IT": "L5 IT",
-        "L5_PT": "L5 PT",
-        "L56_NP": "L5/6 NP",
-        "L6_CT": "L6 CT",
-        "L6_IT": "L6 IT",
-        "L6_IT_Car3": "L6 IT Car3",
-        "L6b": "L6b",
-        "Lamp5": "Lamp5",
-        "Microglia": "Microglia",
-        "OPC": "OPC",
-        "Oligodendrocytes": "Oligodendrocytes",
-        "PVM": "PVM",
-        "Pericytes": "Pericytes",
-        "Pvalb": "Pvalb",
-        "SMC": "SMC",
-        "Sncg": "Sncg",
-        "Sst": "Sst",
-        "Sst_Chodl": "Sst Chodl",
-        "VLMC": "VLMC",
-        "Vip": "Vip",
-        "other": "other",
+        'fine': {
+            "Astrocytes": "Astrocytes",
+            "Endothelial": "Endothelial",
+            "L23_IT": "L2/3 IT",
+            "L45_IT": "L4/5 IT",
+            "L5_IT": "L5 IT",
+            "L5_PT": "L5 PT",
+            "L56_NP": "L5/6 NP",
+            "L6_CT": "L6 CT",
+            "L6_IT": "L6 IT",
+            "L6_IT_Car3": "L6 IT Car3",
+            "L6b": "L6b",
+            "Lamp5": "Lamp5",
+            "Microglia": "Microglia",
+            "OPC": "OPC",
+            "Oligodendrocytes": "Oligodendrocytes",
+            "PVM": "PVM",
+            "Pericytes": "Pericytes",
+            "Pvalb": "Pvalb",
+            "SMC": "SMC",
+            "Sncg": "Sncg",
+            "Sst": "Sst",
+            "Sst_Chodl": "Sst Chodl",
+            "VLMC": "VLMC",
+            "Vip": "Vip",
+            "other": "other",
+        }
     }
 
     def _register_celldata(self, n_top_genes: Optional[int] = None):
@@ -1944,6 +1948,7 @@ class DataLoaderZhang(DataLoader):
             "cluster_col": "subclass",
             "cluster_col_preprocessed": "subclass_preprocessed",
             "patient_col": "mouse",
+            "cell_type_coarseness": self.cell_type_coarseness,
         }
 
         celldata = read_h5ad(os.path.join(self.data_path, metadata["fn"])).copy()
@@ -1963,7 +1968,7 @@ class DataLoaderZhang(DataLoader):
 
         # add clean cluster column which removes regular expression from cluster_col
         celldata.obs[metadata["cluster_col_preprocessed"]] = list(
-            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="str").map(self.cell_type_merge_dict)
+            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="str").map(self.cell_type_merge_dict[self.cell_type_coarseness])
         )
         celldata.obs[metadata["cluster_col_preprocessed"]] = celldata.obs[metadata["cluster_col_preprocessed"]].astype(
             "str"
@@ -2025,19 +2030,21 @@ class DataLoaderJarosch(DataLoader):
     """DataLoaderJarosch class. Inherits all functions from DataLoader."""
 
     cell_type_merge_dict = {
-        "B cells": "B cells",
-        "CD4 T cells": "CD4 T cells",
-        "CD8 T cells": "CD8 T cells",
-        "GATA3+ epithelial": "GATA3+ epithelial",
-        "Ki67 high epithelial": "Ki67 epithelial",
-        "Ki67 low epithelial": "Ki67 epithelial",
-        "Lamina propria cells": "Lamina propria cells",
-        "Macrophages": "Macrophages",
-        "Monocytes": "Monocytes",
-        "PD-L1+ cells": "PD-L1+ cells",
-        "intraepithelial Lymphocytes": "intraepithelial Lymphocytes",
-        "muscular cells": "muscular cells",
-        "other Lymphocytes": "other Lymphocytes",
+        'fine': {
+            "B cells": "B cells",
+            "CD4 T cells": "CD4 T cells",
+            "CD8 T cells": "CD8 T cells",
+            "GATA3+ epithelial": "GATA3+ epithelial",
+            "Ki67 high epithelial": "Ki67 epithelial",
+            "Ki67 low epithelial": "Ki67 epithelial",
+            "Lamina propria cells": "Lamina propria cells",
+            "Macrophages": "Macrophages",
+            "Monocytes": "Monocytes",
+            "PD-L1+ cells": "PD-L1+ cells",
+            "intraepithelial Lymphocytes": "intraepithelial Lymphocytes",
+            "muscular cells": "muscular cells",
+            "other Lymphocytes": "other Lymphocytes",
+        }
     }
 
     def _register_celldata(self, n_top_genes: Optional[int] = None):
@@ -2050,6 +2057,7 @@ class DataLoaderJarosch(DataLoader):
             "cluster_col": "celltype_Level_2",
             "cluster_col_preprocessed": "celltype_Level_2_preprocessed",
             "patient_col": None,
+            "cell_type_coarseness": self.cell_type_coarseness,
         }
 
         celldata = read_h5ad(os.path.join(self.data_path, metadata["fn"]))
@@ -2094,7 +2102,7 @@ class DataLoaderJarosch(DataLoader):
 
         # add clean cluster column which removes regular expression from cluster_col
         celldata.obs[metadata["cluster_col_preprocessed"]] = list(
-            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="category").map(self.cell_type_merge_dict)
+            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="category").map(self.cell_type_merge_dict[self.cell_type_coarseness])
         )
         celldata.obs[metadata["cluster_col_preprocessed"]] = celldata.obs[metadata["cluster_col_preprocessed"]].astype(
             "category"
@@ -2156,14 +2164,16 @@ class DataLoaderHartmann(DataLoader):
     """DataLoaderHartmann class. Inherits all functions from DataLoader."""
 
     cell_type_merge_dict = {
-        "Imm_other": "Other immune cells",
-        "Epithelial": "Epithelial",
-        "Tcell_CD4": "CD4 T cells",
-        "Myeloid_CD68": "CD68 Myeloid",
-        "Fibroblast": "Fibroblast",
-        "Tcell_CD8": "CD8 T cells",
-        "Endothelial": "Endothelial",
-        "Myeloid_CD11c": "CD11c Myeloid",
+        'fine': {
+            "Imm_other": "Other immune cells",
+            "Epithelial": "Epithelial",
+            "Tcell_CD4": "CD4 T cells",
+            "Myeloid_CD68": "CD68 Myeloid",
+            "Fibroblast": "Fibroblast",
+            "Tcell_CD8": "CD8 T cells",
+            "Endothelial": "Endothelial",
+            "Myeloid_CD11c": "CD11c Myeloid",
+        }
     }
 
     def _register_celldata(self, n_top_genes: Optional[int] = None):
@@ -2176,6 +2186,7 @@ class DataLoaderHartmann(DataLoader):
             "cluster_col": "Cluster",
             "cluster_col_preprocessed": "Cluster_preprocessed",
             "patient_col": "donor",
+            "cell_type_coarseness": self.cell_type_coarseness,
         }
         celldata_df = read_csv(os.path.join(self.data_path, metadata["fn"][0]))
         celldata_df["point"] = [f"scMEP_point_{str(x)}" for x in celldata_df["point"]]
@@ -2248,7 +2259,7 @@ class DataLoaderHartmann(DataLoader):
 
         # add clean cluster column which removes regular expression from cluster_col
         celldata.obs[metadata["cluster_col_preprocessed"]] = list(
-            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="category").map(self.cell_type_merge_dict)
+            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="category").map(self.cell_type_merge_dict[self.cell_type_coarseness])
         )
         celldata.obs[metadata["cluster_col_preprocessed"]] = celldata.obs[metadata["cluster_col_preprocessed"]].astype(
             "category"
@@ -2394,15 +2405,17 @@ class DataLoaderPascualReguant(DataLoader):
     """DataLoaderPascualReguant class. Inherits all functions from DataLoader."""
 
     cell_type_merge_dict = {
-        "B cell": "B cells",
-        "Endothelial cells": "Endothelial cells",
-        "ILC": "ILC",
-        "Monocyte/Macrohage/DC": "Monocyte/Macrohage/DC",
-        "NK cell": "NK cells",
-        "Plasma cell": "Plasma cells CD8",
-        "T cytotoxic cell": "T cytotoxic cells",
-        "T helper cell": "T helper cells",
-        "other": "other",
+        'fine': {
+            "B cell": "B cells",
+            "Endothelial cells": "Endothelial cells",
+            "ILC": "ILC",
+            "Monocyte/Macrohage/DC": "Monocyte/Macrohage/DC",
+            "NK cell": "NK cells",
+            "Plasma cell": "Plasma cells CD8",
+            "T cytotoxic cell": "T cytotoxic cells",
+            "T helper cell": "T helper cells",
+            "other": "other",
+        }
     }
 
     def _register_celldata(self, n_top_genes: Optional[int] = None):
@@ -2415,6 +2428,7 @@ class DataLoaderPascualReguant(DataLoader):
             "cluster_col": "cell_class",
             "cluster_col_preprocessed": "cell_class_preprocessed",
             "patient_col": None,
+            "cell_type_coarseness": self.cell_type_coarseness,
         }
         nuclei_df = read_excel(os.path.join(self.data_path, metadata["fn"][0]))
         membranes_df = read_excel(os.path.join(self.data_path, metadata["fn"][1]))
@@ -2486,7 +2500,7 @@ class DataLoaderPascualReguant(DataLoader):
 
         # add clean cluster column which removes regular expression from cluster_col
         celldata.obs[metadata["cluster_col_preprocessed"]] = list(
-            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="category").map(self.cell_type_merge_dict)
+            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="category").map(self.cell_type_merge_dict[self.cell_type_coarseness])
         )
         celldata.obs[metadata["cluster_col_preprocessed"]] = celldata.obs[metadata["cluster_col_preprocessed"]].astype(
             "category"
@@ -2547,35 +2561,68 @@ class DataLoaderSchuerch(DataLoader):
     """DataLoaderSchuerch class. Inherits all functions from DataLoader."""
 
     cell_type_merge_dict = {
-        "B cells": "B cells",
-        "CD11b+ monocytes": "monocytes",
-        "CD11b+CD68+ macrophages": "macrophages",
-        "CD11c+ DCs": "dendritic cells",
-        "CD163+ macrophages": "macrophages",
-        "CD3+ T cells": "CD3+ T cells",
-        "CD4+ T cells": "CD4+ T cells",
-        "CD4+ T cells CD45RO+": "CD4+ T cells",
-        "CD4+ T cells GATA3+": "CD4+ T cells",
-        "CD68+ macrophages": "macrophages",
-        "CD68+ macrophages GzmB+": "macrophages",
-        "CD68+CD163+ macrophages": "macrophages",
-        "CD8+ T cells": "CD8+ T cells",
-        "NK cells": "NK cells",
-        "Tregs": "Tregs",
-        "adipocytes": "adipocytes",
-        "dirt": "dirt",
-        "granulocytes": "granulocytes",
-        "immune cells": "immune cells",
-        "immune cells / vasculature": "immune cells",
-        "lymphatics": "lymphatics",
-        "nerves": "nerves",
-        "plasma cells": "plasma cells",
-        "smooth muscle": "smooth muscle",
-        "stroma": "stroma",
-        "tumor cells": "tumor cells",
-        "tumor cells / immune cells": "immune cells",
-        "undefined": "undefined",
-        "vasculature": "vasculature",
+        'fine': {
+            "B cells": "B cells",
+            "CD11b+ monocytes": "monocytes",
+            "CD11b+CD68+ macrophages": "macrophages",
+            "CD11c+ DCs": "dendritic cells",
+            "CD163+ macrophages": "macrophages",
+            "CD3+ T cells": "CD3+ T cells",
+            "CD4+ T cells": "CD4+ T cells",
+            "CD4+ T cells CD45RO+": "CD4+ T cells",
+            "CD4+ T cells GATA3+": "CD4+ T cells",
+            "CD68+ macrophages": "macrophages",
+            "CD68+ macrophages GzmB+": "macrophages",
+            "CD68+CD163+ macrophages": "macrophages",
+            "CD8+ T cells": "CD8+ T cells",
+            "NK cells": "NK cells",
+            "Tregs": "Tregs",
+            "adipocytes": "adipocytes",
+            "dirt": "dirt",
+            "granulocytes": "granulocytes",
+            "immune cells": "immune cells",
+            "immune cells / vasculature": "immune cells",
+            "lymphatics": "lymphatics",
+            "nerves": "nerves",
+            "plasma cells": "plasma cells",
+            "smooth muscle": "smooth muscle",
+            "stroma": "stroma",
+            "tumor cells": "tumor cells",
+            "tumor cells / immune cells": "immune cells",
+            "undefined": "undefined",
+            "vasculature": "vasculature",
+        },
+        'binary': {
+            'B cells': 'immune cells',
+            'CD11b+ monocytes': 'immune cells',
+            'CD11b+CD68+ macrophages': 'immune cells',
+            'CD11c+ DCs': 'immune cells',
+            'CD163+ macrophages': 'immune cells',
+            'CD3+ T cells': 'immune cells',
+            'CD4+ T cells': 'immune cells',
+            'CD4+ T cells CD45RO+': 'immune cells',
+            'CD4+ T cells GATA3+': 'immune cells',
+            'CD68+ macrophages': 'immune cells',
+            'CD68+ macrophages GzmB+': 'immune cells',
+            'CD68+CD163+ macrophages': 'immune cells',
+            'CD8+ T cells': 'immune cells',
+            'NK cells': 'immune cells',
+            'Tregs': 'immune cells',
+            'adipocytes': 'other',
+            'dirt': 'other',
+            'granulocytes': 'immune cells',
+            'immune cells': 'immune cells',
+            'immune cells / vasculature': 'immune cells',
+            'lymphatics': 'immune cells',
+            'nerves': 'other',
+            'plasma cells': 'other',
+            'smooth muscle': 'other',
+            'stroma': 'other',
+            'tumor cells': 'other',
+            'tumor cells / immune cells': 'immune cells',
+            'undefined': 'other',
+            'vasculature': 'other'
+        },
     }
 
     def _register_celldata(self, n_top_genes: Optional[int] = None):
@@ -2588,6 +2635,7 @@ class DataLoaderSchuerch(DataLoader):
             "cluster_col": "ClusterName",
             "cluster_col_preprocessed": "ClusterName_preprocessed",
             "patient_col": "patients",
+            "cell_type_coarseness": self.cell_type_coarseness,
         }
         celldata_df = read_csv(os.path.join(self.data_path, metadata["fn"]))
 
@@ -2728,7 +2776,7 @@ class DataLoaderSchuerch(DataLoader):
 
         # add clean cluster column which removes regular expression from cluster_col
         celldata.obs[metadata["cluster_col_preprocessed"]] = list(
-            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="category").map(self.cell_type_merge_dict)
+            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="category").map(self.cell_type_merge_dict[self.cell_type_coarseness])
         )
         celldata.obs[metadata["cluster_col_preprocessed"]] = celldata.obs[metadata["cluster_col_preprocessed"]].astype(
             "category"
@@ -2963,30 +3011,32 @@ class DataLoaderLohoff(DataLoader):
     """DataLoaderLohoff class. Inherits all functions from DataLoader."""
 
     cell_type_merge_dict = {
-        'Allantois': 'Allantois',
-        'Anterior somitic tissues': 'Anterior somitic tissues',
-        'Blood progenitors': 'Blood progenitors',
-        'Cardiomyocytes': 'Cardiomyocytes',
-        'Cranial mesoderm': 'Cranial mesoderm',
-        'Definitive endoderm': 'Definitive endoderm',
-        'Dermomyotome': 'Dermomyotome',
-        'Endothelium': 'Endothelium',
-        'Erythroid': 'Erythroid',
-        'ExE endoderm': 'ExE endoderm',
-        'Forebrain/Midbrain/Hindbrain': 'Forebrain/Midbrain/Hindbrain',
-        'Gut tube': 'Gut tube',
-        'Haematoendothelial progenitors': 'Haematoendothelial progenitors',
-        'Intermediate mesoderm': 'Intermediate mesoderm',
-        'Lateral plate mesoderm': 'Lateral plate mesoderm',
-        'Low quality': 'Low quality',
-        'Mixed mesenchymal mesoderm': 'Mixed mesenchymal mesoderm',
-        'NMP': 'NMP',
-        'Neural crest': 'Neural crest',
-        'Presomitic mesoderm': 'Presomitic mesoderm',
-        'Sclerotome': 'Sclerotome',
-        'Spinal cord': 'Spinal cord',
-        'Splanchnic mesoderm': 'Splanchnic mesoderm',
-        'Surface ectoderm': 'Surface ectoderm'
+        'fine': {
+            'Allantois': 'Allantois',
+            'Anterior somitic tissues': 'Anterior somitic tissues',
+            'Blood progenitors': 'Blood progenitors',
+            'Cardiomyocytes': 'Cardiomyocytes',
+            'Cranial mesoderm': 'Cranial mesoderm',
+            'Definitive endoderm': 'Definitive endoderm',
+            'Dermomyotome': 'Dermomyotome',
+            'Endothelium': 'Endothelium',
+            'Erythroid': 'Erythroid',
+            'ExE endoderm': 'ExE endoderm',
+            'Forebrain/Midbrain/Hindbrain': 'Forebrain/Midbrain/Hindbrain',
+            'Gut tube': 'Gut tube',
+            'Haematoendothelial progenitors': 'Haematoendothelial progenitors',
+            'Intermediate mesoderm': 'Intermediate mesoderm',
+            'Lateral plate mesoderm': 'Lateral plate mesoderm',
+            'Low quality': 'Low quality',
+            'Mixed mesenchymal mesoderm': 'Mixed mesenchymal mesoderm',
+            'NMP': 'NMP',
+            'Neural crest': 'Neural crest',
+            'Presomitic mesoderm': 'Presomitic mesoderm',
+            'Sclerotome': 'Sclerotome',
+            'Spinal cord': 'Spinal cord',
+            'Splanchnic mesoderm': 'Splanchnic mesoderm',
+            'Surface ectoderm': 'Surface ectoderm'
+        }
     }
 
     def _register_celldata(self, n_top_genes: Optional[int] = None):
@@ -2999,6 +3049,7 @@ class DataLoaderLohoff(DataLoader):
             "cluster_col": "celltype_mapped_refined",
             "cluster_col_preprocessed": "celltype_mapped_refined",
             "patient_col": "embryo",
+            "cell_type_coarseness": self.cell_type_coarseness,
         }
 
         celldata = read_h5ad(os.path.join(self.data_path, metadata["fn"])).copy()
@@ -3017,7 +3068,7 @@ class DataLoaderLohoff(DataLoader):
 
         # add clean cluster column which removes regular expression from cluster_col
         celldata.obs[metadata["cluster_col_preprocessed"]] = list(
-            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="category").map(self.cell_type_merge_dict)
+            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="category").map(self.cell_type_merge_dict[self.cell_type_coarseness])
         )
         celldata.obs[metadata["cluster_col_preprocessed"]] = celldata.obs[metadata["cluster_col_preprocessed"]].astype(
             "category"
@@ -3078,15 +3129,17 @@ class DataLoaderLuWT(DataLoader):
     """DataLoaderLuWT class. Inherits all functions from DataLoader."""
 
     cell_type_merge_dict = {
-        "1": "AEC",
-        "2": "SEC",
-        "3": "MK",
-        "4": "Hepatocyte",
-        "5": "Macrophage",
-        "6": "Myeloid",
-        "7": "Erythroid progenitor",
-        "8": "Erythroid cell",
-        "9": "Unknown",
+        'fine': {
+            "1": "AEC",
+            "2": "SEC",
+            "3": "MK",
+            "4": "Hepatocyte",
+            "5": "Macrophage",
+            "6": "Myeloid",
+            "7": "Erythroid progenitor",
+            "8": "Erythroid cell",
+            "9": "Unknown",
+        }
     }
 
     def _register_celldata(self, n_top_genes: Optional[int] = None):
@@ -3098,6 +3151,7 @@ class DataLoaderLuWT(DataLoader):
             "pos_cols": ["Center_x", "Center_y"],
             "cluster_col": "CellTypeID_new",
             "cluster_col_preprocessed": "CellTypeID_new_preprocessed",
+            "cell_type_coarseness": self.cell_type_coarseness,
         }
         celldata_df = read_csv(os.path.join(self.data_path, metadata["fn"]))
 
@@ -3258,7 +3312,7 @@ class DataLoaderLuWT(DataLoader):
 
         # add clean cluster column which removes regular expression from cluster_col
         celldata.obs[metadata["cluster_col_preprocessed"]] = list(
-            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="str").map(self.cell_type_merge_dict)
+            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="str").map(self.cell_type_merge_dict[self.cell_type_coarseness])
         )
         celldata.obs[metadata["cluster_col_preprocessed"]] = celldata.obs[metadata["cluster_col_preprocessed"]].astype(
             "str"
@@ -3322,14 +3376,16 @@ class DataLoaderLuWTimputed(DataLoader):
     """DataLoaderLuWTimputed class. Inherits all functions from DataLoader."""
 
     cell_type_merge_dict = {
-        1: "AEC",
-        2: "SEC",
-        3: "MK",
-        4: "Hepatocyte",
-        5: "Macrophage",
-        6: "Myeloid",
-        7: "Erythroid progenitor",
-        8: "Erythroid cell",
+        'fine': {
+            1: "AEC",
+            2: "SEC",
+            3: "MK",
+            4: "Hepatocyte",
+            5: "Macrophage",
+            6: "Myeloid",
+            7: "Erythroid progenitor",
+            8: "Erythroid cell",
+        }
     }
 
     def _register_celldata(self, n_top_genes: Optional[int] = None):
@@ -3341,7 +3397,8 @@ class DataLoaderLuWTimputed(DataLoader):
             "pos_cols": ["Center_x", "Center_y"],
             "cluster_col": "CellTypeID_new",
             "cluster_col_preprocessed": "CellTypeID_new_preprocessed",
-            "n_top_genes": n_top_genes
+            "n_top_genes": n_top_genes,
+            "cell_type_coarseness": self.cell_type_coarseness,
         }
         celldata = read_h5ad(self.data_path + metadata["fn"])
         celldata.uns["metadata"] = metadata
@@ -3392,15 +3449,17 @@ class DataLoaderLuTET2(DataLoader):
     """DataLoaderLuTET2 class. Inherits all functions from DataLoader."""
 
     cell_type_merge_dict = {
-        "1": "AEC",
-        "2": "SEC",
-        "3": "MK",
-        "4": "Hepatocyte",
-        "5": "Macrophage",
-        "6": "Myeloid",
-        "7": "Erythroid progenitor",
-        "8": "Erythroid cell",
-        "9": "Unknown",
+        'fine': {
+            "1": "AEC",
+            "2": "SEC",
+            "3": "MK",
+            "4": "Hepatocyte",
+            "5": "Macrophage",
+            "6": "Myeloid",
+            "7": "Erythroid progenitor",
+            "8": "Erythroid cell",
+            "9": "Unknown",
+        }
     }
 
     def _register_celldata(self, n_top_genes: Optional[int] = None):
@@ -3412,6 +3471,7 @@ class DataLoaderLuTET2(DataLoader):
             "pos_cols": ["Center_x", "Center_y"],
             "cluster_col": "CellTypeID_new",
             "cluster_col_preprocessed": "CellTypeID_new_preprocessed",
+            "cell_type_coarseness": self.cell_type_coarseness,
         }
         celldata_df = read_csv(os.path.join(self.data_path, metadata["fn"]))
 
@@ -3572,7 +3632,7 @@ class DataLoaderLuTET2(DataLoader):
 
         # add clean cluster column which removes regular expression from cluster_col
         celldata.obs[metadata["cluster_col_preprocessed"]] = list(
-            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="category").map(self.cell_type_merge_dict)
+            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="category").map(self.cell_type_merge_dict[self.cell_type_coarseness])
         )
         celldata.obs[metadata["cluster_col_preprocessed"]] = celldata.obs[metadata["cluster_col_preprocessed"]].astype(
             "category"
@@ -3634,21 +3694,23 @@ class DataLoader10xVisiumMouseBrain(DataLoader):
     """DataLoader10xVisiumMouseBrain class. Inherits all functions from DataLoader."""
 
     cell_type_merge_dict = {
-        'Cortex_1': 'Cortex 1',
-        'Cortex_2': 'Cortex 2',
-        'Cortex_3': 'Cortex 3',
-        'Cortex_4': 'Cortex 4',
-        'Cortex_5': 'Cortex 5',
-        'Fiber_tract': 'Fiber tract',
-        'Hippocampus': 'Hippocampus',
-        'Hypothalamus_1': 'Hypothalamus 1',
-        'Hypothalamus_2': 'Hypothalamus 2',
-        'Lateral_ventricle': 'Lateral ventricle',
-        'Pyramidal_layer': 'Pyramidal layer',
-        'Pyramidal_layer_dentate_gyrus': 'Pyramidal layer dentate gyrus',
-        'Striatum': 'Striatum',
-        'Thalamus_1': 'Thalamus 1',
-        'Thalamus_2': 'Thalamus 2'
+        'fine': {
+            'Cortex_1': 'Cortex 1',
+            'Cortex_2': 'Cortex 2',
+            'Cortex_3': 'Cortex 3',
+            'Cortex_4': 'Cortex 4',
+            'Cortex_5': 'Cortex 5',
+            'Fiber_tract': 'Fiber tract',
+            'Hippocampus': 'Hippocampus',
+            'Hypothalamus_1': 'Hypothalamus 1',
+            'Hypothalamus_2': 'Hypothalamus 2',
+            'Lateral_ventricle': 'Lateral ventricle',
+            'Pyramidal_layer': 'Pyramidal layer',
+            'Pyramidal_layer_dentate_gyrus': 'Pyramidal layer dentate gyrus',
+            'Striatum': 'Striatum',
+            'Thalamus_1': 'Thalamus 1',
+            'Thalamus_2': 'Thalamus 2'
+        }
     }
 
     def _register_celldata(self, n_top_genes: Optional[int] = None):
@@ -3660,7 +3722,8 @@ class DataLoader10xVisiumMouseBrain(DataLoader):
             "cluster_col": "cluster",
             "cluster_col_preprocessed": "cluster_preprocessed",
             "patient_col": "in_tissue",
-            "n_top_genes": n_top_genes
+            "n_top_genes": n_top_genes,
+            "cell_type_coarseness": self.cell_type_coarseness,
         }
 
         celldata = read_h5ad(self.data_path + metadata["fn"]).copy()
@@ -3680,7 +3743,7 @@ class DataLoader10xVisiumMouseBrain(DataLoader):
         )
         # add clean cluster column which removes regular expression from cluster_col
         celldata.obs[metadata["cluster_col_preprocessed"]] = list(
-            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="str").map(self.cell_type_merge_dict)
+            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="str").map(self.cell_type_merge_dict[self.cell_type_coarseness])
         )
         celldata.obs[metadata["cluster_col_preprocessed"]] = celldata.obs[metadata["cluster_col_preprocessed"]].astype(
             "str"
@@ -3741,28 +3804,30 @@ class DataLoaderMetabric(DataLoader):
     """DataLoaderMetabric class. Inherits all functions from DataLoader."""
 
     cell_type_merge_dict = {
-        'B cells': 'B cells',
-        'Basal CKlow': 'Tumor cells',
-        'Endothelial': 'Endothelial',
-        'Fibroblasts': 'Fibroblasts',
-        'Fibroblasts CD68+': 'Fibroblasts',
-        'HER2+': 'Tumor cells',
-        'HR+ CK7-': 'Tumor cells',
-        'HR+ CK7- Ki67+': 'Tumor cells',
-        'HR+ CK7- Slug+': 'Tumor cells',
-        'HR- CK7+': 'Tumor cells',
-        'HR- CK7-': 'Tumor cells',
-        'HR- CKlow CK5+': 'Tumor cells',
-        'HR- Ki67+': 'Tumor cells',
-        'HRlow CKlow': 'Tumor cells',
-        'Hypoxia': 'Tumor cells',
-        'Macrophages Vim+ CD45low': 'Macrophages',
-        'Macrophages Vim+ Slug+': 'Macrophages',
-        'Macrophages Vim+ Slug-': 'Macrophages',
-        'Myoepithelial': 'Myoepithelial',
-        'Myofibroblasts': 'Myofibroblasts',
-        'T cells': 'T cells',
-        'Vascular SMA+': 'Vascular SMA+'
+        'fine': {
+            'B cells': 'B cells',
+            'Basal CKlow': 'Tumor cells',
+            'Endothelial': 'Endothelial',
+            'Fibroblasts': 'Fibroblasts',
+            'Fibroblasts CD68+': 'Fibroblasts',
+            'HER2+': 'Tumor cells',
+            'HR+ CK7-': 'Tumor cells',
+            'HR+ CK7- Ki67+': 'Tumor cells',
+            'HR+ CK7- Slug+': 'Tumor cells',
+            'HR- CK7+': 'Tumor cells',
+            'HR- CK7-': 'Tumor cells',
+            'HR- CKlow CK5+': 'Tumor cells',
+            'HR- Ki67+': 'Tumor cells',
+            'HRlow CKlow': 'Tumor cells',
+            'Hypoxia': 'Tumor cells',
+            'Macrophages Vim+ CD45low': 'Macrophages',
+            'Macrophages Vim+ Slug+': 'Macrophages',
+            'Macrophages Vim+ Slug-': 'Macrophages',
+            'Myoepithelial': 'Myoepithelial',
+            'Myofibroblasts': 'Myofibroblasts',
+            'T cells': 'T cells',
+            'Vascular SMA+': 'Vascular SMA+'
+        }
     }
 
     def _register_celldata(self, n_top_genes: Optional[int] = None):
@@ -3776,6 +3841,7 @@ class DataLoaderMetabric(DataLoader):
             "cluster_col": "description",
             "cluster_col_preprocessed": "description_preprocessed",
             "patient_col": "metabricId",
+            "cell_type_coarseness": self.cell_type_coarseness,
         }
         celldata_df = read_csv(os.path.join(self.data_path, metadata["fn"]))
 
@@ -3848,7 +3914,7 @@ class DataLoaderMetabric(DataLoader):
 
         # add clean cluster column which removes regular expression from cluster_col
         celldata.obs[metadata["cluster_col_preprocessed"]] = list(
-            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="category").map(self.cell_type_merge_dict)
+            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="category").map(self.cell_type_merge_dict[self.cell_type_coarseness])
         )
         celldata.obs[metadata["cluster_col_preprocessed"]] = celldata.obs[metadata["cluster_col_preprocessed"]].astype("category")
 
@@ -4065,33 +4131,35 @@ class DataLoaderBaselZurichZenodo(DataLoader):
     """DataLoaderBaselZurichZenodo class. Inherits all functions from DataLoader."""
 
     cell_type_merge_dict = {
-        "1": "B cells",
-        "2": "T and B cells",
-        "3": "T cells",
-        "4": "macrophages",
-        "5": "T cells",
-        "6": "macrophages",
-        "7": "endothelial",
-        "8": "stromal cells", # "vimentin hi stromal cell",
-        "9": "stromal cells", # "small circular stromal cell",
-        "10": "stromal cells", # "small elongated stromal cell",
-        "11": "stromal cells", # "fibronectin hi stromal cell",
-        "12": "stromal cells", # "large elongated stromal cell",
-        "13": "stromal cells", # "SMA hi vimentin hi stromal cell",
-        "14": "tumor cells", #"hypoxic tumor cell",
-        "15": "tumor cells", #"apoptotic tumor cell",
-        "16": "tumor cells", #"proliferative tumor cell",
-        "17": "tumor cells", #"p53+ EGFR+ tumor cell",
-        "18": "tumor cells", #"basal CK tumor cell",
-        "19": "tumor cells", #"CK7+ CK hi cadherin hi tumor cell",
-        "20": "tumor cells", #"CK7+ CK+ tumor cell",
-        "21": "tumor cells", #"epithelial low tumor cell",
-        "22": "tumor cells", #"CK low HR low tumor cell",
-        "23": "tumor cells", #"CK+ HR hi tumor cell",
-        "24": "tumor cells", #"CK+ HR+ tumor cell",
-        "25": "tumor cells", #"CK+ HR low tumor cell",
-        "26": "tumor cells", #"CK low HR hi p53+ tumor cell",
-        "27": "tumor cells", #"myoepithelial tumor cell"
+        'fine': {
+            "1": "B cells",
+            "2": "T and B cells",
+            "3": "T cells",
+            "4": "macrophages",
+            "5": "T cells",
+            "6": "macrophages",
+            "7": "endothelial",
+            "8": "stromal cells", # "vimentin hi stromal cell",
+            "9": "stromal cells", # "small circular stromal cell",
+            "10": "stromal cells", # "small elongated stromal cell",
+            "11": "stromal cells", # "fibronectin hi stromal cell",
+            "12": "stromal cells", # "large elongated stromal cell",
+            "13": "stromal cells", # "SMA hi vimentin hi stromal cell",
+            "14": "tumor cells", #"hypoxic tumor cell",
+            "15": "tumor cells", #"apoptotic tumor cell",
+            "16": "tumor cells", #"proliferative tumor cell",
+            "17": "tumor cells", #"p53+ EGFR+ tumor cell",
+            "18": "tumor cells", #"basal CK tumor cell",
+            "19": "tumor cells", #"CK7+ CK hi cadherin hi tumor cell",
+            "20": "tumor cells", #"CK7+ CK+ tumor cell",
+            "21": "tumor cells", #"epithelial low tumor cell",
+            "22": "tumor cells", #"CK low HR low tumor cell",
+            "23": "tumor cells", #"CK+ HR hi tumor cell",
+            "24": "tumor cells", #"CK+ HR+ tumor cell",
+            "25": "tumor cells", #"CK+ HR low tumor cell",
+            "26": "tumor cells", #"CK low HR hi p53+ tumor cell",
+            "27": "tumor cells", #"myoepithelial tumor cell"
+        }
     }
 
     def _register_images(self):
@@ -4224,6 +4292,7 @@ class DataLoaderBaselZurichZenodo(DataLoader):
             "cluster_col": "cluster",
             "cluster_col_preprocessed": "cluster_preprocessed",
             "patient_col": "PID",
+            "cell_type_coarseness": self.cell_type_coarseness,
         }
 
         feature_cols = [
@@ -4282,7 +4351,7 @@ class DataLoaderBaselZurichZenodo(DataLoader):
 
         # add clean cluster column which removes regular expression from cluster_col
         celldata.obs[metadata["cluster_col_preprocessed"]] = list(
-            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="category").map(self.cell_type_merge_dict)
+            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="category").map(self.cell_type_merge_dict[self.cell_type_coarseness])
         )
         celldata.obs[metadata["cluster_col_preprocessed"]] = celldata.obs[
             metadata["cluster_col_preprocessed"]].astype(
@@ -4618,23 +4687,25 @@ class DataLoaderIonpath(DataLoader):
     """DataLoaderIonpath class. Inherits all functions from DataLoader."""
 
     cell_type_merge_dict = {  # from shareCellData/readme.rtf
-        "Group_1": "Unidentified",
-        "Group_3": "Endothelial",
-        "Group_4": "Mesenchymal",
-        "Group_5": "Tumor",
-        "Group_6": "Keratin-positive tumor",
-        "immuneGroup_1": "Tregs",
-        "immuneGroup_2": "CD4 T",
-        "immuneGroup_3": "CD8 T",
-        "immuneGroup_4": "CD3 T",
-        "immuneGroup_5": "NK",
-        "immuneGroup_6": "B",
-        "immuneGroup_7": "Neutrophils",
-        "immuneGroup_8": "Macrophages",
-        "immuneGroup_9": "DC",
-        "immuneGroup_10": "DC-Mono",
-        "immuneGroup_11": "Mono-Neu",
-        "immuneGroup_12": "Other immune"
+        'fine': {
+            "Group_1": "Unidentified",
+            "Group_3": "Endothelial",
+            "Group_4": "Mesenchymal",
+            "Group_5": "Tumor",
+            "Group_6": "Keratin-positive tumor",
+            "immuneGroup_1": "Tregs",
+            "immuneGroup_2": "CD4 T",
+            "immuneGroup_3": "CD8 T",
+            "immuneGroup_4": "CD3 T",
+            "immuneGroup_5": "NK",
+            "immuneGroup_6": "B",
+            "immuneGroup_7": "Neutrophils",
+            "immuneGroup_8": "Macrophages",
+            "immuneGroup_9": "DC",
+            "immuneGroup_10": "DC-Mono",
+            "immuneGroup_11": "Mono-Neu",
+            "immuneGroup_12": "Other immune"
+        }
     }
 
     def _register_images(self):
@@ -4690,6 +4761,7 @@ class DataLoaderIonpath(DataLoader):
             "cluster_col": "cluster",
             "cluster_col_preprocessed": "cluster_preprocessed",
             "patient_col": "patient",
+            "cell_type_coarseness": self.cell_type_coarseness,
         }
 
         self._register_images()
@@ -4773,7 +4845,7 @@ class DataLoaderIonpath(DataLoader):
 
         # add clean cluster column which removes regular expression from cluster_col
         celldata.obs[metadata["cluster_col_preprocessed"]] = list(
-            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="category").map(self.cell_type_merge_dict)
+            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="category").map(self.cell_type_merge_dict[self.cell_type_coarseness])
         )
         celldata.obs[metadata["cluster_col_preprocessed"]] = celldata.obs[metadata["cluster_col_preprocessed"]].astype("category")
 
