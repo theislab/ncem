@@ -1810,6 +1810,7 @@ class DataLoader(GraphTools, PlottingTools):
             label selection.
         """
         self.data_path = data_path
+        self.cell_type_coarseness = cell_type_coarseness
 
         print("Loading data from raw files")
         self.register_celldata(n_top_genes=n_top_genes)
@@ -1817,7 +1818,6 @@ class DataLoader(GraphTools, PlottingTools):
         self.register_graph_features(label_selection=label_selection)
         self.compute_adjacency_matrices(radius=radius, coord_type=coord_type, n_rings=n_rings)
         self.radius = radius
-        self.cell_type_coarseness = cell_type_coarseness
 
         print(
             "Loaded %i images with complete data from %i patients "
@@ -4170,23 +4170,29 @@ class DataLoaderBaselZurichZenodo(DataLoader):
         # Define mapping of image identifiers to numeric identifiers:
         img_tab_basel = read_csv(
             self.data_path + 'Data_publication/BaselTMA/Basel_PatientMetadata.csv',
-            usecols=['core', 'FileName_FullStack', 'PID'],
-            dtype={'core': str, 'FileName_FullStack': str, 'PID': str}
+            usecols=['core', 'FileName_FullStack', 'PID', 'diseasestatus'],
+            dtype={'core': str, 'FileName_FullStack': str, 'PID': str, 'diseasestatus': str}
         )
         img_tab_basel['PID'] = ["b" + str(p) for p in img_tab_basel['PID'].values]
         img_tab_zurich = read_csv(
             self.data_path + 'Data_publication/ZurichTMA/Zuri_PatientMetadata.csv',
-            usecols=['core', 'FileName_FullStack', 'grade', 'PID'],
-            dtype={'core': str, 'FileName_FullStack': str, 'grade': str, 'PID': str}
+            usecols=['core', 'FileName_FullStack', 'grade', 'PID', 'location'],
+            dtype={'core': str, 'FileName_FullStack': str, 'grade': str, 'PID': str, 'location': str}
         )
         img_tab_zurich['PID'] = ["z" + str(p) for p in img_tab_zurich['PID'].values]
+        img_tab_zurich['diseasestatus'] = [
+            'tumor' if a else 'non-tumor' for a in img_tab_zurich['location'] != '[]'
+        ]
+        img_tab_zurich = img_tab_zurich.drop('location', axis=1)
         # drop Metastasis images
         img_tab_zurich = img_tab_zurich[img_tab_zurich['grade'] != 'METASTASIS'].drop('grade', axis=1)
         img_tab_bz = pd.concat([img_tab_basel, img_tab_zurich], axis=0, sort=True, ignore_index=True)
+        img_tab_bz = img_tab_bz[img_tab_bz['diseasestatus'] == 'tumor']
 
         self.img_key_to_fn = dict(img_tab_bz[['core', 'FileName_FullStack']].values)
         self.img_to_patient_dict = dict(img_tab_bz[['core', 'PID']].values)
-
+        print(len(self.img_to_patient_dict.keys()))
+        print(len(np.unique(list(self.img_to_patient_dict.values()))))
 
     def _load_node_positions(self):
         from PIL import Image
