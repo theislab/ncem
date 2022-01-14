@@ -4173,11 +4173,13 @@ class DataLoaderBaselZurichZenodo(DataLoader):
             usecols=['core', 'FileName_FullStack', 'PID'],
             dtype={'core': str, 'FileName_FullStack': str, 'PID': str}
         )
+        img_tab_basel['PID'] = ["b" + str(p) for p in img_tab_basel['PID'].values]
         img_tab_zurich = read_csv(
             self.data_path + 'Data_publication/ZurichTMA/Zuri_PatientMetadata.csv',
             usecols=['core', 'FileName_FullStack', 'grade', 'PID'],
             dtype={'core': str, 'FileName_FullStack': str, 'grade': str, 'PID': str}
         )
+        img_tab_zurich['PID'] = ["z" + str(p) for p in img_tab_zurich['PID'].values]
         # drop Metastasis images
         img_tab_zurich = img_tab_zurich[img_tab_zurich['grade'] != 'METASTASIS'].drop('grade', axis=1)
         img_tab_bz = pd.concat([img_tab_basel, img_tab_zurich], axis=0, sort=True, ignore_index=True)
