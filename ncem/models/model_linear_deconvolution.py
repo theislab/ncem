@@ -3,7 +3,7 @@ import tensorflow as tf
 from ncem.models.layers import LinearConstDispOutput, LinearOutput
 
 
-class ModelLinear:
+class ModelLinearDeconvolution:
     """Model class for linear model, baseline and spatial model.
 
     Attributes:

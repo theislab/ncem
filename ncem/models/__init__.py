@@ -7,3 +7,4 @@ from ncem.models.model_ed_ncem import ModelEDncem
 from ncem.models.model_ed_single_ncem import ModelEd2Ncem
 from ncem.models.model_interactions import ModelInteractions
 from ncem.models.model_linear import ModelLinear
+from ncem.models.model_linear_deconvolution import ModelLinearDeconvolution

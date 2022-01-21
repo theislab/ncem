@@ -4,71 +4,32 @@ import numpy as np
 import tensorflow as tf
 
 from ncem.estimators.base_estimator import Estimator
+from ncem.models import ModelLinearDeconvolution
 
 
 class EstimatorDeconvolution(Estimator):
     """EstimatorGraph class for spatial models of the deconvoluted visium datasets only (not full graph)."""
 
-    n_features_in: int
-    _n_neighbors_padded: Union[int, None]
-    h0_in: bool
-    features: list
-    target_feature_names: list
-    neighbor_feature_names: list
-    idx_target_features: np.ndarray
-    idx_neighbor_features: np.ndarray
-
-    def __init__(self):
-        super(EstimatorDeconvolution, self).__init__()
-        self._n_neighbors_padded = None
-
-    def _get_output_signature(self, resampled: bool = False):
-        """Get output signatures.
+    def __init__(
+        self,
+        log_transform: bool = False,
+    ):
+        """Initialize a EstimatorLinear object.
 
         Parameters
         ----------
-        resampled : bool
-            Whether dataset is resampled or not.
-
-        Returns
-        -------
-        output_signature
+        log_transform : bool
+            Whether to log transform h_1.
         """
-        # cell features
-        h_cells = tf.TensorSpec(
-            shape=(self.n_eval_nodes_per_graph, self.n_features), dtype=tf.float32
-        )
-        # input node size factors
-        sf = tf.TensorSpec(shape=(self.n_eval_nodes_per_graph, 1), dtype=tf.float32)
-        # cell type
-        cell_type = tf.TensorSpec(shape=(self.n_eval_nodes_per_graph, self.n_cell_types), dtype=tf.float32)
-        # proportions
-        proportions = tf.TensorSpec(shape=(self.n_eval_nodes_per_graph, self.n_cell_types), dtype=tf.float32)
-        # dummy for kl loss
-        kl_dummy = tf.TensorSpec(shape=(self.n_eval_nodes_per_graph,), dtype=tf.float32)
+        super(EstimatorDeconvolution, self).__init__()
+        self.model_type = "linear"
+        self.adj_type = "full"
+        self.log_transform = log_transform
+        self.metrics = {"np": [], "tf": []}
+        self.n_eval_nodes_per_graph = None
 
-        if self.vi_model:
-            if resampled:
-                output_signature = (
-                    (cell_type, proportions, sf),
-                    (h_cells, kl_dummy),
-                    (cell_type, proportions, sf),
-                    (h_cells, kl_dummy),
-                )
-            else:
-                output_signature = ((cell_type, proportions, sf), (h_cells, kl_dummy))
-        else:
-            if resampled:
-                output_signature = (
-                    (cell_type, proportions, sf),
-                    h_cells,
-                    (cell_type, proportions, sf),
-                    h_cells,
-                )
-            else:
-                output_signature = (( cell_type, proportions, sf), h_cells)
-        # print(output_signature)
-        return output_signature
+    def _get_output_signature(self, resampled: bool = False):
+        pass
 
     def _get_dataset(
         self,
@@ -156,21 +117,31 @@ class EstimatorDeconvolution(Estimator):
                     if self.log_transform:
                         h_1 = np.log(h_1 + 1.0)
 
+                    proportions = self.proportions[key][idx_nodes]
+                    diff = self.max_nodes - proportions.shape[0]
+                    zeros = np.zeros((diff, proportions.shape[1]), dtype="float32")
+                    proportions = np.asarray(np.concatenate((proportions, zeros), axis=0), dtype="float32")
+                    proportions = proportions[indices]
+
                     sf = np.expand_dims(self.size_factors[key][idx_nodes], axis=1)
                     diff = self.max_nodes - sf.shape[0]
                     zeros = np.zeros((diff, sf.shape[1]))
                     sf = np.asarray(np.concatenate([sf, zeros], axis=0), dtype="float32")
                     sf = sf[indices, :]
 
-                    if self.vi_model:
-                        kl_dummy = np.zeros((self.n_eval_nodes_per_graph,), dtype="float32")
-                        yield (h_0, proportions, sf), (h_1, kl_dummy)
-                    else:
-                        yield (h_0, proportions, sf), h_1
+                    yield (h_0, proportions, sf), h_1
 
-        output_signature = self._get_output_signature(resampled=False)
-
-        dataset = tf.data.Dataset.from_generator(generator=generator, output_signature=output_signature)
+        dataset = tf.data.Dataset.from_generator(
+            generator=generator,
+            output_signature=(
+                (
+                    tf.TensorSpec(shape=(self.n_eval_nodes_per_graph, self.n_features_0), dtype=tf.float32),
+                    tf.TensorSpec(shape=(self.n_eval_nodes_per_graph, self.n_features_0), dtype=tf.float32),
+                    tf.TensorSpec(shape=(self.n_eval_nodes_per_graph, 1), dtype=tf.float32),
+                ),
+                tf.TensorSpec(shape=(self.n_eval_nodes_per_graph, self.n_features_1), dtype=tf.float32),
+            )
+        )
         if train:
             if shuffle_buffer_size is not None:
                 dataset = dataset.shuffle(buffer_size=shuffle_buffer_size, seed=None, reshuffle_each_iteration=True)
@@ -178,3 +149,82 @@ class EstimatorDeconvolution(Estimator):
         dataset = dataset.batch(batch_size)
         dataset = dataset.prefetch(prefetch)
         return dataset
+
+    def _get_resampled_dataset(
+        self,
+        image_keys: np.array,
+        nodes_idx: dict,
+        batch_size: int,
+        seed: Optional[int] = None,
+        prefetch: int = 100,
+    ):
+        """Evaluate model based on resampled dataset for posterior resampling.
+
+        node_1 + domain_1 -> encoder -> z_1 + domain_2 -> decoder -> reconstruction_2.
+
+        Parameters
+        ----------
+        image_keys : np.array
+            Image keys in partition.
+        nodes_idx : dict
+            Dictionary of nodes per image in partition.
+        batch_size : int
+            Batch size.
+        seed : int, optional
+            Seed.
+        prefetch : int
+            Prefetch.
+        """
+        pass
+
+    def init_model(
+        self,
+        optimizer: str = "adam",
+        learning_rate: float = 0.0001,
+        n_eval_nodes_per_graph: int = 32,
+        l2_coef: float = 0.0,
+        l1_coef: float = 0.0,
+        use_proportions: bool = True,
+        scale_node_size: bool = False,
+        output_layer: str = "linear",
+        **kwargs
+    ):
+        """Initialize a ModelInteractions object.
+
+        Parameters
+        ----------
+        optimizer : str
+            Optimizer.
+        learning_rate : float
+            Learning rate.
+        l2_coef : float
+            l2 regularization coefficient.
+        l1_coef : float
+            l1 regularization coefficient.
+        n_eval_nodes_per_graph : int
+            Number of nodes per graph.
+        use_proportions : bool
+            Whether to use proportions.
+        scale_node_size : bool
+            Whether to scale output layer by node sizes.
+        output_layer : str
+            Output layer.
+        kwargs
+            Arbitrary keyword arguments.
+        """
+        self.n_eval_nodes_per_graph = n_eval_nodes_per_graph
+        self.model = ModelLinearDeconvolution(
+            input_shapes=(
+                self.n_eval_nodes_per_graph,  # in_node_dim
+                self.n_features_1,  # feature_dim
+                self.n_features_0,  # cell_dim
+            ),
+            l1_coef=l1_coef,
+            l2_coef=l2_coef,
+            use_proportions=use_proportions,
+            scale_node_size=scale_node_size,
+            output_layer=output_layer,
+        )
+        optimizer = tf.keras.optimizers.get(optimizer)
+        tf.keras.backend.set_value(optimizer.lr, learning_rate)
+        self._compile_model(optimizer=optimizer, output_layer=output_layer)
