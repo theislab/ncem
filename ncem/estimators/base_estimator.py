@@ -137,7 +137,7 @@ class Estimator:
             If `data_origin` not recognized.
         """
         coord_type = 'generic'
-
+        self.targeted_assay = True
         if data_origin.startswith("zhang"):
             from ncem.data import DataLoaderZhang as DataLoader
 
@@ -187,6 +187,11 @@ class Estimator:
                 n_rings = 1
                 coord_type = 'generic'
                 radius = 0
+        elif data_origin == 'destvi_lymphnode':
+            self.targeted_assay = False
+            from ncem.data import DataLoaderDestViLymphnode as DataLoader
+
+            self.undefined_node_types = None
         else:
             raise ValueError(f"data_origin {data_origin} not recognized")
 
@@ -513,6 +518,11 @@ class Estimator:
         else:
             assert False
         self.n_domains = len(np.unique(list(self.domains.values())))
+
+        if self.targeted_assay:
+            self.proportions = None
+        else:
+            self.proportions = {k: adata.obsm["proportions"] for k, adata in self.data.img_celldata.items()}
 
         # Report summary statistics of loaded graph:
         print(

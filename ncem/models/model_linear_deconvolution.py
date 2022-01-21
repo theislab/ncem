@@ -34,10 +34,8 @@ class ModelLinear:
             l2 regularization coefficient.
         l1_coef : float
             l1 regularization coefficient.
-        use_source_type : bool
-            Whether to use source type.
-        use_domain : bool
-            Whether to use domain information.
+        use_proportions : bool
+            Whether to use proportions.
         scale_node_size : bool
             Whether to scale output layer by node sizes.
         output_layer : str
@@ -63,7 +61,6 @@ class ModelLinear:
         feature_dim = input_shapes[1]
         cell_dim = input_shapes[2]
 
-        input_spot = tf.keras.Input(shape=(in_node_dim, feature_dim), name="spot_expression")  # spot expression
         input_celltype = tf.keras.Input(shape=(in_node_dim, cell_dim), name="source")
         proportions = tf.keras.Input(shape=(in_node_dim, cell_dim), name="proportions")  # proportions in spot
 
@@ -71,9 +68,9 @@ class ModelLinear:
         input_node_size = tf.keras.Input(shape=(in_node_dim, 1), name="node_size_reconstruct")
 
         if use_proportions:
-            x = tf.concat([input_spot, input_celltype, proportions], axis=-1, name="input_concat")
+            x = tf.concat([input_celltype, proportions], axis=-1, name="input_concat")
         else:
-            x = tf.concat([input_spot, input_celltype], axis=-1, name="input_concat")
+            x = tf.concat([input_celltype], axis=-1, name="input_concat")
         x = tf.reshape(x, [-1, x.shape[-1]], name="input_reshape")  # bs * n x (neighbour_embedding + categ_cond)
 
         output = tf.keras.layers.Dense(
@@ -98,7 +95,7 @@ class ModelLinear:
         output_concat = tf.keras.layers.Concatenate(axis=2, name="reconstruction")(output)
 
         self.training_model = tf.keras.Model(
-            inputs=[input_spot, input_celltype, proportions, input_node_size],
+            inputs=[input_celltype, proportions],
             outputs=output_concat,
             name="linear_deconvolution_model",
         )

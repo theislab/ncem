@@ -34,44 +34,39 @@ class EstimatorDeconvolution(Estimator):
         -------
         output_signature
         """
-        self.out_n_nodes = np.int(self.n_eval_nodes_per_graph * self.n_cell_types)
-        # spot features
-        h_spots = tf.TensorSpec(
-            shape=(self.out_n_nodes, self.n_features), dtype=tf.float32
-        )
         # cell features
         h_cells = tf.TensorSpec(
-            shape=(self.out_n_nodes, self.n_features), dtype=tf.float32
+            shape=(self.n_eval_nodes_per_graph, self.n_features), dtype=tf.float32
         )
         # input node size factors
-        sf = tf.TensorSpec(shape=(self.out_n_nodes, 1), dtype=tf.float32)
+        sf = tf.TensorSpec(shape=(self.n_eval_nodes_per_graph, 1), dtype=tf.float32)
         # cell type
-        cell_type = tf.TensorSpec(shape=(self.out_n_nodes, self.n_cell_types), dtype=tf.float32)
+        cell_type = tf.TensorSpec(shape=(self.n_eval_nodes_per_graph, self.n_cell_types), dtype=tf.float32)
         # proportions
-        proportions = tf.TensorSpec(shape=(self.out_n_nodes, self.n_cell_types), dtype=tf.float32)
+        proportions = tf.TensorSpec(shape=(self.n_eval_nodes_per_graph, self.n_cell_types), dtype=tf.float32)
         # dummy for kl loss
-        kl_dummy = tf.TensorSpec(shape=(self.out_n_nodes,), dtype=tf.float32)
+        kl_dummy = tf.TensorSpec(shape=(self.n_eval_nodes_per_graph,), dtype=tf.float32)
 
         if self.vi_model:
             if resampled:
                 output_signature = (
-                    (h_spots, cell_type, proportions, sf),
+                    (cell_type, proportions, sf),
                     (h_cells, kl_dummy),
-                    (h_spots, cell_type, proportions, sf),
+                    (cell_type, proportions, sf),
                     (h_cells, kl_dummy),
                 )
             else:
-                output_signature = ((h_spots, cell_type, proportions, sf), (h_cells, kl_dummy))
+                output_signature = ((cell_type, proportions, sf), (h_cells, kl_dummy))
         else:
             if resampled:
                 output_signature = (
-                    (h_spots, cell_type, proportions, sf),
+                    (cell_type, proportions, sf),
                     h_cells,
-                    (h_spots, cell_type, proportions, sf),
+                    (cell_type, proportions, sf),
                     h_cells,
                 )
             else:
-                output_signature = ((h_spots, cell_type, proportions, sf), h_cells)
+                output_signature = (( cell_type, proportions, sf), h_cells)
         # print(output_signature)
         return output_signature
 
@@ -147,43 +142,31 @@ class EstimatorDeconvolution(Estimator):
                     ]
 
                 for indices in index_list:
-                    h_out = self.h_1[key][idx_nodes[indices], :]
-                    if self.h0_in:
-                        h_targets = self.h_0[key][idx_nodes[indices], :]
-                    else:
-                        h_targets = self.h_1[key][idx_nodes[indices], :][:, self.idx_target_features]
-                    h_neighbors = []
-                    a_neighborhood = np.zeros((self.n_eval_nodes_per_graph, self.n_neighbors_padded), "float32")
-                    for i, j in enumerate(idx_nodes[indices]):
-                        a_j = np.asarray(self.a[key][j, :].todense()).flatten()
-                        idx_neighbors = np.where(a_j > 0.)[0]
-                        if self.h0_in:
-                            h_neighbors_j = self.h_0[key][idx_neighbors, :]
-                        else:
-                            h_neighbors_j = self.h_1[key][idx_neighbors, :][:, self.idx_neighbor_features]
-                        h_neighbors_j = np.expand_dims(h_neighbors_j, axis=0)
-                        # Pad neighborhoods:
-                        diff = self.n_neighbors_padded - h_neighbors_j.shape[1]
-                        zeros = np.zeros((1, diff, h_neighbors_j.shape[2]), dtype="float32")
-                        h_neighbors_j = np.concatenate([h_neighbors_j, zeros], axis=1)
-                        h_neighbors.append(h_neighbors_j)
-                        a_neighborhood[i, :len(idx_neighbors)] = a_j[idx_neighbors]
-                    h_neighbors = np.concatenate(h_neighbors, axis=0)
+                    h_0 = self.h_0[key][idx_nodes]
+                    diff = self.max_nodes - h_0.shape[0]
+                    zeros = np.zeros((diff, h_0.shape[1]), dtype="float32")
+                    h_0_full = np.asarray(np.concatenate((h_0, zeros), axis=0), dtype="float32")
+                    h_0 = h_0_full[indices]
+
+                    h_1 = self.h_1[key][idx_nodes]
+                    diff = self.max_nodes - h_1.shape[0]
+                    zeros = np.zeros((diff, h_1.shape[1]), dtype="float32")
+                    h_1 = np.asarray(np.concatenate((h_1, zeros), axis=0), dtype="float32")
+                    h_1 = h_1[indices]
                     if self.log_transform:
-                        h_targets = np.log(h_targets + 1.0)
-                        h_neighbors = np.log(h_neighbors + 1.0)
+                        h_1 = np.log(h_1 + 1.0)
 
-                    node_covar = self.node_covar[key][idx_nodes][indices, :]
-                    sf = np.expand_dims(self.size_factors[key][idx_nodes][indices], axis=1)
-
-                    g = np.zeros((self.n_domains,), dtype="int32")
-                    g[self.domains[key]] = 1
+                    sf = np.expand_dims(self.size_factors[key][idx_nodes], axis=1)
+                    diff = self.max_nodes - sf.shape[0]
+                    zeros = np.zeros((diff, sf.shape[1]))
+                    sf = np.asarray(np.concatenate([sf, zeros], axis=0), dtype="float32")
+                    sf = sf[indices, :]
 
                     if self.vi_model:
                         kl_dummy = np.zeros((self.n_eval_nodes_per_graph,), dtype="float32")
-                        yield (h_spots, cell_type, proportions, sf), (h_cells, kl_dummy)
+                        yield (h_0, proportions, sf), (h_1, kl_dummy)
                     else:
-                        yield (h_spots, cell_type, proportions, sf), h_cells
+                        yield (h_0, proportions, sf), h_1
 
         output_signature = self._get_output_signature(resampled=False)
 
