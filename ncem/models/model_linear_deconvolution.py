@@ -95,7 +95,7 @@ class ModelLinearDeconvolution:
         output_concat = tf.keras.layers.Concatenate(axis=2, name="reconstruction")(output)
 
         self.training_model = tf.keras.Model(
-            inputs=[input_celltype, proportions],
+            inputs=[input_celltype, proportions, input_node_size],
             outputs=output_concat,
             name="linear_deconvolution_model",
         )

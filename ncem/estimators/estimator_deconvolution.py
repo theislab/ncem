@@ -131,6 +131,7 @@ class EstimatorDeconvolution(Estimator):
 
                     yield (h_0, proportions, sf), h_1
 
+        print(self.n_features_0)
         dataset = tf.data.Dataset.from_generator(
             generator=generator,
             output_signature=(

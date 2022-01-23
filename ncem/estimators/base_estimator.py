@@ -192,6 +192,12 @@ class Estimator:
             from ncem.data import DataLoaderDestViLymphnode as DataLoader
 
             self.undefined_node_types = None
+            if n_rings > 1:
+                coord_type = 'visium'
+            else:
+                n_rings = 1
+                coord_type = 'generic'
+                radius = 0
         else:
             raise ValueError(f"data_origin {data_origin} not recognized")
 
@@ -444,6 +450,10 @@ class Estimator:
             self.h_0 = {k: adata.X for k, adata in self.data.img_celldata.items()}
         elif node_label_space_id == "type":
             self.h_0 = {k: adata.obsm["node_types"] for k, adata in self.data.img_celldata.items()}
+            print(self.data.celldata.obsm['node_types'].shape)
+            print('node_types')
+        elif node_label_space_id == 'proportions':
+            self.h_0 = {k: adata.obsm["proportions"] for k, adata in self.data.img_celldata.items()}
         else:
             raise ValueError("node_label_space_id %s not recognized" % node_label_space_id)
         if node_feature_space_id == "standard":
@@ -502,7 +512,9 @@ class Estimator:
 
         # Set selection-specific tensor dimensions:
         self.n_features_0 = list(self.h_0.values())[0].shape[1]
+        print('h_0', list(self.h_0.values())[0].shape[1])
         self.n_features_1 = list(self.h_1.values())[0].shape[1]
+        print('h_1', list(self.h_1.values())[0].shape[1])
         self.n_graph_covariates = list(self.graph_covar.values())[0].shape[0]
         self.n_node_covariates = list(self.node_covar.values())[0].shape[1]
         self.max_nodes = max([self.a[i].shape[0] for i in self.complete_img_keys])
@@ -943,7 +955,7 @@ class Estimator:
             If evaluation or test dataset are empty.
         """
         print(
-            "Using split method: node. \n Train-test-validation split is based on total number of nodes "
+            "Using split method: target cell. \n Train-test-validation split is based on total number of nodes "
             "per patients over all images."
         )
 

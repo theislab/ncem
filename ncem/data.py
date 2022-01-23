@@ -3602,21 +3602,22 @@ class DataLoaderDestViLymphnode(DataLoader):
             sc.pp.highly_variable_genes(celldata, n_top_genes=n_top_genes)
             celldata = celldata[:, celldata.var.highly_variable].copy()
 
-        celldata.X = celldata.X.toarray()
+        #celldata.X = celldata.X.toarray()
         celldata.uns["metadata"] = metadata
 
         celldata.uns["img_to_patient_dict"] = {"1": "1"}
         self.img_to_patient_dict = {"1": "1"}
-
+        print(celldata)
         self.celldata = celldata
 
     def _register_img_celldata(self):
         """Load dictionary of of image-wise celldata objects with {imgage key : anndata object of image}."""
-        image_col = self.celldata.uns["metadata"]["image_col"]
-        img_celldata = {}
-        for k in self.celldata.uns["img_keys"]:
-            img_celldata[str(k)] = self.celldata[self.celldata.obs[image_col] == k].copy()
-        self.img_celldata = img_celldata
+        #image_col = self.celldata.uns["metadata"]["image_col"]
+        #img_celldata = {}
+        #for k in self.celldata.uns["img_keys"]:
+        #    img_celldata[str(k)] = self.celldata[self.celldata.obs[image_col] == k].copy()
+        #self.img_celldata = img_celldata
+        self.img_celldata = {"1": self.celldata}
 
     def _register_graph_features(self, label_selection):
         """Load graph level covariates.
