@@ -198,7 +198,17 @@ class Estimator:
                 n_rings = 1
                 coord_type = 'generic'
                 radius = 0
-            print(coord_type)
+        elif data_origin == 'destvi_lymphnode_gamma':
+            self.targeted_assay = False
+            from ncem.data import DataLoaderDestViLymphnodeGamma as DataLoader
+
+            self.undefined_node_types = None
+            if n_rings > 1:
+                coord_type = 'visium'
+            else:
+                n_rings = 1
+                coord_type = 'generic'
+                radius = 0
         else:
             raise ValueError(f"data_origin {data_origin} not recognized")
 
