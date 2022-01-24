@@ -50,6 +50,8 @@ class GraphTools:
         pbar_total = len(self.img_celldata.keys())
         with tqdm(total=pbar_total) as pbar:
             for _k, adata in self.img_celldata.items():
+                print('n_rings', n_rings)
+                print('coord_type', coord_type)
                 sq.gr.spatial_neighbors(
                     adata=adata,
                     coord_type=coord_type,

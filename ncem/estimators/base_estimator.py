@@ -198,6 +198,7 @@ class Estimator:
                 n_rings = 1
                 coord_type = 'generic'
                 radius = 0
+            print(coord_type)
         else:
             raise ValueError(f"data_origin {data_origin} not recognized")
 
