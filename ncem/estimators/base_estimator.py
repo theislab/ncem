@@ -187,7 +187,7 @@ class Estimator:
                 n_rings = 1
                 coord_type = 'generic'
                 radius = 0
-        elif data_origin == 'destvi_lymphnode':
+        elif data_origin.startswith('destvi_lymphnode'):
             self.targeted_assay = False
             from ncem.data import DataLoaderDestViLymphnode as DataLoader
 
