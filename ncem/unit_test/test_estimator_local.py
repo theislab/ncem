@@ -101,7 +101,7 @@ class HelperTestEstimator:
             kwargs = {"use_interactions": False, "use_domain": True, "learning_rate": 1e-2}
             train_kwargs = {}
         elif model == "linear_deconvolution":
-            kwargs = {"use_proportions": True, "learning_rate": 1e-2}
+            kwargs = {"use_interactions": True, "learning_rate": 1e-2}
             train_kwargs = {}
         elif model == "ed":
             kwargs = {
@@ -249,13 +249,8 @@ def test_ed2(dataset: str, model: str):
 
 @pytest.mark.parametrize("dataset", ["destvi_lymphnode"])
 @pytest.mark.parametrize("model", ["linear_deconvolution"])
-def test_linear(dataset: str, model: str):
+def test_deconv(dataset: str, model: str):
     estim = HelperTestEstimator()
     estim.test_train(model=model, data_origin=dataset)
 
 
-@pytest.mark.parametrize("dataset", ["destvi_lymphnode"])
-@pytest.mark.parametrize("model", ["ed_ncem_gcn"])
-def test_linear(dataset: str, model: str):
-    estim = HelperTestEstimator()
-    estim.test_train(model=model, data_origin=dataset)
