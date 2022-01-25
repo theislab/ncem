@@ -4,12 +4,13 @@ from typing import Union
 
 from ncem.estimators import (EstimatorCVAE, EstimatorCVAEncem, EstimatorED,
                              EstimatorEDncem, EstimatorEdNcemNeighborhood, EstimatorInteractions,
-                             EstimatorLinear)
+                             EstimatorLinear, EstimatorDeconvolution)
 
 
 class TrainModel:
     estimator: Union[
-        EstimatorLinear, EstimatorInteractions, EstimatorED, EstimatorEDncem, EstimatorCVAE, EstimatorCVAEncem
+        EstimatorLinear, EstimatorInteractions, EstimatorED, EstimatorEDncem, EstimatorCVAE, EstimatorCVAEncem,
+        EstimatorDeconvolution
     ]
 
     @staticmethod
@@ -107,6 +108,16 @@ class TrainModelLinear(TrainModel):
         self._save_evaluation_per_node_type(fn=fn)
 
 
+class TrainModelLinearDeconvolution(TrainModel):
+    estimator: EstimatorDeconvolution
+
+    def init_estim(self, **kwargs):
+        self.estimator = EstimatorDeconvolution(**kwargs)
+
+    def _save_specific(self, fn):
+        self._save_evaluation_per_node_type(fn=fn)
+
+
 class TrainModelInteractions(TrainModel):
     estimator: EstimatorInteractions
 
@@ -176,6 +187,8 @@ class TrainModelEdSingleNcem(TrainModel, TrainModelEDncemBase):
     def _save_specific(self, fn):
         self._save_evaluation_per_node_type(fn=fn)
         self._save_lr_feature_names(fn=fn)
+        self._save_embedding(fn=fn)
+        self._save_output_weights(fn=fn)
 
 
 class TrainModelCVAEBase(TrainModel):

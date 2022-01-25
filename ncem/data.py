@@ -50,6 +50,8 @@ class GraphTools:
         pbar_total = len(self.img_celldata.keys())
         with tqdm(total=pbar_total) as pbar:
             for _k, adata in self.img_celldata.items():
+                print('n_rings', n_rings)
+                print('coord_type', coord_type)
                 sq.gr.spatial_neighbors(
                     adata=adata,
                     coord_type=coord_type,
@@ -1901,11 +1903,34 @@ class DataLoaderJarosch(DataLoader):
             "cluster_col_preprocessed": "celltype_Level_2_preprocessed",
             "patient_col": None,
         }
-        celldata = read_h5ad(self.data_path + metadata["fn"])
-        for col in list(celldata.obs.select_dtypes(include=['category']).columns):
-            print(col)
-            celldata.obs[col] = [x.decode('utf-8') for x in celldata.obs[col]]
-            
+        celldata = read_h5ad(os.path.join(self.data_path, metadata["fn"]))
+        feature_cols_hgnc_names = [
+            'CD14',
+            'MS4A1',
+            'IL2RA',
+            'CD3G',
+            'CD4',
+            'PTPRC',
+            'PTPRC',
+            'PTPRC',
+            'CD68',
+            'CD8A',
+            'KRT5',  # 'KRT1', 'KRT14'
+            'FOXP3',
+            'GATA3',
+            'MKI67',
+            'Nuclei',
+            'PDCD1',
+            'CD274',
+            'SMN1',
+            'VIM'
+        ]
+        X = DataFrame(celldata.X, columns=feature_cols_hgnc_names)
+        celldata = AnnData(
+            X=X, obs=celldata.obs, uns=celldata.uns, obsm=celldata.obsm,
+            varm=celldata.varm, obsp=celldata.obsp
+        )
+        celldata.var_names_make_unique()
         celldata = celldata[celldata.obs[metadata["image_col"]] != "Dirt"].copy()
         celldata.uns["metadata"] = metadata
         img_keys = list(np.unique(celldata.obs[metadata["image_col"]]))
@@ -2537,6 +2562,7 @@ class DataLoaderSchuerch(DataLoader):
         ]
         X = DataFrame(np.array(celldata_df[feature_cols]), columns=feature_cols_hgnc_names)
         celldata = AnnData(X=X, obs=celldata_df[["File Name", "patients", "ClusterName"]])
+        celldata.var_names_make_unique()
 
         celldata.uns["metadata"] = metadata
         img_keys = list(np.unique(celldata_df[metadata["image_col"]]))
@@ -3530,6 +3556,140 @@ class DataLoader10xVisiumMouseBrain(DataLoader):
         for k in self.celldata.uns["img_keys"]:
             img_celldata[str(k)] = self.celldata[self.celldata.obs[image_col] == k].copy()
         self.img_celldata = img_celldata
+
+    def _register_graph_features(self, label_selection):
+        """Load graph level covariates.
+
+        Parameters
+        ----------
+        label_selection
+            Label selection.
+        """
+        # Save processed data to attributes.
+        for adata in self.img_celldata.values():
+            graph_covariates = {
+                "label_names": {},
+                "label_tensors": {},
+                "label_selection": [],
+                "continuous_mean": {},
+                "continuous_std": {},
+                "label_data_types": {},
+            }
+            adata.uns["graph_covariates"] = graph_covariates
+
+        graph_covariates = {
+            "label_names": {},
+            "label_selection": [],
+            "continuous_mean": {},
+            "continuous_std": {},
+            "label_data_types": {},
+        }
+        self.celldata.uns["graph_covariates"] = graph_covariates
+
+
+class DataLoaderDestViLymphnode(DataLoader):
+    """DataLoaderDestViLymphnode class. Inherits all functions from DataLoader."""
+
+    def _register_celldata(self, n_top_genes: Optional[int] = None):
+        """Load AnnData object of complete dataset."""
+        metadata = {
+            "lateral_resolution": 1.,
+            "fn": "destVI_lymphnode.h5ad",
+            #"image_col": "in_tissue",
+            #"cluster_col": "cluster",
+            #"cluster_col_preprocessed": "cluster_preprocessed",
+            #"patient_col": "in_tissue",
+            "n_top_genes": n_top_genes
+        }
+
+        celldata = read_h5ad(self.data_path + metadata["fn"]).copy()
+        if n_top_genes:
+            sc.pp.highly_variable_genes(celldata, n_top_genes=n_top_genes)
+            celldata = celldata[:, celldata.var.highly_variable].copy()
+
+        #celldata.X = celldata.X.toarray()
+        celldata.uns["metadata"] = metadata
+
+        celldata.uns["img_to_patient_dict"] = {"1": "1"}
+        self.img_to_patient_dict = {"1": "1"}
+        print(celldata)
+        self.celldata = celldata
+
+    def _register_img_celldata(self):
+        """Load dictionary of of image-wise celldata objects with {imgage key : anndata object of image}."""
+        #image_col = self.celldata.uns["metadata"]["image_col"]
+        #img_celldata = {}
+        #for k in self.celldata.uns["img_keys"]:
+        #    img_celldata[str(k)] = self.celldata[self.celldata.obs[image_col] == k].copy()
+        #self.img_celldata = img_celldata
+        self.img_celldata = {"1": self.celldata}
+
+    def _register_graph_features(self, label_selection):
+        """Load graph level covariates.
+
+        Parameters
+        ----------
+        label_selection
+            Label selection.
+        """
+        # Save processed data to attributes.
+        for adata in self.img_celldata.values():
+            graph_covariates = {
+                "label_names": {},
+                "label_tensors": {},
+                "label_selection": [],
+                "continuous_mean": {},
+                "continuous_std": {},
+                "label_data_types": {},
+            }
+            adata.uns["graph_covariates"] = graph_covariates
+
+        graph_covariates = {
+            "label_names": {},
+            "label_selection": [],
+            "continuous_mean": {},
+            "continuous_std": {},
+            "label_data_types": {},
+        }
+        self.celldata.uns["graph_covariates"] = graph_covariates
+
+
+class DataLoaderDestViMousebrain(DataLoader):
+    """DataLoaderDestViMousebrain class. Inherits all functions from DataLoader."""
+
+    def _register_celldata(self, n_top_genes: Optional[int] = None):
+        """Load AnnData object of complete dataset."""
+        metadata = {
+            "lateral_resolution": 1.,
+            "fn": "destVI_mousebrain.h5ad",
+            #"image_col": "in_tissue",
+            #"cluster_col": "cluster",
+            #"cluster_col_preprocessed": "cluster_preprocessed",
+            #"patient_col": "in_tissue",
+            "n_top_genes": n_top_genes
+        }
+
+        celldata = read_h5ad(self.data_path + metadata["fn"]).copy()
+        if n_top_genes:
+            sc.pp.highly_variable_genes(celldata, n_top_genes=n_top_genes)
+            celldata = celldata[:, celldata.var.highly_variable].copy()
+
+        #celldata.X = celldata.X.toarray()
+        celldata.uns["metadata"] = metadata
+
+        celldata.uns["img_to_patient_dict"] = {"1": "1"}
+        self.img_to_patient_dict = {"1": "1"}
+        print(celldata)
+        self.celldata = celldata
+
+    def _register_img_celldata(self):
+        """Load dictionary of of image-wise celldata objects with {imgage key : anndata object of image}."""
+        #image_col = self.celldata.uns["metadata"]["image_col"]
+        #img_celldata = {}
+        #for k in self.celldata.uns["img_keys"]:
+        #    img_celldata[str(k)] = self.celldata[self.celldata.obs[image_col] == k].copy()
+        #self.img_celldata = img_celldata
+        self.img_celldata = {"1": self.celldata}
 
     def _register_graph_features(self, label_selection):
         """Load graph level covariates.

@@ -38,12 +38,12 @@ class ModelEd2Ncem:
             "use_type_cond": use_type_cond,
             "scale_node_size": scale_node_size,
             "output_layer": output_layer,
-            "dec_intermediate_dim": "dec_intermediate_dim",
-            "dec_n_hidden": "dec_n_hidden",
-            "dec_dropout_rate": "dec_dropout_rate",
-            "dec_l1_coef": "dec_l1_coef",
-            "dec_l2_coef": "dec_l2_coef",
-            "dec_use_batch_norm": "dec_use_batch_norm",
+            "dec_intermediate_dim": dec_intermediate_dim,
+            "dec_n_hidden": dec_n_hidden,
+            "dec_dropout_rate": dec_dropout_rate,
+            "dec_l1_coef": dec_l1_coef,
+            "dec_l2_coef": dec_l2_coef,
+            "dec_use_batch_norm": dec_use_batch_norm,
         }
         in_lr_feature_dim = input_shapes[0]
         out_feature_dim = input_shapes[1]
@@ -79,10 +79,6 @@ class ModelEd2Ncem:
             categ_condition = input_categ_condition
 
         if cond_type == "lr_gat":
-            print("LRGAT")
-            #x_encoder = SingleMaxLayer(
-            #    name=f"max_layer"
-            #)([input_x_neighbors, ])
             x_encoder = SingleLrGatLayer(
                 lr_dim=in_lr_feature_dim,
                 dropout_rate=dropout_rate,
@@ -111,6 +107,8 @@ class ModelEd2Ncem:
                 use_bias=True,
                 name=f"gcn_layer"
             )([input_x_targets, input_x_neighbors, input_a])
+        elif cond_type == "none":
+            x_encoder = input_x_targets
         else:
             raise ValueError("tried to access a non-supported conditional layer %s" % cond_type)
 
