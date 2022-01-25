@@ -3649,3 +3649,70 @@ class DataLoaderDestViLymphnode(DataLoader):
             "label_data_types": {},
         }
         self.celldata.uns["graph_covariates"] = graph_covariates
+
+
+class DataLoaderDestViMousebrain(DataLoader):
+    """DataLoaderDestViMousebrain class. Inherits all functions from DataLoader."""
+
+    def _register_celldata(self, n_top_genes: Optional[int] = None):
+        """Load AnnData object of complete dataset."""
+        metadata = {
+            "lateral_resolution": 1.,
+            "fn": "destVI_mousebrain.h5ad",
+            #"image_col": "in_tissue",
+            #"cluster_col": "cluster",
+            #"cluster_col_preprocessed": "cluster_preprocessed",
+            #"patient_col": "in_tissue",
+            "n_top_genes": n_top_genes
+        }
+
+        celldata = read_h5ad(self.data_path + metadata["fn"]).copy()
+        if n_top_genes:
+            sc.pp.highly_variable_genes(celldata, n_top_genes=n_top_genes)
+            celldata = celldata[:, celldata.var.highly_variable].copy()
+
+        #celldata.X = celldata.X.toarray()
+        celldata.uns["metadata"] = metadata
+
+        celldata.uns["img_to_patient_dict"] = {"1": "1"}
+        self.img_to_patient_dict = {"1": "1"}
+        print(celldata)
+        self.celldata = celldata
+
+    def _register_img_celldata(self):
+        """Load dictionary of of image-wise celldata objects with {imgage key : anndata object of image}."""
+        #image_col = self.celldata.uns["metadata"]["image_col"]
+        #img_celldata = {}
+        #for k in self.celldata.uns["img_keys"]:
+        #    img_celldata[str(k)] = self.celldata[self.celldata.obs[image_col] == k].copy()
+        #self.img_celldata = img_celldata
+        self.img_celldata = {"1": self.celldata}
+
+    def _register_graph_features(self, label_selection):
+        """Load graph level covariates.
+
+        Parameters
+        ----------
+        label_selection
+            Label selection.
+        """
+        # Save processed data to attributes.
+        for adata in self.img_celldata.values():
+            graph_covariates = {
+                "label_names": {},
+                "label_tensors": {},
+                "label_selection": [],
+                "continuous_mean": {},
+                "continuous_std": {},
+                "label_data_types": {},
+            }
+            adata.uns["graph_covariates"] = graph_covariates
+
+        graph_covariates = {
+            "label_names": {},
+            "label_selection": [],
+            "continuous_mean": {},
+            "continuous_std": {},
+            "label_data_types": {},
+        }
+        self.celldata.uns["graph_covariates"] = graph_covariates
