@@ -1793,11 +1793,15 @@ class DataLoaderZhang(DataLoader):
             "cluster_col_preprocessed": "subclass_preprocessed",
             "patient_col": "mouse",
         }
+        celldata = read_h5ad(self.data_path + metadata["fn"]).copy()
+        
+        for col in list(celldata.obs.select_dtypes(include=['category']).columns):
+            print(col)
+            celldata.obs[col] = [x.decode('utf-8') for x in celldata.obs[col]]
 
-        celldata = read_h5ad(os.path.join(self.data_path, metadata["fn"])).copy()
         celldata.uns["metadata"] = metadata
         celldata.uns["img_keys"] = list(np.unique(celldata.obs[metadata["image_col"]]))
-
+        
         img_to_patient_dict = {
             str(x): celldata.obs[metadata["patient_col"]].values[i].split("_")[0]
             for i, x in enumerate(celldata.obs[metadata["image_col"]].values)
@@ -1899,7 +1903,6 @@ class DataLoaderJarosch(DataLoader):
             "cluster_col_preprocessed": "celltype_Level_2_preprocessed",
             "patient_col": None,
         }
-
         celldata = read_h5ad(os.path.join(self.data_path, metadata["fn"]))
         feature_cols_hgnc_names = [
             'CD14',
@@ -1942,10 +1945,10 @@ class DataLoaderJarosch(DataLoader):
 
         # add clean cluster column which removes regular expression from cluster_col
         celldata.obs[metadata["cluster_col_preprocessed"]] = list(
-            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="category").map(self.cell_type_merge_dict)
+            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="str").map(self.cell_type_merge_dict)
         )
         celldata.obs[metadata["cluster_col_preprocessed"]] = celldata.obs[metadata["cluster_col_preprocessed"]].astype(
-            "category"
+            "str"
         )
 
         # register node type names
@@ -3088,7 +3091,7 @@ class DataLoaderLuWT(DataLoader):
             X=celldata_df[feature_cols],
             obs=celldata_df[["CellID", "FOV", "CellTypeID_new", "Center_x", "Center_y"]]
         )
-
+        
         celldata.uns["metadata"] = metadata
         img_keys = list(np.unique(celldata_df[metadata["image_col"]]))
         celldata.uns["img_keys"] = img_keys
@@ -3111,7 +3114,7 @@ class DataLoaderLuWT(DataLoader):
         celldata.obs[metadata["cluster_col_preprocessed"]] = celldata.obs[metadata["cluster_col_preprocessed"]].astype(
             "str"
         )
-        celldata = celldata[celldata.obs[metadata["cluster_col_preprocessed"]] != 'Unknown']
+        #celldata = celldata[celldata.obs[metadata["cluster_col_preprocessed"]] != 'Unknown']
 
         # register node type names
         node_type_names = list(np.unique(celldata.obs[metadata["cluster_col_preprocessed"]]))
@@ -3195,6 +3198,7 @@ class DataLoaderLuWTimputed(DataLoader):
         if n_top_genes:
             sc.pp.highly_variable_genes(celldata, n_top_genes=n_top_genes)
             celldata = celldata[:, celldata.var.highly_variable].copy()
+            
         self.celldata = celldata
 
     def _register_img_celldata(self):
@@ -3426,7 +3430,6 @@ class DataLoaderLuTET2(DataLoader):
         )
         # register node type names
         node_type_names = list(np.unique(celldata.obs[metadata["cluster_col_preprocessed"]]))
-        print(node_type_names)
         celldata.uns["node_type_names"] = {x: x for x in node_type_names}
         node_types = np.zeros((celldata.shape[0], len(node_type_names)))
         node_type_idx = np.array(
