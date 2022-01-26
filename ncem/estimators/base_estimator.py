@@ -182,7 +182,7 @@ class Estimator:
 
             self.undefined_node_types = None
             if n_rings > 1:
-                coord_type = 'visium'
+                coord_type = 'grid'
             else:
                 n_rings = 1
                 coord_type = 'generic'
@@ -192,7 +192,7 @@ class Estimator:
 
             self.undefined_node_types = None
             if n_rings > 1:
-                coord_type = 'visium'
+                coord_type = 'grid'
             else:
                 n_rings = 1
                 coord_type = 'generic'
