@@ -3612,6 +3612,9 @@ class DataLoader10xLymphnode(DataLoader):
         celldata.uns["metadata"] = metadata
         celldata.uns["img_keys"] = list(np.unique(celldata.obs[metadata["image_col"]]))
 
+        celldata.uns["img_to_patient_dict"] = {"1": "1"}
+        self.img_to_patient_dict = {"1": "1"}
+
         celldata.obs[metadata["cluster_col"]] = celldata.obs[metadata["cluster_col"]].astype(
             "str"
         )
