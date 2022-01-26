@@ -187,6 +187,17 @@ class Estimator:
                 n_rings = 1
                 coord_type = 'generic'
                 radius = 0
+        elif data_origin == "10xvisium_lymphnode":
+            from ncem.data import DataLoader10xLymphnode as DataLoader
+
+            self.undefined_node_types = None
+            if n_rings > 1:
+                coord_type = 'visium'
+            else:
+                n_rings = 1
+                coord_type = 'generic'
+                radius = 0
+
         elif data_origin.startswith('destvi_lymphnode'):
             self.targeted_assay = False
             from ncem.data import DataLoaderDestViLymphnode as DataLoader
