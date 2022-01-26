@@ -192,23 +192,11 @@ class Estimator:
             from ncem.data import DataLoaderDestViLymphnode as DataLoader
 
             self.undefined_node_types = None
-            if n_rings > 1:
-                coord_type = 'visium'
-            else:
-                n_rings = 1
-                coord_type = 'generic'
-                radius = 0
         elif data_origin.startswith('destvi_mousebrain'):
             self.targeted_assay = False
             from ncem.data import DataLoaderDestViMousebrain as DataLoader
 
             self.undefined_node_types = None
-            if n_rings > 1:
-                coord_type = 'visium'
-            else:
-                n_rings = 1
-                coord_type = 'generic'
-                radius = 0
 
         self.data = DataLoader(
             data_path, radius=radius, coord_type=coord_type, n_rings=n_rings, label_selection=label_selection,
