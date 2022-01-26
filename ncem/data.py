@@ -3595,7 +3595,7 @@ class DataLoader10xLymphnode(DataLoader):
         metadata = {
             "lateral_resolution": 1.,
             "fn": "destVI_lymphnode.h5ad",
-            "image_col": "batch",
+            #"image_col": "batch",
             "cluster_col": "lymph_node",
             "cluster_col_preprocessed": "lymph_node",
             "n_top_genes": None
@@ -3634,11 +3634,12 @@ class DataLoader10xLymphnode(DataLoader):
 
     def _register_img_celldata(self):
         """Load dictionary of of image-wise celldata objects with {imgage key : anndata object of image}."""
-        image_col = self.celldata.uns["metadata"]["image_col"]
-        img_celldata = {}
-        for k in self.celldata.uns["img_keys"]:
-            img_celldata[str(k)] = self.celldata[self.celldata.obs[image_col] == k].copy()
-        self.img_celldata = img_celldata
+        # image_col = self.celldata.uns["metadata"]["image_col"]
+        # img_celldata = {}
+        # for k in self.celldata.uns["img_keys"]:
+        #    img_celldata[str(k)] = self.celldata[self.celldata.obs[image_col] == k].copy()
+        # self.img_celldata = img_celldata
+        self.img_celldata = {"1": self.celldata}
 
     def _register_graph_features(self, label_selection):
         """Load graph level covariates.
