@@ -50,8 +50,10 @@ class GraphTools:
         pbar_total = len(self.img_celldata.keys())
         with tqdm(total=pbar_total) as pbar:
             for _k, adata in self.img_celldata.items():
-                print('n_rings', n_rings)
-                print('coord_type', coord_type)
+                if coord_type == 'grid':
+                    radius = None
+                else:
+                    n_rings = None
                 sq.gr.spatial_neighbors(
                     adata=adata,
                     coord_type=coord_type,
@@ -60,6 +62,7 @@ class GraphTools:
                     transform=transform,
                     key_added="adjacency_matrix"
                 )
+                print(adata.obsp['adjacency_matrix_connectivities'].sum(axis=1).mean())
                 pbar.update(1)
 
     @staticmethod
