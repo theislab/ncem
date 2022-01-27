@@ -1772,7 +1772,7 @@ class Estimator:
             seed=None,
             reinit_n_eval=None,
         )
-        results = self.model.training_model.evaluate(ds, verbose=2)
+        results = self.model.training_model.evaluate(ds, verbose=False)
         eval_dict = dict(zip(self.model.training_model.metrics_names, results))
         return eval_dict
 
