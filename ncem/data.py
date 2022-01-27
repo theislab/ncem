@@ -53,7 +53,7 @@ class GraphTools:
                 if coord_type == 'grid':
                     radius = None
                 else:
-                    n_rings = None
+                    n_rings = 1
                 sq.gr.spatial_neighbors(
                     adata=adata,
                     coord_type=coord_type,
