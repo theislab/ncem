@@ -209,6 +209,12 @@ class Estimator:
 
             self.undefined_node_types = None
 
+        elif data_origin.startswith('cell2location_lymphnode'):
+            self.targeted_assay = False
+            from ncem.data import DataLoaderCell2locationLymphnode as DataLoader
+
+            self.undefined_node_types = None
+
         self.data = DataLoader(
             data_path, radius=radius, coord_type=coord_type, n_rings=n_rings, label_selection=label_selection,
             n_top_genes=n_top_genes
