@@ -50,8 +50,6 @@ class GraphTools:
         pbar_total = len(self.img_celldata.keys())
         with tqdm(total=pbar_total) as pbar:
             for _k, adata in self.img_celldata.items():
-                print('n_rings', n_rings)
-                print('coord_type', coord_type)
                 sq.gr.spatial_neighbors(
                     adata=adata,
                     coord_type=coord_type,
@@ -1795,9 +1793,9 @@ class DataLoaderZhang(DataLoader):
         }
         celldata = read_h5ad(self.data_path + metadata["fn"]).copy()
         
-        for col in list(celldata.obs.select_dtypes(include=['category']).columns):
-            print(col)
-            celldata.obs[col] = [x.decode('utf-8') for x in celldata.obs[col]]
+        #for col in list(celldata.obs.select_dtypes(include=['category']).columns):
+        #    print(col)
+        #    celldata.obs[col] = [x.decode('utf-8') for x in celldata.obs[col]]
 
         celldata.uns["metadata"] = metadata
         celldata.uns["img_keys"] = list(np.unique(celldata.obs[metadata["image_col"]]))
