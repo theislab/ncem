@@ -182,11 +182,11 @@ class GridSearchContainer:
                     "gs_id": [runparams[x]["gs_id"] for x in run_ids_clean],
                     "model_id": [runparams[x]["model_id"] for x in run_ids_clean],
                     #"split_mode": [runparams[x]["split_mode"] for x in run_ids_clean],
-                    "radius": [runparams[x]["radius"] for x in run_ids_clean],
+                    "radius": [runparams[x]["radius"] for x in run_ids_clean] if "radius" in list(runparams[x].keys()) else [runparams[x]["max_dist"] for x in run_ids_clean],
                     "n_rings": [runparams[x]["n_rings"] for x in run_ids_clean] if "n_rings" in list(runparams[x].keys()) else "none",
                     "graph_covar_selection": [runparams[x]["graph_covar_selection"] for x in run_ids_clean],
-                    "node_label_space_id": [runparams[x]["node_label_space_id"] for x in run_ids_clean],
-                    "node_feature_space_id": [runparams[x]["node_feature_space_id"] for x in run_ids_clean],
+                    #"node_label_space_id": [runparams[x]["node_label_space_id"] for x in run_ids_clean],
+                    #"node_feature_space_id": [runparams[x]["node_feature_space_id"] for x in run_ids_clean],
                     #"feature_transformation": [runparams[x]["feature_transformation"] for x in run_ids_clean],
                     "use_covar_node_position": [runparams[x]["use_covar_node_position"] for x in run_ids_clean],
                     "use_covar_node_label": [runparams[x]["use_covar_node_label"] for x in run_ids_clean],
@@ -257,6 +257,18 @@ class GridSearchContainer:
                     "output_layer": [runparams[x]["output_layer"] for x in run_ids_clean],
                     "log_transform": [runparams[x]["log_transform"] for x in run_ids_clean]
                     if "log_transform" in list(runparams[x].keys())
+                    else False,
+                    "segmentation_robustness_node_fraction": [runparams[x]["segmentation_robustness_node_fraction"] for x in run_ids_clean]
+                    if "segmentation_robustness_node_fraction" in list(runparams[x].keys())
+                    else False,
+                    "segmentation_robustness_overflow_fraction": [runparams[x]["segmentation_robustness_overflow_fraction"] for x in run_ids_clean]
+                    if "segmentation_robustness_overflow_fraction" in list(runparams[x].keys())
+                    else False,
+                    "resimulate_nodes_w_depdency": [runparams[x]["resimulate_nodes_w_depdency"] for x in run_ids_clean]
+                    if "resimulate_nodes_w_depdency" in list(runparams[x].keys())
+                    else False,
+                    "resimulate_nodes_sparsity_rate": [runparams[x]["resimulate_nodes_sparsity_rate"] for x in run_ids_clean]
+                    if "resimulate_nodes_sparsity_rate" in list(runparams[x].keys())
                     else False,
                     "epochs": [runparams[x]["epochs"] for x in run_ids_clean],
                     "batch_size": [runparams[x]["batch_size"] for x in run_ids_clean],
@@ -935,7 +947,7 @@ class GridSearchContainer:
                     metric_select=metric_select,
                     cv_mode=cv_mode,
                 )
-                # print(run_id_temp)
+                print(run_id_temp)
                 if run_id_temp is not None:
                     run_ids.append(run_id_temp)
 
@@ -969,23 +981,25 @@ class GridSearchContainer:
                 )
                 sns.swarmplot(x=param_x, y=ycol, hue=param_hue, data=summary_table, ax=ax)
         elif plot_mode == "lineplot":
+            temp_baseline = summary_table[summary_table["model_class"] == baseline_model_class]
             sns.scatterplot(
                 x=param_x,
                 y=ycol,
                 hue=param_hue,
                 style="cv",
                 palette=palette,
-                data=summary_table[summary_table["model_class"] == baseline_model_class],
+                data=temp_baseline,
                 s=100,
                 ax=ax,
             )
+            temp_graph = summary_table[summary_table["model_class"] == graph_model_class]
             sns.lineplot(
                 x=param_x,
                 y=ycol,
                 style="cv",
                 palette=palette,
-                data=summary_table[summary_table["model_class"] == graph_model_class],
-                hue=param_hue,
+                data=temp_graph,
+                #hue=param_hue,
                 ax=ax,
                 markers=True,
             )
@@ -1049,6 +1063,7 @@ class GridSearchContainer:
         save: Optional[str] = None,
         suffix: str = "target_cell_evaluation.pdf",
         return_axs: bool = False,
+        yaxis_limit: Optional[Tuple[float, float]] = None,
         panelsize: Tuple[float, float] = (3.0, 3.0),
     ):
         """Plot target cell evaluation.
@@ -1061,6 +1076,8 @@ class GridSearchContainer:
             Selected metric.
         param_x : str
             Parameter on x axis.
+        yaxis_limit : tuple, optional
+            y axis limits.
         panelsize : tuple
             Panel size.
         ncols : int
@@ -1085,7 +1102,7 @@ class GridSearchContainer:
         nrows = len(params_tc_unique) // ncols + int(len(params_tc_unique) % ncols > 0)
 
         fig, ax = plt.subplots(
-            ncols=ncols, nrows=nrows, figsize=(ncols * panelsize[0], nrows * panelsize[1]), sharex=True
+            ncols=ncols, nrows=nrows, figsize=(ncols * panelsize[0], nrows * panelsize[1]), sharex=True, sharey=True
         )
         ax = ax.flat
         for a in ax[ct:]:
@@ -1127,6 +1144,8 @@ class GridSearchContainer:
             ax[i].set_title(f"{tc.replace('_', ' ')} \n({str(tc_frequencies)} cells)")
             ax[i].set_xlabel("")
             ax[i].set_ylabel("")
+            if yaxis_limit is not None:
+                ax[i].set_ylim(yaxis_limit)
             ax[i].yaxis.set_major_formatter(FormatStrFormatter("%0.3f"))
             for tick in ax[i].get_xticklabels():
                 tick.set_rotation(90)

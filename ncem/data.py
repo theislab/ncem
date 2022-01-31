@@ -50,6 +50,10 @@ class GraphTools:
         pbar_total = len(self.img_celldata.keys())
         with tqdm(total=pbar_total) as pbar:
             for _k, adata in self.img_celldata.items():
+                if coord_type == 'grid':
+                    radius = None
+                else:
+                    n_rings = 1
                 sq.gr.spatial_neighbors(
                     adata=adata,
                     coord_type=coord_type,
@@ -58,6 +62,7 @@ class GraphTools:
                     transform=transform,
                     key_added="adjacency_matrix"
                 )
+                print(adata.obsp['adjacency_matrix_connectivities'].sum(axis=1).mean())
                 pbar.update(1)
 
     @staticmethod
@@ -1792,14 +1797,10 @@ class DataLoaderZhang(DataLoader):
             "patient_col": "mouse",
         }
         celldata = read_h5ad(self.data_path + metadata["fn"]).copy()
-        
-        #for col in list(celldata.obs.select_dtypes(include=['category']).columns):
-        #    print(col)
-        #    celldata.obs[col] = [x.decode('utf-8') for x in celldata.obs[col]]
 
         celldata.uns["metadata"] = metadata
         celldata.uns["img_keys"] = list(np.unique(celldata.obs[metadata["image_col"]]))
-        
+
         img_to_patient_dict = {
             str(x): celldata.obs[metadata["patient_col"]].values[i].split("_")[0]
             for i, x in enumerate(celldata.obs[metadata["image_col"]].values)
@@ -3089,7 +3090,7 @@ class DataLoaderLuWT(DataLoader):
             X=celldata_df[feature_cols],
             obs=celldata_df[["CellID", "FOV", "CellTypeID_new", "Center_x", "Center_y"]]
         )
-        
+
         celldata.uns["metadata"] = metadata
         img_keys = list(np.unique(celldata_df[metadata["image_col"]]))
         celldata.uns["img_keys"] = img_keys
@@ -3196,7 +3197,7 @@ class DataLoaderLuWTimputed(DataLoader):
         if n_top_genes:
             sc.pp.highly_variable_genes(celldata, n_top_genes=n_top_genes)
             celldata = celldata[:, celldata.var.highly_variable].copy()
-            
+
         self.celldata = celldata
 
     def _register_img_celldata(self):
@@ -3585,6 +3586,89 @@ class DataLoader10xVisiumMouseBrain(DataLoader):
         self.celldata.uns["graph_covariates"] = graph_covariates
 
 
+class DataLoader10xLymphnode(DataLoader):
+    """DataLoader10xLymphnode class. Inherits all functions from DataLoader."""
+
+    def _register_celldata(self, n_top_genes: Optional[int] = None):
+        """Load AnnData object of complete dataset."""
+        metadata = {
+            "lateral_resolution": 1.,
+            "fn": "destVI_lymphnode.h5ad",
+            #"image_col": "batch",
+            "cluster_col": "lymph_node",
+            "cluster_col_preprocessed": "lymph_node",
+            "n_top_genes": None
+        }
+
+        ad = read_h5ad(self.data_path + metadata["fn"]).copy()
+        metadata['var_names'] = ad.var_names
+
+        celldata = AnnData(
+            X=ad.obsm['scale'],
+            obs=ad.obs, obsm=ad.obsm
+        )
+        celldata.obsm['spatial'] = celldata.obsm['location']
+        celldata.uns["metadata"] = metadata
+
+        celldata.uns["img_to_patient_dict"] = {"1": "1"}
+        self.img_to_patient_dict = {"1": "1"}
+
+        celldata.obs[metadata["cluster_col"]] = celldata.obs[metadata["cluster_col"]].astype(
+            "str"
+        )
+        # register node type names
+        node_type_names = list(np.unique(celldata.obs[metadata["cluster_col_preprocessed"]]))
+        celldata.uns["node_type_names"] = {x: x for x in node_type_names}
+        node_types = np.zeros((celldata.shape[0], len(node_type_names)))
+        node_type_idx = np.array(
+            [
+                node_type_names.index(x) for x in celldata.obs[metadata["cluster_col_preprocessed"]].values
+            ]  # index in encoding vector
+        )
+        node_types[np.arange(0, node_type_idx.shape[0]), node_type_idx] = 1
+        celldata.obsm["node_types"] = node_types
+
+        self.celldata = celldata
+
+    def _register_img_celldata(self):
+        """Load dictionary of of image-wise celldata objects with {imgage key : anndata object of image}."""
+        # image_col = self.celldata.uns["metadata"]["image_col"]
+        # img_celldata = {}
+        # for k in self.celldata.uns["img_keys"]:
+        #    img_celldata[str(k)] = self.celldata[self.celldata.obs[image_col] == k].copy()
+        # self.img_celldata = img_celldata
+        self.img_celldata = {"1": self.celldata}
+
+    def _register_graph_features(self, label_selection):
+        """Load graph level covariates.
+
+        Parameters
+        ----------
+        label_selection
+            Label selection.
+        """
+        # Save processed data to attributes.
+        for adata in self.img_celldata.values():
+            graph_covariates = {
+                "label_names": {},
+                "label_tensors": {},
+                "label_selection": [],
+                "continuous_mean": {},
+                "continuous_std": {},
+                "label_data_types": {},
+            }
+            adata.uns["graph_covariates"] = graph_covariates
+
+        graph_covariates = {
+            "label_names": {},
+            "label_selection": [],
+            "continuous_mean": {},
+            "continuous_std": {},
+            "label_data_types": {},
+        }
+        self.celldata.uns["graph_covariates"] = graph_covariates
+
+
 class DataLoaderDestViLymphnode(DataLoader):
     """DataLoaderDestViLymphnode class. Inherits all functions from DataLoader."""
 
@@ -3660,6 +3744,73 @@ class DataLoaderDestViMousebrain(DataLoader):
         metadata = {
             "lateral_resolution": 1.,
             "fn": "destVI_mousebrain.h5ad",
+            #"image_col": "in_tissue",
+            #"cluster_col": "cluster",
+            #"cluster_col_preprocessed": "cluster_preprocessed",
+            #"patient_col": "in_tissue",
+            "n_top_genes": n_top_genes
+        }
+
+        celldata = read_h5ad(self.data_path + metadata["fn"]).copy()
+        if n_top_genes:
+            sc.pp.highly_variable_genes(celldata, n_top_genes=n_top_genes)
+            celldata = celldata[:, celldata.var.highly_variable].copy()
+
+        #celldata.X = celldata.X.toarray()
+        celldata.uns["metadata"] = metadata
+
+        celldata.uns["img_to_patient_dict"] = {"1": "1"}
+        self.img_to_patient_dict = {"1": "1"}
+        print(celldata)
+        self.celldata = celldata
+
+    def _register_img_celldata(self):
+        """Load dictionary of of image-wise celldata objects with {imgage key : anndata object of image}."""
+        #image_col = self.celldata.uns["metadata"]["image_col"]
+        #img_celldata = {}
+        #for k in self.celldata.uns["img_keys"]:
+        #    img_celldata[str(k)] = self.celldata[self.celldata.obs[image_col] == k].copy()
+        #self.img_celldata = img_celldata
+        self.img_celldata = {"1": self.celldata}
+
+    def _register_graph_features(self, label_selection):
+        """Load graph level covariates.
+
+        Parameters
+        ----------
+        label_selection
+            Label selection.
+        """
+        # Save processed data to attributes.
+        for adata in self.img_celldata.values():
+            graph_covariates = {
+                "label_names": {},
+                "label_tensors": {},
+                "label_selection": [],
+                "continuous_mean": {},
+                "continuous_std": {},
+                "label_data_types": {},
+            }
+            adata.uns["graph_covariates"] = graph_covariates
+
+        graph_covariates = {
+            "label_names": {},
+            "label_selection": [],
+            "continuous_mean": {},
+            "continuous_std": {},
+            "label_data_types": {},
+        }
+        self.celldata.uns["graph_covariates"] = graph_covariates
+
+
+class DataLoaderCell2locationLymphnode(DataLoader):
+    """DataLoaderCell2locationLymphnode class. Inherits all functions from DataLoader."""
+
+    def _register_celldata(self, n_top_genes: Optional[int] = None):
+        """Load AnnData object of complete dataset."""
+        metadata = {
+            "lateral_resolution": 1.,
+            "fn": "cell2location_lymphnode.h5ad",
             #"image_col": "in_tissue",
             #"cluster_col": "cluster",
             #"cluster_col_preprocessed": "cluster_preprocessed",

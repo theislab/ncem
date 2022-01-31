@@ -2,9 +2,11 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import tensorflow as tf
+from patsy import dmatrix
+from scipy.sparse import coo_matrix
 
 from ncem.estimators.base_estimator import Estimator
-from ncem.models import ModelLinearDeconvolution
+from ncem.models import ModelInteractions
 
 
 class EstimatorDeconvolution(Estimator):
@@ -123,13 +125,37 @@ class EstimatorDeconvolution(Estimator):
                     proportions = np.asarray(np.concatenate((proportions, zeros), axis=0), dtype="float32")
                     proportions = proportions[indices]
 
+                    data = {"target": h_0, "proportions": proportions}
+                    target = np.asarray(dmatrix("target-1", data))
+                    interactions = np.asarray(dmatrix("target:proportions-1", data))
+
+                    interactions = coo_matrix(interactions)
+                    coo = interactions.tocoo()
+                    interactions_ind = np.asarray(np.mat([coo.row, coo.col]).transpose(), dtype="int64")
+                    interactions_val = np.asarray(coo.data, dtype="float32")
+                    interactions_shape = np.asarray(
+                        (self.n_eval_nodes_per_graph, self.n_features_0 ** 2), dtype="int64"
+                    )
+                    interactions = tf.SparseTensor(
+                        indices=interactions_ind, values=interactions_val, dense_shape=interactions_shape
+                    )
+
+                    node_covar = self.node_covar[key][idx_nodes]
+                    diff = self.max_nodes - node_covar.shape[0]
+                    zeros = np.zeros((diff, node_covar.shape[1]))
+                    node_covar = np.asarray(np.concatenate([node_covar, zeros], axis=0), dtype="float32")
+                    node_covar = node_covar[indices]
+
                     sf = np.expand_dims(self.size_factors[key][idx_nodes], axis=1)
                     diff = self.max_nodes - sf.shape[0]
                     zeros = np.zeros((diff, sf.shape[1]))
                     sf = np.asarray(np.concatenate([sf, zeros], axis=0), dtype="float32")
                     sf = sf[indices, :]
 
-                    yield (h_0, proportions, sf), h_1
+                    g = np.zeros((self.n_domains,), dtype="int32")
+                    g[self.domains[key]] = 1
+
+                    yield (target, interactions, sf, node_covar, g), h_1
 
         print(self.n_features_0)
         dataset = tf.data.Dataset.from_generator(
@@ -137,8 +163,10 @@ class EstimatorDeconvolution(Estimator):
             output_signature=(
                 (
                     tf.TensorSpec(shape=(self.n_eval_nodes_per_graph, self.n_features_0), dtype=tf.float32),
-                    tf.TensorSpec(shape=(self.n_eval_nodes_per_graph, self.n_features_0), dtype=tf.float32),
+                    tf.SparseTensorSpec(shape=(self.n_eval_nodes_per_graph, self.n_features_0 ** 2), dtype=tf.float32),
                     tf.TensorSpec(shape=(self.n_eval_nodes_per_graph, 1), dtype=tf.float32),
+                    tf.TensorSpec(shape=(self.n_eval_nodes_per_graph, self.n_node_covariates), dtype=tf.float32),
+                    tf.TensorSpec(shape=(self.n_domains,), dtype=tf.int32),
                 ),
                 tf.TensorSpec(shape=(self.n_eval_nodes_per_graph, self.n_features_1), dtype=tf.float32),
             )
@@ -185,7 +213,8 @@ class EstimatorDeconvolution(Estimator):
         n_eval_nodes_per_graph: int = 32,
         l2_coef: float = 0.0,
         l1_coef: float = 0.0,
-        use_proportions: bool = True,
+        use_interactions: bool = True,
+        use_domain: bool = False,
         scale_node_size: bool = False,
         output_layer: str = "linear",
         **kwargs
@@ -204,8 +233,10 @@ class EstimatorDeconvolution(Estimator):
             l1 regularization coefficient.
         n_eval_nodes_per_graph : int
             Number of nodes per graph.
-        use_proportions : bool
+        use_interactions : bool
             Whether to use proportions.
+        use_domain : bool
+            Whether to use domain information.
         scale_node_size : bool
             Whether to scale output layer by node sizes.
         output_layer : str
@@ -214,15 +245,19 @@ class EstimatorDeconvolution(Estimator):
             Arbitrary keyword arguments.
         """
         self.n_eval_nodes_per_graph = n_eval_nodes_per_graph
-        self.model = ModelLinearDeconvolution(
+        self.model = ModelInteractions(
             input_shapes=(
+                self.n_features_0,  # target_dim
+                self.n_features_1,  # out_node_feature_dim
+                self.n_features_0 ** 2,  # interaction_dim
                 self.n_eval_nodes_per_graph,  # in_node_dim
-                self.n_features_1,  # feature_dim
-                self.n_features_0,  # cell_dim
+                self.n_node_covariates,  # categ_condition_dim
+                self.n_domains,  # domain_dim
             ),
             l1_coef=l1_coef,
             l2_coef=l2_coef,
-            use_proportions=use_proportions,
+            use_interactions=use_interactions,
+            use_domain=use_domain,
             scale_node_size=scale_node_size,
             output_layer=output_layer,
         )
