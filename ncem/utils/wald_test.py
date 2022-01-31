@@ -1,6 +1,17 @@
 import numpy as np
 
 
+def get_fim_inv(x: np.array, y: np.array):
+    var = np.var(y, axis=0)
+    fim = np.expand_dims(np.matmul(x.T, x), axis=0) / np.expand_dims(var, axis=[1, 2])
+
+    fim_inv = np.array([
+        np.linalg.inv(fim[i, :, :])
+        for i in range(fim.shape[0])
+    ])
+    return fim_inv
+
+
 def _get_p_value(a_var: np.array, fisher_inv: np.array, coef_loc_totest: int):
     """Return the p-value for differential expression for each gene.
 

@@ -837,10 +837,10 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
             .T
         )
 
-        interaction_params = np.concatenate(
-            np.expand_dims(np.split(interaction_params, indices_or_sections=self.n_features_0, axis=1), axis=-1),
-            axis=-1,
-        )
+        #interaction_params = np.concatenate(
+        #    np.expand_dims(np.split(interaction_params, indices_or_sections=self.n_features_0, axis=1), axis=-1),
+        #    axis=-1,
+        #)
 
         interactions = []
         y = []
