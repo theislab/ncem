@@ -58,19 +58,24 @@ def wald_test(
     bool_res, res
     """
     from diffxpy.testing.correction import correct
+    significance = []
+    qvalues = []
+    for idx in range(params.shape[0]):
+        pvals = _get_p_value(params.T, fisher_inv, idx)
+        qvals = correct(pvals)
+        qvalues.append(qvals)
+        sign = qvals < significance_threshold
+        significance.append(sign)
+    qvalues = np.array(qvalues)
+    significance = np.array(significance)
 
-    res = []
-    bool_res = []
-    for i, fi in enumerate(fisher_inv):
-        sig = []
-        bool_sig = []
-        a_var = params[:, i, :].T
-        for idx in range(a_var.shape[0]):
-            p_val = _get_p_value(a_var, fi, idx)
-            significance = correct(p_val)
-            bool_significance = significance < significance_threshold
-            sig.append(significance)
-            bool_sig.append(bool_significance)
-        res.append(np.array(sig))  # produces (target, sources, genes) array
-        bool_res.append(np.array(bool_sig))
-    return np.array(bool_res), np.array(res)
+    qvalues = np.concatenate(
+        np.expand_dims(np.split(qvalues, indices_or_sections=np.sqrt(qvalues.shape[0]), axis=0), axis=0),
+        axis=0,
+    )
+    significance = np.concatenate(
+        np.expand_dims(np.split(significance, indices_or_sections=np.sqrt(significance.shape[0]), axis=0), axis=0),
+        axis=0,
+    )
+
+    return significance, qvalues

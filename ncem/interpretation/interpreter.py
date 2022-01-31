@@ -18,7 +18,7 @@ from tqdm import tqdm
 import ncem.estimators as estimators
 import ncem.models as models
 import ncem.train as train
-from ncem.utils.wald_test import wald_test
+from ncem.utils.wald_test import get_fim_inv, wald_test
 
 
 class InterpreterBase(estimators.Estimator):
@@ -167,17 +167,17 @@ class InterpreterBase(estimators.Estimator):
             radius = int(self.gscontainer_runparams["radius"])
         else:
             radius = int(self.gscontainer_runparams["max_dist"])
-            
+
         if "node_label_space_id" in self.gscontainer_runparams.keys():
             node_label_space_id = self.gscontainer_runparams["node_label_space_id"]
         else:
             node_label_space_id = self.gscontainer_runparams["node_feature_space_id_0"]
-        
+
         if "node_feature_space_id" in self.gscontainer_runparams.keys():
             node_feature_space_id = self.gscontainer_runparams["node_feature_space_id"]
         else:
             node_feature_space_id = self.gscontainer_runparams["node_feature_space_id_1"]
-            
+
         self.get_data(
             data_origin=data_origin,
             data_path=data_path,
@@ -246,7 +246,7 @@ class InterpreterBase(estimators.Estimator):
         else:
             raise ValueError("model_class not recognized")
         self.model = model
-        
+
         self.vi_model = False  # variational inference
         if self.model_class in ["vae", "cvae", "cvae_ncem"]:
             self.vi_model = True
@@ -847,6 +847,7 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
         count = 0
         for k, v in nodes_idx.items():
             count = count + len(v)
+
         with tqdm(total=count) as pbar:
             for _step, (x_batch, y_batch) in enumerate(ds):
                 target_batch, interactions_batch, sf_batch, node_covar_batch, g_batch = x_batch
@@ -865,23 +866,10 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
         interactions = np.concatenate(interactions, axis=0)
         y = np.concatenate(y, axis=0)
 
-        interactions = np.concatenate(
-            np.expand_dims(np.split(interactions, indices_or_sections=self.n_features_0, axis=1), axis=-1), axis=-1
-        )
-
-        fisher_inv = []
-        with tqdm(total=interactions.shape[1]) as pbar:
-            for i in range(interactions.shape[1]):
-                target_x = interactions[:, i, :]
-                target_fisher_inv = np.divide(
-                    np.expand_dims(np.matmul(target_x.T, target_x), axis=0),
-                    np.expand_dims(np.expand_dims(np.var(y, axis=0), axis=-1), axis=-1),
-                )
-                fisher_inv.append(target_fisher_inv)
-                pbar.update(1)
+        fim_inv = get_fim_inv(interactions, y)
 
         bool_significance, significance = wald_test(
-            params=interaction_params, fisher_inv=fisher_inv, significance_threshold=significance_threshold
+            params=interaction_params, fisher_inv=fim_inv, significance_threshold=significance_threshold
         )
         return interaction_params, bool_significance, significance
 
@@ -1311,8 +1299,8 @@ class InterpreterNoGraph(estimators.EstimatorNoGraph, InterpreterBase):
             g.append(g_batch.numpy().squeeze())
             h_obs.append(y_batch[0].numpy().squeeze())
         return (h_1, sf, node_covar, g), h_obs
-    
-    
+
+
 class InterpreterDeconvolution(estimators.EstimatorDeconvolution, InterpreterBase):
     """Inherits all relevant functions specific to EstimatorDeconvolution estimators."""
 
@@ -1362,7 +1350,7 @@ class InterpreterDeconvolution(estimators.EstimatorDeconvolution, InterpreterBas
             g.append(g_batch.numpy().squeeze())
             h_obs.append(y_batch[0].numpy().squeeze())
         return (target, interactions, sf, node_covar, g), h_obs
-    
+
     def interaction_significance(
         self,
         image_keys,
