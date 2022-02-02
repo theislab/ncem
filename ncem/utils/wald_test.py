@@ -60,15 +60,19 @@ def wald_test(
     from diffxpy.testing.correction import correct
     significance = []
     qvalues = []
-    for idx in range(params.shape[0]):
+    pvalues = []
+    for idx in range(params.T.shape[0]):
         pvals = _get_p_value(params.T, fisher_inv, idx)
-        qvals = correct(pvals)
-        qvalues.append(qvals)
-        sign = qvals < significance_threshold
-        significance.append(sign)
-    qvalues = np.array(qvalues)
-    significance = np.array(significance)
-
+        #qvals = correct(pvals)
+        pvalues.append(pvals)
+        #sign = qvals < significance_threshold
+        #significance.append(sign)
+    pvalues = np.concatenate(pvalues)
+    qvalues = correct(pvalues)
+    qvalues = np.reshape(qvalues, (-1,params.T.shape[1]))  
+    print(qvalues.shape)
+    significance = qvalues < significance_threshold
+    
     qvalues = np.concatenate(
         np.expand_dims(np.split(qvalues, indices_or_sections=np.sqrt(qvalues.shape[0]), axis=0), axis=0),
         axis=0,
