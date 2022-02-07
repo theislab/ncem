@@ -118,7 +118,7 @@ class GraphTools:
         return (diff * diff).sum(1)
 
     def _get_degrees(self, max_distances: list):
-        """Get dgrees.
+        """Get degrees.
 
         Parameters
         ----------
@@ -138,6 +138,160 @@ class GraphTools:
         for dist in max_distances:
             degrees[dist] = [deg[dist] for deg in degs.values()]
         return degrees
+
+    def prepare_spectral_clusters(
+            self,
+            a_dict,
+            n_cluster,
+            k_neighbors=10,
+    ):
+        """
+        Computes spectral clusterings for all graphs of the dataset.
+
+        Parameters
+        ----------
+        a_dict
+            A dict of adjacency matrices.
+        n_cluster : int
+            The number of spectral clusters to be produced for the self-supervision task.
+        k_neighbors : int
+            The number of neighbors used of the knn graph construction.
+
+        Returns
+        -------
+        node_to_cluster_mapping
+            Dictionary mapping image keys to a one hot encoded matrix (n_nodes, n_clusters) assigning graph nodes
+            to their cluster.
+        within_cluster_a
+            Dictionary mapping image keys to transformed adjacency matrices with edges between clusters removed.
+        between_cluster_a
+            Dictionary mapping image keys to adjacency matrices describing the connectivity of the clusters.
+
+        """
+        from sklearn.cluster import SpectralClustering
+        from sklearn.neighbors import kneighbors_graph
+
+        # Compute knn matrices
+        knn_matrices = {
+            image_key: kneighbors_graph(
+                adata.obsm['spatial'],
+                n_neighbors=k_neighbors,
+                mode='connectivity',  # also 'distance' possible
+                include_self=True
+            )
+            for image_key, adata in self.img_celldata.items()
+        }
+
+        # Compute spectral clusters and one-hot encoded assignments from graph nodes to clusters
+        clusterer = SpectralClustering(
+            n_clusters=n_cluster,
+            affinity='precomputed',
+        )
+
+        def to_one_hot(a):
+            res = np.zeros((len(a), np.max(a) + 1))
+            res[np.arange(len(a)), a] = 1
+            return res
+
+        node_to_cluster_mapping = {
+            image_key: to_one_hot(clusterer.fit_predict(X=value))
+            for image_key, value in knn_matrices.items()
+        }
+
+        # Compute adjacency matrices containing only within-cluster edges
+        within_cluster_a = {
+            image_key: a_dict[image_key].multiply(value @ np.transpose(value))
+            for image_key, value in node_to_cluster_mapping.items()
+        }
+
+        # Compute connectivity of clusters
+        between_cluster_a = {
+            key: (np.transpose(node_to_cluster_mapping[key]) @ value @ node_to_cluster_mapping[key] > 0).astype(float)
+                 - np.eye(node_to_cluster_mapping[key].shape[1])
+            for key, value in knn_matrices.items()
+        }
+
+        return node_to_cluster_mapping, within_cluster_a, between_cluster_a
+
+    def get_self_supervision_label(
+        self,
+        label,
+        node_to_cluster_mapping,
+        between_cluster_a,
+
+    ):
+        """
+        Computes a label per cluster used for a self-supervision task. This is usually some form of description of the
+        surrounding of a cluster.
+
+        Parameters
+        ----------
+        label : str
+            Name of the supervision label to be prepared. Valid options are:
+
+            - 'relative_cell_types' - the cell type frequency of all clusters connected to one cluster.
+        node_to_cluster_mapping
+            Dictionary mapping image keys to a one hot encoded matrix (n_nodes, n_clusters) assigning graph nodes
+            to their cluster.
+        between_cluster_a
+            Dictionary mapping image keys to adjacency matrices describing the connectivity of the clusters.
+
+        Returns
+        -------
+        A dict mapping image keys to matrix (n_clusters, n_types) containing the cell type frequencies of all nodes
+        within clusters connected to one cluster for all the cluster.
+        """
+
+        if label == 'relative_cell_types':
+            surrounding_cell_types = {
+                image_key: between_cluster_a[image_key] @ np.transpose(node_to_cluster_mapping[image_key])
+                           @ self.img_celldata[image_key].obsm['node_types']
+                for image_key in node_to_cluster_mapping.keys()
+            }
+            rel_cell_types = {
+                key: value / np.maximum(np.sum(value, axis=1, keepdims=True), np.ones((value.shape[0], 1)))
+                for key, value in surrounding_cell_types.items()
+            }
+            return rel_cell_types
+        else:
+            raise ValueError(f'Self-supervision label {label} not recognized')
+
+    def process_node_features(
+        self,
+        node_feature_transformation: str,
+    ):
+        # Process node-wise features:
+        if node_feature_transformation == 'standardize_per_image':
+            self._standardize_features_per_image()
+        elif node_feature_transformation == 'standardize_globally':
+            self._standardize_overall()
+        elif node_feature_transformation == 'scale_observations':
+            self._scale_observations(n=100)
+        elif node_feature_transformation is None or node_feature_transformation == "none":
+            pass
+        else:
+            raise ValueError('Feature transformation %s not recognized!' % node_feature_transformation)
+
+    def _standardize_features_per_image(self):
+        for adata in self.img_celldata.values():
+            sc.pp.scale(adata)
+
+    def _standardize_overall(self):
+        data = np.concatenate([adata.X for adata in self.img_celldata.values()], axis=0)
+        mean = data.mean(axis=0)
+        std = data.std(axis=0)
+        for adata in self.img_celldata.values():
+            adata.X = adata.X - mean / std
+
+    def _scale_observations(self, n: int):
+        """
+        TPM-like scaling of observation vectors.
+        Only makes sense with positive input.
+        :param n: Total feature count to linearly scale observations into.
+        :return:
+        """
+        for adata in self.img_celldata.values():
+            adata.X = n * adata.X / adata.X.mean(axis=1)
 
     def plot_degree_vs_dist(
         self,
@@ -1641,7 +1795,8 @@ class DataLoader(GraphTools, PlottingTools):
         coord_type: str = 'generic',
         n_rings: int = 1,
         label_selection: Optional[List[str]] = None,
-        n_top_genes: Optional[int] = None
+        n_top_genes: Optional[int] = None,
+        cell_type_coarseness: str = 'fine',
     ):
         """Initialize DataLoader.
 
@@ -1655,6 +1810,7 @@ class DataLoader(GraphTools, PlottingTools):
             label selection.
         """
         self.data_path = data_path
+        self.cell_type_coarseness = cell_type_coarseness
 
         print("Loading data from raw files")
         self.register_celldata(n_top_genes=n_top_genes)
@@ -1753,31 +1909,33 @@ class DataLoaderZhang(DataLoader):
     """DataLoaderZhang class. Inherits all functions from DataLoader."""
 
     cell_type_merge_dict = {
-        "Astrocytes": "Astrocytes",
-        "Endothelial": "Endothelial",
-        "L23_IT": "L2/3 IT",
-        "L45_IT": "L4/5 IT",
-        "L5_IT": "L5 IT",
-        "L5_PT": "L5 PT",
-        "L56_NP": "L5/6 NP",
-        "L6_CT": "L6 CT",
-        "L6_IT": "L6 IT",
-        "L6_IT_Car3": "L6 IT Car3",
-        "L6b": "L6b",
-        "Lamp5": "Lamp5",
-        "Microglia": "Microglia",
-        "OPC": "OPC",
-        "Oligodendrocytes": "Oligodendrocytes",
-        "PVM": "PVM",
-        "Pericytes": "Pericytes",
-        "Pvalb": "Pvalb",
-        "SMC": "SMC",
-        "Sncg": "Sncg",
-        "Sst": "Sst",
-        "Sst_Chodl": "Sst Chodl",
-        "VLMC": "VLMC",
-        "Vip": "Vip",
-        "other": "other",
+        'fine': {
+            "Astrocytes": "Astrocytes",
+            "Endothelial": "Endothelial",
+            "L23_IT": "L2/3 IT",
+            "L45_IT": "L4/5 IT",
+            "L5_IT": "L5 IT",
+            "L5_PT": "L5 PT",
+            "L56_NP": "L5/6 NP",
+            "L6_CT": "L6 CT",
+            "L6_IT": "L6 IT",
+            "L6_IT_Car3": "L6 IT Car3",
+            "L6b": "L6b",
+            "Lamp5": "Lamp5",
+            "Microglia": "Microglia",
+            "OPC": "OPC",
+            "Oligodendrocytes": "Oligodendrocytes",
+            "PVM": "PVM",
+            "Pericytes": "Pericytes",
+            "Pvalb": "Pvalb",
+            "SMC": "SMC",
+            "Sncg": "Sncg",
+            "Sst": "Sst",
+            "Sst_Chodl": "Sst Chodl",
+            "VLMC": "VLMC",
+            "Vip": "Vip",
+            "other": "other",
+        }
     }
 
     def _register_celldata(self, n_top_genes: Optional[int] = None):
@@ -1790,6 +1948,7 @@ class DataLoaderZhang(DataLoader):
             "cluster_col": "subclass",
             "cluster_col_preprocessed": "subclass_preprocessed",
             "patient_col": "mouse",
+            "cell_type_coarseness": self.cell_type_coarseness,
         }
 
         celldata = read_h5ad(os.path.join(self.data_path, metadata["fn"])).copy()
@@ -1809,7 +1968,7 @@ class DataLoaderZhang(DataLoader):
 
         # add clean cluster column which removes regular expression from cluster_col
         celldata.obs[metadata["cluster_col_preprocessed"]] = list(
-            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="str").map(self.cell_type_merge_dict)
+            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="str").map(self.cell_type_merge_dict[self.cell_type_coarseness])
         )
         celldata.obs[metadata["cluster_col_preprocessed"]] = celldata.obs[metadata["cluster_col_preprocessed"]].astype(
             "str"
@@ -1871,19 +2030,21 @@ class DataLoaderJarosch(DataLoader):
     """DataLoaderJarosch class. Inherits all functions from DataLoader."""
 
     cell_type_merge_dict = {
-        "B cells": "B cells",
-        "CD4 T cells": "CD4 T cells",
-        "CD8 T cells": "CD8 T cells",
-        "GATA3+ epithelial": "GATA3+ epithelial",
-        "Ki67 high epithelial": "Ki67 epithelial",
-        "Ki67 low epithelial": "Ki67 epithelial",
-        "Lamina propria cells": "Lamina propria cells",
-        "Macrophages": "Macrophages",
-        "Monocytes": "Monocytes",
-        "PD-L1+ cells": "PD-L1+ cells",
-        "intraepithelial Lymphocytes": "intraepithelial Lymphocytes",
-        "muscular cells": "muscular cells",
-        "other Lymphocytes": "other Lymphocytes",
+        'fine': {
+            "B cells": "B cells",
+            "CD4 T cells": "CD4 T cells",
+            "CD8 T cells": "CD8 T cells",
+            "GATA3+ epithelial": "GATA3+ epithelial",
+            "Ki67 high epithelial": "Ki67 epithelial",
+            "Ki67 low epithelial": "Ki67 epithelial",
+            "Lamina propria cells": "Lamina propria cells",
+            "Macrophages": "Macrophages",
+            "Monocytes": "Monocytes",
+            "PD-L1+ cells": "PD-L1+ cells",
+            "intraepithelial Lymphocytes": "intraepithelial Lymphocytes",
+            "muscular cells": "muscular cells",
+            "other Lymphocytes": "other Lymphocytes",
+        }
     }
 
     def _register_celldata(self, n_top_genes: Optional[int] = None):
@@ -1896,6 +2057,7 @@ class DataLoaderJarosch(DataLoader):
             "cluster_col": "celltype_Level_2",
             "cluster_col_preprocessed": "celltype_Level_2_preprocessed",
             "patient_col": None,
+            "cell_type_coarseness": self.cell_type_coarseness,
         }
 
         celldata = read_h5ad(os.path.join(self.data_path, metadata["fn"]))
@@ -1940,7 +2102,7 @@ class DataLoaderJarosch(DataLoader):
 
         # add clean cluster column which removes regular expression from cluster_col
         celldata.obs[metadata["cluster_col_preprocessed"]] = list(
-            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="category").map(self.cell_type_merge_dict)
+            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="category").map(self.cell_type_merge_dict[self.cell_type_coarseness])
         )
         celldata.obs[metadata["cluster_col_preprocessed"]] = celldata.obs[metadata["cluster_col_preprocessed"]].astype(
             "category"
@@ -2002,14 +2164,16 @@ class DataLoaderHartmann(DataLoader):
     """DataLoaderHartmann class. Inherits all functions from DataLoader."""
 
     cell_type_merge_dict = {
-        "Imm_other": "Other immune cells",
-        "Epithelial": "Epithelial",
-        "Tcell_CD4": "CD4 T cells",
-        "Myeloid_CD68": "CD68 Myeloid",
-        "Fibroblast": "Fibroblast",
-        "Tcell_CD8": "CD8 T cells",
-        "Endothelial": "Endothelial",
-        "Myeloid_CD11c": "CD11c Myeloid",
+        'fine': {
+            "Imm_other": "Other immune cells",
+            "Epithelial": "Epithelial",
+            "Tcell_CD4": "CD4 T cells",
+            "Myeloid_CD68": "CD68 Myeloid",
+            "Fibroblast": "Fibroblast",
+            "Tcell_CD8": "CD8 T cells",
+            "Endothelial": "Endothelial",
+            "Myeloid_CD11c": "CD11c Myeloid",
+        }
     }
 
     def _register_celldata(self, n_top_genes: Optional[int] = None):
@@ -2022,6 +2186,7 @@ class DataLoaderHartmann(DataLoader):
             "cluster_col": "Cluster",
             "cluster_col_preprocessed": "Cluster_preprocessed",
             "patient_col": "donor",
+            "cell_type_coarseness": self.cell_type_coarseness,
         }
         celldata_df = read_csv(os.path.join(self.data_path, metadata["fn"][0]))
         celldata_df["point"] = [f"scMEP_point_{str(x)}" for x in celldata_df["point"]]
@@ -2094,7 +2259,7 @@ class DataLoaderHartmann(DataLoader):
 
         # add clean cluster column which removes regular expression from cluster_col
         celldata.obs[metadata["cluster_col_preprocessed"]] = list(
-            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="category").map(self.cell_type_merge_dict)
+            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="category").map(self.cell_type_merge_dict[self.cell_type_coarseness])
         )
         celldata.obs[metadata["cluster_col_preprocessed"]] = celldata.obs[metadata["cluster_col_preprocessed"]].astype(
             "category"
@@ -2240,15 +2405,17 @@ class DataLoaderPascualReguant(DataLoader):
     """DataLoaderPascualReguant class. Inherits all functions from DataLoader."""
 
     cell_type_merge_dict = {
-        "B cell": "B cells",
-        "Endothelial cells": "Endothelial cells",
-        "ILC": "ILC",
-        "Monocyte/Macrohage/DC": "Monocyte/Macrohage/DC",
-        "NK cell": "NK cells",
-        "Plasma cell": "Plasma cells CD8",
-        "T cytotoxic cell": "T cytotoxic cells",
-        "T helper cell": "T helper cells",
-        "other": "other",
+        'fine': {
+            "B cell": "B cells",
+            "Endothelial cells": "Endothelial cells",
+            "ILC": "ILC",
+            "Monocyte/Macrohage/DC": "Monocyte/Macrohage/DC",
+            "NK cell": "NK cells",
+            "Plasma cell": "Plasma cells CD8",
+            "T cytotoxic cell": "T cytotoxic cells",
+            "T helper cell": "T helper cells",
+            "other": "other",
+        }
     }
 
     def _register_celldata(self, n_top_genes: Optional[int] = None):
@@ -2261,6 +2428,7 @@ class DataLoaderPascualReguant(DataLoader):
             "cluster_col": "cell_class",
             "cluster_col_preprocessed": "cell_class_preprocessed",
             "patient_col": None,
+            "cell_type_coarseness": self.cell_type_coarseness,
         }
         nuclei_df = read_excel(os.path.join(self.data_path, metadata["fn"][0]))
         membranes_df = read_excel(os.path.join(self.data_path, metadata["fn"][1]))
@@ -2332,7 +2500,7 @@ class DataLoaderPascualReguant(DataLoader):
 
         # add clean cluster column which removes regular expression from cluster_col
         celldata.obs[metadata["cluster_col_preprocessed"]] = list(
-            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="category").map(self.cell_type_merge_dict)
+            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="category").map(self.cell_type_merge_dict[self.cell_type_coarseness])
         )
         celldata.obs[metadata["cluster_col_preprocessed"]] = celldata.obs[metadata["cluster_col_preprocessed"]].astype(
             "category"
@@ -2393,35 +2561,68 @@ class DataLoaderSchuerch(DataLoader):
     """DataLoaderSchuerch class. Inherits all functions from DataLoader."""
 
     cell_type_merge_dict = {
-        "B cells": "B cells",
-        "CD11b+ monocytes": "monocytes",
-        "CD11b+CD68+ macrophages": "macrophages",
-        "CD11c+ DCs": "dendritic cells",
-        "CD163+ macrophages": "macrophages",
-        "CD3+ T cells": "CD3+ T cells",
-        "CD4+ T cells": "CD4+ T cells",
-        "CD4+ T cells CD45RO+": "CD4+ T cells",
-        "CD4+ T cells GATA3+": "CD4+ T cells",
-        "CD68+ macrophages": "macrophages",
-        "CD68+ macrophages GzmB+": "macrophages",
-        "CD68+CD163+ macrophages": "macrophages",
-        "CD8+ T cells": "CD8+ T cells",
-        "NK cells": "NK cells",
-        "Tregs": "Tregs",
-        "adipocytes": "adipocytes",
-        "dirt": "dirt",
-        "granulocytes": "granulocytes",
-        "immune cells": "immune cells",
-        "immune cells / vasculature": "immune cells",
-        "lymphatics": "lymphatics",
-        "nerves": "nerves",
-        "plasma cells": "plasma cells",
-        "smooth muscle": "smooth muscle",
-        "stroma": "stroma",
-        "tumor cells": "tumor cells",
-        "tumor cells / immune cells": "immune cells",
-        "undefined": "undefined",
-        "vasculature": "vasculature",
+        'fine': {
+            "B cells": "B cells",
+            "CD11b+ monocytes": "monocytes",
+            "CD11b+CD68+ macrophages": "macrophages",
+            "CD11c+ DCs": "dendritic cells",
+            "CD163+ macrophages": "macrophages",
+            "CD3+ T cells": "CD3+ T cells",
+            "CD4+ T cells": "CD4+ T cells",
+            "CD4+ T cells CD45RO+": "CD4+ T cells",
+            "CD4+ T cells GATA3+": "CD4+ T cells",
+            "CD68+ macrophages": "macrophages",
+            "CD68+ macrophages GzmB+": "macrophages",
+            "CD68+CD163+ macrophages": "macrophages",
+            "CD8+ T cells": "CD8+ T cells",
+            "NK cells": "NK cells",
+            "Tregs": "Tregs",
+            "adipocytes": "adipocytes",
+            "dirt": "dirt",
+            "granulocytes": "granulocytes",
+            "immune cells": "immune cells",
+            "immune cells / vasculature": "immune cells",
+            "lymphatics": "lymphatics",
+            "nerves": "nerves",
+            "plasma cells": "plasma cells",
+            "smooth muscle": "smooth muscle",
+            "stroma": "stroma",
+            "tumor cells": "tumor cells",
+            "tumor cells / immune cells": "immune cells",
+            "undefined": "undefined",
+            "vasculature": "vasculature",
+        },
+        'binary': {
+            'B cells': 'immune cells',
+            'CD11b+ monocytes': 'immune cells',
+            'CD11b+CD68+ macrophages': 'immune cells',
+            'CD11c+ DCs': 'immune cells',
+            'CD163+ macrophages': 'immune cells',
+            'CD3+ T cells': 'immune cells',
+            'CD4+ T cells': 'immune cells',
+            'CD4+ T cells CD45RO+': 'immune cells',
+            'CD4+ T cells GATA3+': 'immune cells',
+            'CD68+ macrophages': 'immune cells',
+            'CD68+ macrophages GzmB+': 'immune cells',
+            'CD68+CD163+ macrophages': 'immune cells',
+            'CD8+ T cells': 'immune cells',
+            'NK cells': 'immune cells',
+            'Tregs': 'immune cells',
+            'adipocytes': 'other',
+            'dirt': 'other',
+            'granulocytes': 'immune cells',
+            'immune cells': 'immune cells',
+            'immune cells / vasculature': 'immune cells',
+            'lymphatics': 'immune cells',
+            'nerves': 'other',
+            'plasma cells': 'other',
+            'smooth muscle': 'other',
+            'stroma': 'other',
+            'tumor cells': 'other',
+            'tumor cells / immune cells': 'immune cells',
+            'undefined': 'other',
+            'vasculature': 'other'
+        },
     }
 
     def _register_celldata(self, n_top_genes: Optional[int] = None):
@@ -2434,6 +2635,7 @@ class DataLoaderSchuerch(DataLoader):
             "cluster_col": "ClusterName",
             "cluster_col_preprocessed": "ClusterName_preprocessed",
             "patient_col": "patients",
+            "cell_type_coarseness": self.cell_type_coarseness,
         }
         celldata_df = read_csv(os.path.join(self.data_path, metadata["fn"]))
 
@@ -2574,7 +2776,7 @@ class DataLoaderSchuerch(DataLoader):
 
         # add clean cluster column which removes regular expression from cluster_col
         celldata.obs[metadata["cluster_col_preprocessed"]] = list(
-            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="category").map(self.cell_type_merge_dict)
+            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="category").map(self.cell_type_merge_dict[self.cell_type_coarseness])
         )
         celldata.obs[metadata["cluster_col_preprocessed"]] = celldata.obs[metadata["cluster_col_preprocessed"]].astype(
             "category"
@@ -2809,30 +3011,32 @@ class DataLoaderLohoff(DataLoader):
     """DataLoaderLohoff class. Inherits all functions from DataLoader."""
 
     cell_type_merge_dict = {
-        'Allantois': 'Allantois',
-        'Anterior somitic tissues': 'Anterior somitic tissues',
-        'Blood progenitors': 'Blood progenitors',
-        'Cardiomyocytes': 'Cardiomyocytes',
-        'Cranial mesoderm': 'Cranial mesoderm',
-        'Definitive endoderm': 'Definitive endoderm',
-        'Dermomyotome': 'Dermomyotome',
-        'Endothelium': 'Endothelium',
-        'Erythroid': 'Erythroid',
-        'ExE endoderm': 'ExE endoderm',
-        'Forebrain/Midbrain/Hindbrain': 'Forebrain/Midbrain/Hindbrain',
-        'Gut tube': 'Gut tube',
-        'Haematoendothelial progenitors': 'Haematoendothelial progenitors',
-        'Intermediate mesoderm': 'Intermediate mesoderm',
-        'Lateral plate mesoderm': 'Lateral plate mesoderm',
-        'Low quality': 'Low quality',
-        'Mixed mesenchymal mesoderm': 'Mixed mesenchymal mesoderm',
-        'NMP': 'NMP',
-        'Neural crest': 'Neural crest',
-        'Presomitic mesoderm': 'Presomitic mesoderm',
-        'Sclerotome': 'Sclerotome',
-        'Spinal cord': 'Spinal cord',
-        'Splanchnic mesoderm': 'Splanchnic mesoderm',
-        'Surface ectoderm': 'Surface ectoderm'
+        'fine': {
+            'Allantois': 'Allantois',
+            'Anterior somitic tissues': 'Anterior somitic tissues',
+            'Blood progenitors': 'Blood progenitors',
+            'Cardiomyocytes': 'Cardiomyocytes',
+            'Cranial mesoderm': 'Cranial mesoderm',
+            'Definitive endoderm': 'Definitive endoderm',
+            'Dermomyotome': 'Dermomyotome',
+            'Endothelium': 'Endothelium',
+            'Erythroid': 'Erythroid',
+            'ExE endoderm': 'ExE endoderm',
+            'Forebrain/Midbrain/Hindbrain': 'Forebrain/Midbrain/Hindbrain',
+            'Gut tube': 'Gut tube',
+            'Haematoendothelial progenitors': 'Haematoendothelial progenitors',
+            'Intermediate mesoderm': 'Intermediate mesoderm',
+            'Lateral plate mesoderm': 'Lateral plate mesoderm',
+            'Low quality': 'Low quality',
+            'Mixed mesenchymal mesoderm': 'Mixed mesenchymal mesoderm',
+            'NMP': 'NMP',
+            'Neural crest': 'Neural crest',
+            'Presomitic mesoderm': 'Presomitic mesoderm',
+            'Sclerotome': 'Sclerotome',
+            'Spinal cord': 'Spinal cord',
+            'Splanchnic mesoderm': 'Splanchnic mesoderm',
+            'Surface ectoderm': 'Surface ectoderm'
+        }
     }
 
     def _register_celldata(self, n_top_genes: Optional[int] = None):
@@ -2845,6 +3049,7 @@ class DataLoaderLohoff(DataLoader):
             "cluster_col": "celltype_mapped_refined",
             "cluster_col_preprocessed": "celltype_mapped_refined",
             "patient_col": "embryo",
+            "cell_type_coarseness": self.cell_type_coarseness,
         }
 
         celldata = read_h5ad(os.path.join(self.data_path, metadata["fn"])).copy()
@@ -2863,7 +3068,7 @@ class DataLoaderLohoff(DataLoader):
 
         # add clean cluster column which removes regular expression from cluster_col
         celldata.obs[metadata["cluster_col_preprocessed"]] = list(
-            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="category").map(self.cell_type_merge_dict)
+            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="category").map(self.cell_type_merge_dict[self.cell_type_coarseness])
         )
         celldata.obs[metadata["cluster_col_preprocessed"]] = celldata.obs[metadata["cluster_col_preprocessed"]].astype(
             "category"
@@ -2924,15 +3129,17 @@ class DataLoaderLuWT(DataLoader):
     """DataLoaderLuWT class. Inherits all functions from DataLoader."""
 
     cell_type_merge_dict = {
-        "1": "AEC",
-        "2": "SEC",
-        "3": "MK",
-        "4": "Hepatocyte",
-        "5": "Macrophage",
-        "6": "Myeloid",
-        "7": "Erythroid progenitor",
-        "8": "Erythroid cell",
-        "9": "Unknown",
+        'fine': {
+            "1": "AEC",
+            "2": "SEC",
+            "3": "MK",
+            "4": "Hepatocyte",
+            "5": "Macrophage",
+            "6": "Myeloid",
+            "7": "Erythroid progenitor",
+            "8": "Erythroid cell",
+            "9": "Unknown",
+        }
     }
 
     def _register_celldata(self, n_top_genes: Optional[int] = None):
@@ -2944,6 +3151,7 @@ class DataLoaderLuWT(DataLoader):
             "pos_cols": ["Center_x", "Center_y"],
             "cluster_col": "CellTypeID_new",
             "cluster_col_preprocessed": "CellTypeID_new_preprocessed",
+            "cell_type_coarseness": self.cell_type_coarseness,
         }
         celldata_df = read_csv(os.path.join(self.data_path, metadata["fn"]))
 
@@ -3104,7 +3312,7 @@ class DataLoaderLuWT(DataLoader):
 
         # add clean cluster column which removes regular expression from cluster_col
         celldata.obs[metadata["cluster_col_preprocessed"]] = list(
-            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="str").map(self.cell_type_merge_dict)
+            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="str").map(self.cell_type_merge_dict[self.cell_type_coarseness])
         )
         celldata.obs[metadata["cluster_col_preprocessed"]] = celldata.obs[metadata["cluster_col_preprocessed"]].astype(
             "str"
@@ -3167,14 +3375,16 @@ class DataLoaderLuWTimputed(DataLoader):
     """DataLoaderLuWTimputed class. Inherits all functions from DataLoader."""
 
     cell_type_merge_dict = {
-        1: "AEC",
-        2: "SEC",
-        3: "MK",
-        4: "Hepatocyte",
-        5: "Macrophage",
-        6: "Myeloid",
-        7: "Erythroid progenitor",
-        8: "Erythroid cell",
+        'fine': {
+            1: "AEC",
+            2: "SEC",
+            3: "MK",
+            4: "Hepatocyte",
+            5: "Macrophage",
+            6: "Myeloid",
+            7: "Erythroid progenitor",
+            8: "Erythroid cell",
+        }
     }
 
     def _register_celldata(self, n_top_genes: Optional[int] = None):
@@ -3186,7 +3396,8 @@ class DataLoaderLuWTimputed(DataLoader):
             "pos_cols": ["Center_x", "Center_y"],
             "cluster_col": "CellTypeID_new",
             "cluster_col_preprocessed": "CellTypeID_new_preprocessed",
-            "n_top_genes": n_top_genes
+            "n_top_genes": n_top_genes,
+            "cell_type_coarseness": self.cell_type_coarseness,
         }
         celldata = read_h5ad(self.data_path + metadata["fn"])
         celldata.uns["metadata"] = metadata
@@ -3237,15 +3448,17 @@ class DataLoaderLuTET2(DataLoader):
     """DataLoaderLuTET2 class. Inherits all functions from DataLoader."""
 
     cell_type_merge_dict = {
-        "1": "AEC",
-        "2": "SEC",
-        "3": "MK",
-        "4": "Hepatocyte",
-        "5": "Macrophage",
-        "6": "Myeloid",
-        "7": "Erythroid progenitor",
-        "8": "Erythroid cell",
-        "9": "Unknown",
+        'fine': {
+            "1": "AEC",
+            "2": "SEC",
+            "3": "MK",
+            "4": "Hepatocyte",
+            "5": "Macrophage",
+            "6": "Myeloid",
+            "7": "Erythroid progenitor",
+            "8": "Erythroid cell",
+            "9": "Unknown",
+        }
     }
 
     def _register_celldata(self, n_top_genes: Optional[int] = None):
@@ -3257,6 +3470,7 @@ class DataLoaderLuTET2(DataLoader):
             "pos_cols": ["Center_x", "Center_y"],
             "cluster_col": "CellTypeID_new",
             "cluster_col_preprocessed": "CellTypeID_new_preprocessed",
+            "cell_type_coarseness": self.cell_type_coarseness,
         }
         celldata_df = read_csv(os.path.join(self.data_path, metadata["fn"]))
 
@@ -3417,7 +3631,7 @@ class DataLoaderLuTET2(DataLoader):
 
         # add clean cluster column which removes regular expression from cluster_col
         celldata.obs[metadata["cluster_col_preprocessed"]] = list(
-            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="str").map(self.cell_type_merge_dict)
+            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="str").map(self.cell_type_merge_dict[self.cell_type_coarseness])
         )
         celldata.obs[metadata["cluster_col_preprocessed"]] = celldata.obs[metadata["cluster_col_preprocessed"]].astype(
             "str"
@@ -3479,21 +3693,23 @@ class DataLoader10xVisiumMouseBrain(DataLoader):
     """DataLoader10xVisiumMouseBrain class. Inherits all functions from DataLoader."""
 
     cell_type_merge_dict = {
-        'Cortex_1': 'Cortex 1',
-        'Cortex_2': 'Cortex 2',
-        'Cortex_3': 'Cortex 3',
-        'Cortex_4': 'Cortex 4',
-        'Cortex_5': 'Cortex 5',
-        'Fiber_tract': 'Fiber tract',
-        'Hippocampus': 'Hippocampus',
-        'Hypothalamus_1': 'Hypothalamus 1',
-        'Hypothalamus_2': 'Hypothalamus 2',
-        'Lateral_ventricle': 'Lateral ventricle',
-        'Pyramidal_layer': 'Pyramidal layer',
-        'Pyramidal_layer_dentate_gyrus': 'Pyramidal layer dentate gyrus',
-        'Striatum': 'Striatum',
-        'Thalamus_1': 'Thalamus 1',
-        'Thalamus_2': 'Thalamus 2'
+        'fine': {
+            'Cortex_1': 'Cortex 1',
+            'Cortex_2': 'Cortex 2',
+            'Cortex_3': 'Cortex 3',
+            'Cortex_4': 'Cortex 4',
+            'Cortex_5': 'Cortex 5',
+            'Fiber_tract': 'Fiber tract',
+            'Hippocampus': 'Hippocampus',
+            'Hypothalamus_1': 'Hypothalamus 1',
+            'Hypothalamus_2': 'Hypothalamus 2',
+            'Lateral_ventricle': 'Lateral ventricle',
+            'Pyramidal_layer': 'Pyramidal layer',
+            'Pyramidal_layer_dentate_gyrus': 'Pyramidal layer dentate gyrus',
+            'Striatum': 'Striatum',
+            'Thalamus_1': 'Thalamus 1',
+            'Thalamus_2': 'Thalamus 2'
+        }
     }
 
     def _register_celldata(self, n_top_genes: Optional[int] = None):
@@ -3505,7 +3721,8 @@ class DataLoader10xVisiumMouseBrain(DataLoader):
             "cluster_col": "cluster",
             "cluster_col_preprocessed": "cluster_preprocessed",
             "patient_col": "in_tissue",
-            "n_top_genes": n_top_genes
+            "n_top_genes": n_top_genes,
+            "cell_type_coarseness": self.cell_type_coarseness,
         }
 
         celldata = read_h5ad(self.data_path + metadata["fn"]).copy()
@@ -3525,7 +3742,7 @@ class DataLoader10xVisiumMouseBrain(DataLoader):
         )
         # add clean cluster column which removes regular expression from cluster_col
         celldata.obs[metadata["cluster_col_preprocessed"]] = list(
-            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="str").map(self.cell_type_merge_dict)
+            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="str").map(self.cell_type_merge_dict[self.cell_type_coarseness])
         )
         celldata.obs[metadata["cluster_col_preprocessed"]] = celldata.obs[metadata["cluster_col_preprocessed"]].astype(
             "str"
@@ -3578,5 +3795,1282 @@ class DataLoader10xVisiumMouseBrain(DataLoader):
             "continuous_mean": {},
             "continuous_std": {},
             "label_data_types": {},
+        }
+        self.celldata.uns["graph_covariates"] = graph_covariates
+
+
+class DataLoaderMetabric(DataLoader):
+    """DataLoaderMetabric class. Inherits all functions from DataLoader."""
+
+    cell_type_merge_dict = {
+        'fine': {
+            'B cells': 'B cells',
+            'Basal CKlow': 'Tumor cells',
+            'Endothelial': 'Endothelial',
+            'Fibroblasts': 'Fibroblasts',
+            'Fibroblasts CD68+': 'Fibroblasts',
+            'HER2+': 'Tumor cells',
+            'HR+ CK7-': 'Tumor cells',
+            'HR+ CK7- Ki67+': 'Tumor cells',
+            'HR+ CK7- Slug+': 'Tumor cells',
+            'HR- CK7+': 'Tumor cells',
+            'HR- CK7-': 'Tumor cells',
+            'HR- CKlow CK5+': 'Tumor cells',
+            'HR- Ki67+': 'Tumor cells',
+            'HRlow CKlow': 'Tumor cells',
+            'Hypoxia': 'Tumor cells',
+            'Macrophages Vim+ CD45low': 'Macrophages',
+            'Macrophages Vim+ Slug+': 'Macrophages',
+            'Macrophages Vim+ Slug-': 'Macrophages',
+            'Myoepithelial': 'Myoepithelial',
+            'Myofibroblasts': 'Myofibroblasts',
+            'T cells': 'T cells',
+            'Vascular SMA+': 'Vascular SMA+'
+        }
+    }
+
+    def _register_celldata(self, n_top_genes: Optional[int] = None):
+        """Load AnnData object of complete dataset."""
+
+        metadata = {
+            "lateral_resolution": None,
+            "fn": "single_cell_data/single_cell_data.csv",
+            "image_col": "ImageNumber",
+            "pos_cols": ['Location_Center_X', 'Location_Center_Y'],
+            "cluster_col": "description",
+            "cluster_col_preprocessed": "description_preprocessed",
+            "patient_col": "metabricId",
+            "cell_type_coarseness": self.cell_type_coarseness,
+        }
+        celldata_df = read_csv(os.path.join(self.data_path, metadata["fn"]))
+
+        cell_count = pd.DataFrame({'count': celldata_df.groupby(metadata['image_col']).size()}).reset_index()
+        img_ids_pass = set([
+            x for x, y in zip(cell_count[metadata['image_col']].values, cell_count["count"].values) if y >= 100
+        ])
+        celldata_df = celldata_df.iloc[np.where([x in img_ids_pass for x in celldata_df[metadata['image_col']].values])[0], :]
+
+        feature_cols = [
+            'HH3_total',
+            'CK19',
+            'CK8_18',
+            'Twist',
+            'CD68',
+            'CK14',
+            'SMA',
+            'Vimentin',
+            'c_Myc',
+            'HER2',
+            'CD3',
+            'HH3_ph',
+            'Erk1_2',
+            'Slug',
+            'ER',
+            'PR',
+            'p53',
+            'CD44',
+            'EpCAM',
+            'CD45',
+            'GATA3',
+            'CD20',
+            'Beta_catenin',
+            'CAIX',
+            'E_cadherin',
+            'Ki67',
+            'EGFR',
+            'pS6',
+            'Sox9',
+            'vWF_CD31',
+            'pmTOR',
+            'CK7',
+            'panCK',
+            'c_PARP_c_Casp3',
+            'DNA1',
+            'DNA2',
+            'H3K27me3',
+            'CK5',
+            'Fibronectin'
+        ]
+        X = DataFrame(np.array(celldata_df[feature_cols]), columns=feature_cols)
+        celldata = AnnData(
+            X=X,
+            obs=celldata_df[[metadata['image_col'], metadata['patient_col'], metadata['cluster_col']]]
+        )
+        celldata.var_names_make_unique()
+
+        celldata.uns["metadata"] = metadata
+        img_keys = list(np.unique(celldata_df[metadata["image_col"]]))
+        celldata.uns["img_keys"] = img_keys
+
+        celldata.obsm["spatial"] = np.array(celldata_df[metadata["pos_cols"]])
+
+        img_to_patient_dict = {
+            str(x): celldata_df[metadata["patient_col"]].values[i]
+            for i, x in enumerate(celldata_df[metadata["image_col"]].values)
+        }
+        celldata.uns["img_to_patient_dict"] = img_to_patient_dict
+        self.img_to_patient_dict = img_to_patient_dict
+
+        # add clean cluster column which removes regular expression from cluster_col
+        celldata.obs[metadata["cluster_col_preprocessed"]] = list(
+            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="category").map(self.cell_type_merge_dict[self.cell_type_coarseness])
+        )
+        celldata.obs[metadata["cluster_col_preprocessed"]] = celldata.obs[metadata["cluster_col_preprocessed"]].astype("category")
+
+        # register node type names
+        node_type_names = list(np.unique(celldata.obs[metadata["cluster_col_preprocessed"]]))
+        celldata.uns["node_type_names"] = {x: x for x in node_type_names}
+        node_types = np.zeros((celldata.shape[0], len(node_type_names)))
+        node_type_idx = np.array(
+            [
+                node_type_names.index(x) for x in celldata.obs[metadata["cluster_col_preprocessed"]].values
+            ]  # index in encoding vector
+        )
+        node_types[np.arange(0, node_type_idx.shape[0]), node_type_idx] = 1
+        celldata.obsm["node_types"] = node_types
+
+        self.celldata = celldata
+
+    def _register_img_celldata(self):
+        """Load dictionary of of image-wise celldata objects with {image key : anndata object of image}."""
+        image_col = self.celldata.uns["metadata"]["image_col"]
+        img_celldata = {}
+        for k in self.celldata.uns["img_keys"]:
+            img_celldata[str(k)] = self.celldata[self.celldata.obs[image_col] == k].copy()
+        self.img_celldata = img_celldata
+
+    def _register_graph_features(self, label_selection):
+        """Load graph level covariates.
+        Parameters
+        ----------
+        label_selection
+            Label selection.
+        """
+        patient_col = 'METABRIC.ID'
+        disease_features = {
+            'grade': 'categorical',
+            'grade_collapsed': 'categorical',
+            'tumor_size': 'continuous',
+            'hist_type': 'categorical',
+            'stage': 'categorical'
+        }
+        patient_features = {
+            'age': 'continuous',
+            'menopausal': 'categorical'
+        }
+        survival_features = {
+            'time_last_seen': 'survival'
+        }
+        tumor_features = {
+            'ERstatus': 'categorical',
+            'lymph_pos': 'continuous'
+
+        }
+        treatment_features = {
+            'CT': 'categorical',
+            'HT': 'categorical',
+            'RT': 'categorical',
+            'surgery': 'categorical',
+            'NPI': 'categorical'
+        }
+        col_renaming = {  # column aliases for convenience within this function
+            'grade': 'Grade',
+            'tumor_size': 'Size',
+            'hist_type': 'Histological.Type',
+            'stage': 'Stage',
+            'age': 'Age.At.Diagnosis',
+            'menopausal': 'Inferred.Menopausal.State',
+            'death_breast': 'DeathBreast',
+            'time_last_seen': 'T',
+            'ERstatus': 'ER.Status',
+            'lymph_pos': 'Lymph.Nodes.Positive',
+            'surgery': 'Breast.Surgery'
+        }
+
+        label_cols = {}
+        label_cols.update(disease_features)
+        label_cols.update(patient_features)
+        label_cols.update(survival_features)
+        label_cols.update(tumor_features)
+        label_cols.update(treatment_features)
+
+        if label_selection is None:
+            label_selection = set(label_cols.keys())
+        else:
+            label_selection = set(label_selection)
+        label_cols_toread = list(label_selection.intersection(set(list(label_cols.keys()))))
+        label_cols_toread = [label for label in label_cols_toread if label != 'grade_collapsed']
+        if 'time_last_seen' in label_selection:
+            censor_col = 'death_breast'
+            label_cols_toread = label_cols_toread + [censor_col]
+        if 'grade_collapsed' in label_selection and 'grade' not in label_selection:
+            label_cols_toread.append('grade')
+        label_cols_toread_csv = [
+            col_renaming[col] if col in list(col_renaming.keys()) else col
+            for col in label_cols_toread
+        ]
+
+        usecols = label_cols_toread_csv + [patient_col] + ['Cohort', 'Date.Of.Diagnosis']
+        tissue_meta_data = read_csv(
+            os.path.join(self.data_path + 'single_cell_data/41586_2019_1007_MOESM7_ESM.csv'),
+            sep='\t',
+            usecols=usecols
+        )[usecols]
+        tissue_meta_data.columns = label_cols_toread + [patient_col] + ['cohort', 'date_of_diagnosis']
+
+        if "grade_collapsed" in label_selection:
+            tissue_meta_data['grade_collapsed'] = ['3' if grade == '3' else '1&2' for grade in
+                                                   tissue_meta_data['grade']]
+        if 'grade_collapsed' in label_selection and 'grade' not in label_selection:
+            tissue_meta_data.drop('grade', 1, inplace=True)
+
+        # BUILD LABEL VECTORS FROM LABEL COLUMNS
+        # The columns contain unprocessed numeric and categorical entries that are now processed to prediction-ready
+        # numeric tensors. Here we first generate a dictionary of tensors for each label (label_tensors). We then
+        # transform this to have as output of this section dictionary by image with a dictionary by labels as values
+        # which can be easily queried by image in a data generator.
+        # Subset labels and label types:
+        label_cols = {label: type for label, type in label_cols.items() if label in label_selection}
+        label_tensors = {}
+        label_names = {}  # Names of individual variables in each label vector (eg. categories in onehot-encoding).
+        # 1. Standardize continuous labels to z-scores:
+        continuous_mean = {
+            feature: tissue_meta_data[feature].mean(skipna=True)
+            for feature in list(label_cols.keys())
+            if label_cols[feature] == 'continuous'
+        }
+        continuous_std = {
+            feature: tissue_meta_data[feature].std(skipna=True)
+            for feature in list(label_cols.keys())
+            if label_cols[feature] == 'continuous'
+        }
+        for i, feature in enumerate(list(label_cols.keys())):
+            if label_cols[feature] == 'continuous':
+                label_tensors[feature] = (tissue_meta_data[feature].values - continuous_mean[feature]) \
+                                         / continuous_std[feature]
+                label_names[feature] = [feature]
+        # 2. One-hot encode categorical columns
+        # Force all entries in categorical columns to be string so that GLM-like formula processing can be performed.
+        for i, feature in enumerate(list(label_cols.keys())):
+            if label_cols[feature] == 'categorical':
+                tissue_meta_data[feature] = tissue_meta_data[feature].astype('str')
+        # One-hot encode each string label vector:
+        for i, feature in enumerate(list(label_cols.keys())):
+            if label_cols[feature] == 'categorical':
+                oh = pd.get_dummies(
+                    tissue_meta_data[feature],
+                    prefix=feature,
+                    prefix_sep='>',
+                    drop_first=False
+                )
+                # Change all entries of corresponding observation to np.nan instead.
+                idx_nan_col = np.array([i for i, x in enumerate(oh.columns) if x.endswith('>nan')])
+                if len(idx_nan_col) > 0:
+                    assert len(idx_nan_col) == 1, "fatal processing error"
+                    nan_rows = np.where(oh.iloc[:, idx_nan_col[0]].values == 1.)[0]
+                    oh.loc[nan_rows, :] = np.nan
+                # Drop nan element column.
+                oh = oh.loc[:, [x for x in oh.columns if not x.endswith('>nan')]]
+                label_tensors[feature] = oh.values
+                label_names[feature] = oh.columns
+        # 3. Add censoring information to survival
+        survival_mean = {
+            feature: tissue_meta_data[feature].mean(skipna=True)
+            for feature in list(label_cols.keys())
+            if label_cols[feature] == 'survival'
+        }
+        for i, feature in enumerate(list(label_cols.keys())):
+            if label_cols[feature] == 'survival':
+                label_tensors[feature] = np.concatenate([
+                    np.expand_dims(tissue_meta_data[feature].values / survival_mean[feature], axis=1),
+                    np.expand_dims(tissue_meta_data[censor_col].values, axis=1),
+                ], axis=1)
+                label_names[feature] = [feature]
+        # Make sure all tensors are 2D for indexing:
+        for feature in list(label_tensors.keys()):
+            if len(label_tensors[feature].shape) == 1:
+                label_tensors[feature] = np.expand_dims(label_tensors[feature], axis=1)
+        # The dictionary of tensor is nested in slices in a dictionary by image which is easier to query with a
+        # generator.
+        tissue_meta_data_patients = tissue_meta_data[patient_col].values.tolist()
+        label_tensors = {
+            img: {
+                feature_name: np.array(features[tissue_meta_data_patients.index(patient), :], ndmin=1)
+                for feature_name, features in label_tensors.items()
+            } if patient in tissue_meta_data_patients else None
+            for img, patient in self.img_to_patient_dict.items()
+        }
+        # Reduce data to patients with graph-level labels:
+        label_tensors = {k: v for k, v in label_tensors.items() if v is not None}
+        img_keys = label_tensors.keys()
+        self.img_celldata = {k: adata for k, adata in self.img_celldata.items() if k in img_keys}
+        im_col = self.celldata.uns['metadata']['image_col']
+        self.celldata = self.celldata[[str(im) in img_keys for im in self.celldata.obs[im_col]]]
+
+        img_to_patient_dict = {im: pat for im, pat in self.img_to_patient_dict.items() if im in img_keys}
+        self.celldata.uns['img_to_patient_dict'] = img_to_patient_dict
+        for adata in self.img_celldata.values():
+            adata.uns['img_to_patient_dict'] = img_to_patient_dict
+        self.img_to_patient_dict = img_to_patient_dict
+
+        # Save processed data to attributes.
+        for k, adata in self.img_celldata.items():
+            graph_covariates = {
+                "label_names": label_names,
+                "label_tensors": label_tensors[k],
+                "label_selection": list(label_cols.keys()),
+                "continuous_mean": continuous_mean,
+                "continuous_std": continuous_std,
+                "label_data_types": label_cols,
+            }
+            adata.uns["graph_covariates"] = graph_covariates
+
+        graph_covariates = {
+            "label_names": label_names,
+            "label_selection": list(label_cols.keys()),
+            "continuous_mean": continuous_mean,
+            "continuous_std": continuous_std,
+            "label_data_types": label_cols,
+        }
+        self.celldata.uns["graph_covariates"] = graph_covariates
+
+
+class DataLoaderBaselZurichZenodo(DataLoader):
+    """DataLoaderBaselZurichZenodo class. Inherits all functions from DataLoader."""
+
+    cell_type_merge_dict = {
+        'fine': {
+            "1": "B cells",
+            "2": "T and B cells",
+            "3": "T cells",
+            "4": "macrophages",
+            "5": "T cells",
+            "6": "macrophages",
+            "7": "endothelial",
+            "8": "stromal cells", # "vimentin hi stromal cell",
+            "9": "stromal cells", # "small circular stromal cell",
+            "10": "stromal cells", # "small elongated stromal cell",
+            "11": "stromal cells", # "fibronectin hi stromal cell",
+            "12": "stromal cells", # "large elongated stromal cell",
+            "13": "stromal cells", # "SMA hi vimentin hi stromal cell",
+            "14": "tumor cells", #"hypoxic tumor cell",
+            "15": "tumor cells", #"apoptotic tumor cell",
+            "16": "tumor cells", #"proliferative tumor cell",
+            "17": "tumor cells", #"p53+ EGFR+ tumor cell",
+            "18": "tumor cells", #"basal CK tumor cell",
+            "19": "tumor cells", #"CK7+ CK hi cadherin hi tumor cell",
+            "20": "tumor cells", #"CK7+ CK+ tumor cell",
+            "21": "tumor cells", #"epithelial low tumor cell",
+            "22": "tumor cells", #"CK low HR low tumor cell",
+            "23": "tumor cells", #"CK+ HR hi tumor cell",
+            "24": "tumor cells", #"CK+ HR+ tumor cell",
+            "25": "tumor cells", #"CK+ HR low tumor cell",
+            "26": "tumor cells", #"CK low HR hi p53+ tumor cell",
+            "27": "tumor cells", #"myoepithelial tumor cell"
+        }
+    }
+
+    def _register_images(self):
+        """
+        Creates mapping of full image names to shorter identifiers.
+        """
+
+        # Define mapping of image identifiers to numeric identifiers:
+        img_tab_basel = read_csv(
+            self.data_path + 'Data_publication/BaselTMA/Basel_PatientMetadata.csv',
+            usecols=['core', 'FileName_FullStack', 'PID', 'diseasestatus'],
+            dtype={'core': str, 'FileName_FullStack': str, 'PID': str, 'diseasestatus': str}
+        )
+        img_tab_basel['PID'] = ["b" + str(p) for p in img_tab_basel['PID'].values]
+        img_tab_zurich = read_csv(
+            self.data_path + 'Data_publication/ZurichTMA/Zuri_PatientMetadata.csv',
+            usecols=['core', 'FileName_FullStack', 'grade', 'PID', 'location'],
+            dtype={'core': str, 'FileName_FullStack': str, 'grade': str, 'PID': str, 'location': str}
+        )
+        img_tab_zurich['PID'] = ["z" + str(p) for p in img_tab_zurich['PID'].values]
+        img_tab_zurich['diseasestatus'] = [
+            'tumor' if a else 'non-tumor' for a in img_tab_zurich['location'] != '[]'
+        ]
+        img_tab_zurich = img_tab_zurich.drop('location', axis=1)
+        # drop Metastasis images
+        img_tab_zurich = img_tab_zurich[img_tab_zurich['grade'] != 'METASTASIS'].drop('grade', axis=1)
+        img_tab_bz = pd.concat([img_tab_basel, img_tab_zurich], axis=0, sort=True, ignore_index=True)
+        img_tab_bz = img_tab_bz[img_tab_bz['diseasestatus'] == 'tumor']
+
+        self.img_key_to_fn = dict(img_tab_bz[['core', 'FileName_FullStack']].values)
+        self.img_to_patient_dict = dict(img_tab_bz[['core', 'PID']].values)
+
+    def _load_node_positions(self):
+        from PIL import Image
+
+        position_matrix = []
+        for k, fn in self.img_key_to_fn.items():
+            fn = self.data_path + "OMEnMasks/Basel_Zuri_masks/" + fn
+            # Mask file have slightly different file name, extended either by _mask or _maks:
+            if os.path.exists(".".join(fn.split(".")[:-1]) + "_maks.tiff"):
+                fn = ".".join(fn.split(".")[:-1]) + "_maks.tiff"
+            elif os.path.exists(".".join(fn.split(".")[:-1]) + "_mask.tiff"):
+                fn = ".".join(fn.split(".")[:-1]) + "_mask.tiff"
+            else:
+                raise ValueError("file %s not found" % fn)
+
+            # Load image from tiff:
+            img_array = np.array(Image.open(fn))
+            # Throughout all files, nodes are refered to via the string core_id+"_"+str(i) where i is the integer
+            # encoding the object in the segmentation mask.
+            node_ids_img = np.sort(np.unique(img_array))
+            # 0 encodes background:
+            node_ids_img = node_ids_img[node_ids_img != 0]
+            # Only ranks of objects encoded in masks are used!  # TODO check
+            node_ids_rank = np.arange(1, len(node_ids_img) + 1)
+            # Drop images with fewer than 100 nodes
+            if len(node_ids_rank) < 100:
+                continue
+            # Find centre of object mask of each node:  # TODO check, rank used
+            center_array = [np.where(img_array == node_ids_img[i - 1]) for i in node_ids_rank]
+            pm = np.array([[f'{k}_{i+1}', x[0].mean(), x[1].mean()] for i, x in enumerate(center_array)])
+            position_matrix.append(pm)
+        position_matrix = np.concatenate(position_matrix, axis=0)
+        position_matrix = pd.DataFrame(position_matrix, columns=['id', 'x', 'y'])
+        return position_matrix
+
+    def _load_node_features(self):
+        full_cell_key_col = "id"  # column with full cell identifier (including image identifier)
+        feature_col = "channel"
+        signal_col = "mc_counts"
+
+        features_basel = read_csv(
+            self.data_path + 'Data_publication/BaselTMA/SC_dat.csv',
+            usecols=[full_cell_key_col, feature_col, signal_col],
+            dtype={full_cell_key_col: str, feature_col: str, signal_col: float}
+        )
+        features_zurich = read_csv(
+            self.data_path + 'Data_publication/ZurichTMA/SC_dat.csv',
+            usecols=[full_cell_key_col, feature_col, signal_col],
+            dtype={full_cell_key_col: str, feature_col: str, signal_col: float}
+        )
+        features_zb = pd.concat([
+            features_basel,
+            features_zurich
+        ], axis=0, ignore_index=True)
+        node_features = features_zb.pivot_table(index='id', columns='channel', values='mc_counts')
+
+        return node_features
+
+    def _load_node_types(self):
+        """
+        Loads the cell types.
+        """
+        # Direct meta cluster annotation from main text Fig 1b
+        # Also hard coded maps from cluster numbers to annotation as in https://github.com/BodenmillerGroup/SCPathology_publication/blob/4e99e10c2bc6d0f1dd168d534df39870d1ecb549/R/BaselTMA_pipeline.Rmd#L471
+
+        full_cell_key_col = "id"  # column with full cell identifier (including image identifier)
+        cluster_col = "cluster"
+        node_cluster_basel = read_csv(
+            self.data_path + 'Cluster_labels/Basel_metaclusters.csv',
+            usecols=[full_cell_key_col, cluster_col],
+            dtype={full_cell_key_col: str, cluster_col: str}
+        )
+        node_cluster_zurich = read_csv(
+            self.data_path + 'Cluster_labels/Zurich_matched_metaclusters.csv',
+            usecols=[full_cell_key_col, cluster_col],
+            dtype={full_cell_key_col: str, cluster_col: str}
+        )
+        node_cluster = pd.concat([
+            node_cluster_basel,
+            node_cluster_zurich
+        ], axis=0, ignore_index=True)
+
+        return node_cluster
+
+    def _register_celldata(self, n_top_genes: Optional[int] = None):
+        """Load AnnData object of complete dataset."""
+        self._register_images()
+        position_matrix = self._load_node_positions()
+        node_features = self._load_node_features()
+        node_types = self._load_node_types()
+
+        node_types.set_index('id', inplace=True)
+        position_matrix.set_index('id', inplace=True)
+        celldata_df = pd.concat([position_matrix, node_features, node_types], axis=1, ignore_index=False, join='outer')
+        celldata_df = celldata_df[celldata_df['x'] == celldata_df['x']]
+
+        celldata_df['core'] = ['_'.join(a.split('_')[:-1]) for a in celldata_df.index]
+        celldata_df['PID'] = [self.img_to_patient_dict[c] for c in celldata_df['core']]
+
+        metadata = {
+            "lateral_resolution": None,
+            "fn": None,
+            "image_col": "core",
+            "pos_cols": ["x", "y"],
+            "cluster_col": "cluster",
+            "cluster_col_preprocessed": "cluster_preprocessed",
+            "patient_col": "PID",
+            "cell_type_coarseness": self.cell_type_coarseness,
+        }
+
+        feature_cols = [
+            '1021522Tm169Di EGFR',
+            '1031747Er167Di ECadhe',
+            '112475Gd156Di Estroge',
+            '117792Dy163Di GATA3',
+            '1261726In113Di Histone',
+            '1441101Er168Di Ki67',
+            '174864Nd148Di SMA',
+            '1921755Sm149Di Vimenti',
+            '198883Yb176Di cleaved',
+            '201487Eu151Di cerbB',
+            '207736Tb159Di p53',
+            '234832Lu175Di panCyto',
+            '3111576Nd143Di Cytoker',
+            'Nd145Di Twist',
+            '312878Gd158Di Progest',
+            '322787Nd150Di cMyc',
+            '3281668Nd142Di Fibrone',
+            '346876Sm147Di Keratin',
+            '3521227Gd155Di Slug',
+            '361077Dy164Di CD20',
+            '378871Yb172Di vWF',
+            '473968La139Di Histone',
+            '651779Pr141Di Cytoker',
+            '6967Gd160Di CD44',
+            '71790Dy162Di CD45',
+            '77877Nd146Di CD68',
+            '8001752Sm152Di CD3epsi',
+            '92964Er166Di Carboni',
+            '971099Nd144Di Cytoker',
+            '98922Yb174Di Cytoker',
+            'phospho Histone',
+            'phospho S6',
+            'phospho mTOR',
+            'Area'
+        ]
+
+        X = DataFrame(np.array(celldata_df[feature_cols]), columns=feature_cols)
+        celldata = AnnData(X=X, obs=celldata_df[[metadata['image_col'], metadata['patient_col'], metadata['cluster_col']]])
+        celldata.var_names_make_unique()
+
+        celldata.uns["metadata"] = metadata
+        img_keys = list(np.unique(celldata_df[metadata["image_col"]]))
+        celldata.uns["img_keys"] = img_keys
+
+        celldata.obsm["spatial"] = np.array(celldata_df[metadata["pos_cols"]])
+
+        img_to_patient_dict = {
+            str(x): celldata_df[metadata["patient_col"]].values[i]
+            for i, x in enumerate(celldata_df[metadata["image_col"]].values)
+        }
+        celldata.uns["img_to_patient_dict"] = img_to_patient_dict
+        self.img_to_patient_dict = img_to_patient_dict
+
+        # add clean cluster column which removes regular expression from cluster_col
+        celldata.obs[metadata["cluster_col_preprocessed"]] = list(
+            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="category").map(self.cell_type_merge_dict[self.cell_type_coarseness])
+        )
+        celldata.obs[metadata["cluster_col_preprocessed"]] = celldata.obs[
+            metadata["cluster_col_preprocessed"]].astype(
+            "category"
+        )
+
+        # register node type names
+        types = celldata.obs[metadata["cluster_col_preprocessed"]]
+
+        node_type_names = list(np.unique(types[types == types]))
+        celldata.uns["node_type_names"] = {x: x for x in node_type_names}
+        node_types = np.zeros((celldata.shape[0], len(node_type_names)))
+        node_type_idx = np.array(
+            [
+                node_type_names.index(x) if x == x else 0
+                for x in types
+            ]  # index in encoding vector
+        )
+        node_types[np.arange(0, node_type_idx.shape[0]), node_type_idx] = types == types
+        celldata.obsm["node_types"] = node_types
+
+        self.celldata = celldata
+
+    def _register_img_celldata(self):
+        """Load dictionary of of image-wise celldata objects with {imgage key : anndata object of image}."""
+        image_col = self.celldata.uns["metadata"]["image_col"]
+        img_celldata = {}
+        for k in self.celldata.uns["img_keys"]:
+            img_celldata[str(k)] = self.celldata[self.celldata.obs[image_col] == k].copy()
+        self.img_celldata = img_celldata
+
+    def _register_graph_features(self, label_selection):
+        """Load graph level covariates.
+        Parameters
+        ----------
+        label_selection
+            Label selection.
+        """
+        # DEFINE COLUMN NAMES FOR TABULAR DATA.
+        # Define column names to extract from patient-wise tabular data:
+        patient_col = 'PID'
+        img_key_col = 'core'
+        # These are required to assign the image to dieased and non-diseased:
+        image_status_cols = ['location', 'diseasestatus']
+        # Labels are defined as a column name and a label type:
+        disease_features = {
+            'grade': 'categorical',
+            'grade_collapsed': 'categorical',
+            'tumor_size': 'continuous',
+            'diseasestatus': 'categorical',
+            'location': 'categorical',
+            'tumor_type': 'categorical'
+        }
+        patient_features = {
+            'age': 'continuous'
+        }
+        survival_features = {
+            'Patientstatus': 'categorical',
+            'DFSmonth': 'survival',
+            'OSmonth': 'survival'
+        }
+        tumor_featues = {
+            'clinical_type': 'categorical',
+            'Subtype': 'categorical',
+            'PTNM_M': 'categorical',
+            'PTNM_T': 'categorical',
+            'PTNM_N': 'categorical',
+            'PTNM_Radicality': 'categorical',
+            'Lymphaticinvasion': 'categorical',
+            'Venousinvasion': 'categorical',
+            'ERStatus': 'categorical',
+            'PRStatus': 'categorical',
+            'HER2Status': 'categorical',
+            # 'ER+DuctalCa': 'categorical',
+            'TripleNegDuctal': 'categorical',
+            # 'hormonesensitive': 'categorical',
+            # 'hormoneresistantaftersenstive': 'categorical',
+            'microinvasion': 'categorical',
+            'I_plus_neg': 'categorical',
+            'SN': 'categorical',
+            # 'MIC': 'categorical'
+        }
+        treatment_feature = {
+            'Pre-surgeryTx': 'categorical',
+            'Post-surgeryTx': 'categorical'
+        }
+        batch_features = {
+            'TMABlocklabel': 'categorical',
+            'Yearofsamplecollection': 'continuous'
+        }
+        ncell_features = {  # not used right now
+            '%tumorcells': 'percentage',
+            '%normalepithelialcells': 'percentage',
+            '%stroma': 'percentage',
+            '%inflammatorycells': 'percentage',
+            'Count_Cells': 'continuous'
+        }
+        label_cols = {}
+        label_cols.update(disease_features)
+        label_cols.update(patient_features)
+        label_cols.update(survival_features)
+        label_cols.update(tumor_featues)
+        label_cols.update(treatment_feature)
+        label_cols.update(batch_features)
+        label_cols.update(ncell_features)
+        # Clean selected labels based on defined labels:
+        if label_selection is None:
+            label_selection = set(label_cols.keys())
+        else:
+            label_selection = set(label_selection)
+        label_cols_toread = list(label_selection.intersection(set(list(label_cols.keys()))))
+        # Make sure censoring information is read if surival is predicted:
+        if 'DFSmonth' in label_cols_toread:
+            if 'OSmonth' not in label_cols_toread:
+                label_cols_toread.append('OSmonth')
+        if 'OSmonth' in label_cols_toread:
+            if 'Patientstatus' not in label_cols_toread:
+                label_cols_toread.append('Patientstatus')
+        if 'grade_collapsed' in label_selection and 'grade' not in label_selection:
+            label_cols_toread.append('grade')
+
+        # READ RAW LABELS, COVARIATES AND IDENTIFIERS FROM TABLES.
+        # Read all labels and image- and patient-identifiers from table. This full set is overlapped to the existing
+        # columns of file so that files with different column spaces can be read.
+        # The patients are renamed for each patient set with a prefix to guarantee uniqueness.
+        # The output of this workflow is (1) a single table with rows for each image and with all columns modified
+        # so that the can further be processed to tensors of labels and covariates through GLM formula-like commands and
+        # (2) indices of diseased and non-diseased images in this table.
+        cols_toread = [patient_col, img_key_col] + image_status_cols + label_cols_toread  # full list of columns to read
+        # Read Basel data.
+        cols_found_basel = read_csv(self.data_path + "Data_publication/BaselTMA/Basel_PatientMetadata.csv", nrows=0)
+        cols_toread_basel = set(cols_found_basel.columns) & set(cols_toread)
+        tissue_meta_data_basel = read_csv(
+            self.data_path + "Data_publication/BaselTMA/Basel_PatientMetadata.csv",
+            usecols=cols_toread_basel
+        )
+        tissue_meta_data_basel[patient_col] = ["b" + str(x) for x in tissue_meta_data_basel[patient_col].values]
+        # Read Zuri data.
+        cols_found_zuri = read_csv(self.data_path + "Data_publication/ZurichTMA/Zuri_PatientMetadata.csv", nrows=0)
+        cols_toread_zuri = set(cols_found_zuri.columns) & set(cols_toread)
+        tissue_meta_data_zuri = read_csv(
+            self.data_path + "Data_publication/ZurichTMA/Zuri_PatientMetadata.csv",
+            usecols=cols_toread_zuri
+        )
+        tissue_meta_data_zuri[patient_col] = ["z" + str(x) for x in tissue_meta_data_zuri[patient_col].values]
+
+        # Modify specific columns:
+        # The diseasestatus is not given in the Zuri data but can be inferred from the location column.
+        tissue_meta_data_zuri['diseasestatus'] = [
+            'tumor' if a else 'non-tumor' for a in tissue_meta_data_zuri['location'] != '[]'
+        ]
+        # Tumor size is masked if the image does not contain a tumor:
+        if 'tumor_size' in label_selection:
+            no_tumor = list(tissue_meta_data_basel['diseasestatus'] == 'non-tumor')
+            tissue_meta_data_basel.loc[no_tumor, 'tumor_size'] = np.nan
+        # Add missing Patientstatus and survival labels in Zuri data that are only given in Basel data set:
+        if 'Patientstatus' in label_selection:
+            tissue_meta_data_zuri['Patientstatus'] = np.nan
+        if 'OSmonth' in label_selection:
+            tissue_meta_data_zuri['OSmonth'] = np.nan
+        if 'DFSmonth' in label_selection:
+            tissue_meta_data_zuri['DFSmonth'] = np.nan
+        # Add censoring column if survival is given:
+        # All states recorded: alive, alive w metastases, death, death by primary disease
+        # Also densor non-disease caused death.
+        if 'OSmonth' in label_selection:
+            tissue_meta_data_basel['censor_OS'] = [
+                0 if x in ["alive", "alive w metastases"] else 1  # penalty-scale for over-estimation
+                for x in tissue_meta_data_basel['Patientstatus'].values
+            ]
+            tissue_meta_data_zuri["censor_OS"] = np.nan
+
+        if 'DFSmonth' in label_selection:
+            tissue_meta_data_basel['censor_DFS'] = [
+                0 if tissue_meta_data_basel['OSmonth'][idx] == tissue_meta_data_basel['DFSmonth'][idx] else 1
+                for idx in tissue_meta_data_basel['OSmonth'].index
+            ]
+            tissue_meta_data_zuri["censor_DFS"] = np.nan
+
+        # Replace missing observations labeled as "[]" for PTNM_N, PTNM_M, PTNM_T
+        if 'PTNM_N' in label_selection:
+            tissue_meta_data_zuri['PTNM_N'] = [a[1:] for a in tissue_meta_data_zuri['PTNM_N']]
+            tissue_meta_data_zuri['PTNM_N'].replace(']', 'nan', inplace=True)
+        if 'PTNM_M' in label_selection:
+            tissue_meta_data_zuri['PTNM_M'] = [a[1:] for a in tissue_meta_data_zuri['PTNM_M']]
+            tissue_meta_data_zuri['PTNM_M'].replace(']', 'nan', inplace=True)
+        if 'PTNM_T' in label_selection:
+            tissue_meta_data_zuri['PTNM_T'] = [a[1:] for a in tissue_meta_data_zuri['PTNM_T']]
+            tissue_meta_data_zuri['PTNM_T'].replace(']', 'nan', inplace=True)
+
+        # Merge Basel and Zuri data.
+        tissue_meta_data = pd.concat([
+            tissue_meta_data_basel,
+            tissue_meta_data_zuri
+        ], axis=0, sort=True, ignore_index=True)
+
+        if "grade_collapsed" in label_selection:
+            tissue_meta_data['grade_collapsed'] = ['3' if grade == '3' else '1&2' for grade in
+                                                   tissue_meta_data['grade']]
+
+        # Drop already excluded images (e.g. METASTASIS or to few nodes)
+        tissue_meta_data = tissue_meta_data[tissue_meta_data[img_key_col].isin(list(self.img_to_patient_dict.keys()))].reset_index()
+
+        # Final processing:
+        # Remove columns that are only used to infer missing entries in other columns:
+        if 'location' not in label_selection:
+            tissue_meta_data.drop('location', 1, inplace=True)
+        if 'grade_collapsed' in label_selection and 'grade' not in label_selection:
+            tissue_meta_data.drop('grade', 1, inplace=True)
+        # Some non-label columns remain in the table as these are used to build objects that subset images into groups,
+        # these columns are removed below once their information is processed. These columns are, if they are not
+        # among the chosen labels:
+        # ["diseasestatus", patient_col]
+
+        # Remove diseasestatus column that is only used to assign diseased and non-diseased index vectors from meta
+        # data table:
+        if 'diseasestatus' not in label_selection:
+            tissue_meta_data.drop('diseasestatus', 1, inplace=True)
+
+        # BUILD LABEL VECTORS FROM LABEL COLUMNS
+        # The columns contain unprocessed numeric and categorical entries that are now processed to prediction-ready
+        # numeric tensors. Here we first generate a dictionary of tensors for each label (label_tensors). We then
+        # transform this to have as output of this section dictionary by image with a dictionary by labels as values
+        # which can be easily queried by image in a data generator.
+        # Subset labels and label types:
+        label_cols = {label: type for label, type in label_cols.items() if label in label_selection}
+        label_tensors = {}
+        label_names = {}  # Names of individual variables in each label vector (eg. categories in onehot-encoding).
+        # 1. Standardize continuous labels to z-scores:
+        continuous_mean = {
+            feature: tissue_meta_data[feature].mean(skipna=True)
+            for feature in list(label_cols.keys())
+            if label_cols[feature] == 'continuous'
+        }
+        continuous_std = {
+            feature: tissue_meta_data[feature].std(skipna=True)
+            for feature in list(label_cols.keys())
+            if label_cols[feature] == 'continuous'
+        }
+        for i, feature in enumerate(list(label_cols.keys())):
+            if label_cols[feature] == 'continuous':
+                label_tensors[feature] = (tissue_meta_data[feature].values - continuous_mean[feature]) / continuous_std[
+                    feature]
+                label_names[feature] = [feature]
+        # 2. Scale percentages into [0, 1]
+        for i, feature in enumerate(list(label_cols.keys())):
+            if label_cols[feature] == 'percentage':
+                # Take "%" out of name if present
+                feature_renamed = feature.replace('%', 'percentage_')
+                label_cols = dict([(k, v) if k != feature else (feature_renamed, v) for k, v in label_cols.items()])
+                label_tensors[feature_renamed] = tissue_meta_data[feature].values / 100.
+                label_names[feature_renamed] = [feature_renamed]
+        # 3. One-hot encode categorical columns
+        # Force all entries in categorical columns to be string so that GLM-like formula processing can be performed.
+        for i, feature in enumerate(list(label_cols.keys())):
+            if label_cols[feature] == 'categorical':
+                tissue_meta_data[feature] = tissue_meta_data[feature].astype('str')
+        # One-hot encode each string label vector:
+        for i, feature in enumerate(list(label_cols.keys())):
+            if label_cols[feature] == 'categorical':
+                oh = pd.get_dummies(
+                    tissue_meta_data[feature],
+                    prefix=feature,
+                    prefix_sep='>',
+                    drop_first=False
+                )
+                # Change all entries of corresponding observation to np.nan instead.
+                idx_nan_col = np.array([i for i, x in enumerate(oh.columns) if x.endswith('>nan')])
+                if len(idx_nan_col) > 0:
+                    assert len(idx_nan_col) == 1, "fatal processing error"
+                    nan_rows = np.where(oh.iloc[:, idx_nan_col[0]].values == 1.)[0]
+                    oh.loc[nan_rows, :] = np.nan
+                # Drop nan element column.
+                oh = oh.loc[:, [x for x in oh.columns if not x.endswith('>nan')]]
+                label_tensors[feature] = oh.values
+                label_names[feature] = oh.columns
+        # 4. Add censoring information to survival
+        survival_mean = {
+            feature: tissue_meta_data[feature].mean(skipna=True)
+            for feature in list(label_cols.keys())
+            if label_cols[feature] == 'survival'
+        }
+        for i, feature in enumerate(list(label_cols.keys())):
+            if label_cols[feature] == 'survival':
+                if feature == 'DFSmonth':
+                    censor_col = 'censor_DFS'
+                if feature == 'OSmonth':
+                    censor_col = 'censor_OS'
+                label_tensors[feature] = np.concatenate([
+                    np.expand_dims(tissue_meta_data[feature].values / survival_mean[feature], axis=1),
+                    np.expand_dims(tissue_meta_data[censor_col].values, axis=1),
+                ], axis=1)
+                label_names[feature] = [feature]
+        # Make sure all tensors are 2D for indexing:
+        for feature in list(label_tensors.keys()):
+            if len(label_tensors[feature].shape) == 1:
+                label_tensors[feature] = np.expand_dims(label_tensors[feature], axis=1)
+        # The dictionary of tensor is nested in slices in a dictionary by image which is easier to query with a
+        # generator.
+        images = tissue_meta_data[img_key_col].values.tolist()
+        assert np.all([len(list(self.img_to_patient_dict.keys())) == x.shape[0] for x in list(label_tensors.values())]), \
+            "fatal processing error"
+        label_tensors = {
+            img: {
+                kk: np.array(vv[images.index(img), :], ndmin=1)
+                for kk, vv in label_tensors.items()  # iterate over labels
+            } for img in self.img_to_patient_dict.keys()  # iterate over images
+        }
+
+        # Save processed data to attributes.
+        for k, adata in self.img_celldata.items():
+            graph_covariates = {
+                "label_names": label_names,
+                "label_tensors": label_tensors[k],
+                "label_selection": list(label_cols.keys()),
+                "continuous_mean": continuous_mean,
+                "continuous_std": continuous_std,
+                "label_data_types": label_cols,
+            }
+            adata.uns["graph_covariates"] = graph_covariates
+
+        graph_covariates = {
+            "label_names": label_names,
+            "label_selection": list(label_cols.keys()),
+            "continuous_mean": continuous_mean,
+            "continuous_std": continuous_std,
+            "label_data_types": label_cols,
+        }
+        self.celldata.uns["graph_covariates"] = graph_covariates
+
+
+class DataLoaderIonpath(DataLoader):
+    """DataLoaderIonpath class. Inherits all functions from DataLoader."""
+
+    cell_type_merge_dict = {  # from shareCellData/readme.rtf
+        'fine': {
+            "Group_1": "Unidentified",
+            "Group_3": "Endothelial",
+            "Group_4": "Mesenchymal",
+            "Group_5": "Tumor",
+            "Group_6": "Keratin-positive tumor",
+            "immuneGroup_1": "Tregs",
+            "immuneGroup_2": "CD4 T",
+            "immuneGroup_3": "CD8 T",
+            "immuneGroup_4": "CD3 T",
+            "immuneGroup_5": "NK",
+            "immuneGroup_6": "B",
+            "immuneGroup_7": "Neutrophils",
+            "immuneGroup_8": "Macrophages",
+            "immuneGroup_9": "DC",
+            "immuneGroup_10": "DC-Mono",
+            "immuneGroup_11": "Mono-Neu",
+            "immuneGroup_12": "Other immune"
+        }
+    }
+
+    def _register_images(self):
+        sample_col = "SampleID"
+        usecols = [sample_col]
+        # Define mapping of image identifiers to file names:
+        node_tab = read_csv(
+            self.data_path + 'shareCellData/cellData.csv',
+            usecols=usecols, dtype={sample_col: str}
+        ).drop_duplicates([sample_col])
+        node_tab['filename'] = node_tab['SampleID'].apply(
+            lambda x: 'p' + str(x).replace(',', '') + '_labeledcellData.tiff'
+        )
+        image_tab = node_tab[[sample_col, 'filename']].drop_duplicates([sample_col, 'filename'])
+        self.img_key_to_fn = dict(image_tab[[sample_col, 'filename']].values)
+
+    def _load_node_positions(self):
+        from PIL import Image
+
+        position_matrix = []
+        for k, fn in self.img_key_to_fn.items():
+            fn = self.data_path + "shareCellData/" + fn
+            if not os.path.exists(fn):
+                raise ValueError("file %s not found" % fn)
+            # Load image from tiff:
+            img_array = np.array(Image.open(fn))
+            # Throughout all files, nodes are referred to via the string k+"_"+str(i) where i is the integer
+            # encoding the object in the segmentation mask.
+            node_ids = np.sort(np.unique(img_array))
+            # 0 encodes background:
+            node_ids = node_ids[node_ids != 0]
+            # Assert all registered node identifiers occur in image:
+            if np.any([x not in node_ids for x in node_ids]):
+                raise ValueError(
+                    "%i out of %i registered nodes for image %s were not found in mask" %
+                    (np.sum([x not in node_ids for x in node_ids]), len(node_ids), k)
+                )
+            # Find centre of object mask of each node:
+            center_array = [np.where(img_array == i) for i in node_ids]
+            pm = np.array([[f'{k}_{i}', x[0].mean(), x[1].mean()] for i, x in zip(node_ids, center_array)])
+            position_matrix.append(pm)
+        position_matrix = np.concatenate(position_matrix, axis=0)
+        position_matrix = pd.DataFrame(position_matrix, columns=['CellID', 'x', 'y'])
+        return position_matrix
+
+    def _register_celldata(self, n_top_genes: Optional[int] = None):
+        """Load AnnData object of complete dataset."""
+        metadata = {
+            "lateral_resolution": None,
+            "fn": "shareCellData/cellData.csv",
+            "image_col": "SampleID",
+            "pos_cols": ["x", "y"],
+            "cluster_col": "cluster",
+            "cluster_col_preprocessed": "cluster_preprocessed",
+            "patient_col": "patient",
+            "cell_type_coarseness": self.cell_type_coarseness,
+        }
+
+        self._register_images()
+        position_matrix = self._load_node_positions()
+        position_matrix.set_index('CellID', inplace=True)
+
+        celldata_df = read_csv(os.path.join(self.data_path, metadata["fn"]))
+        celldata_df['CellID'] = celldata_df['SampleID'].astype(str) + '_' + celldata_df['cellLabelInImage'].astype(str)
+        celldata_df[metadata['image_col']] = celldata_df[metadata['image_col']].astype(str)
+        celldata_df['patient'] = celldata_df[metadata['image_col']]
+        celldata_df.set_index('CellID', inplace=True)
+
+        cluster_cols = ["immuneGroup", "Group"]
+        celldata_df["cluster"] = [
+            cluster_cols[0] + "_" + str(celldata_df[cluster_cols[0]].values[i]) if celldata_df[cluster_cols[0]].values[i] != "0"
+            else cluster_cols[1] + "_" + str(celldata_df[cluster_cols[1]].values[i])
+            for i in range(celldata_df.shape[0])
+        ]
+
+        celldata_df = pd.concat([celldata_df, position_matrix], axis=1, ignore_index=False, join='inner')
+
+        feature_cols = [
+            "cellSize",
+            "Vimentin",
+            "SMA",
+            "Background",
+            "B7H3",
+            "FoxP3",
+            "Lag3",
+            "CD4",
+            "CD16",
+            "CD56",
+            "OX40",
+            "PD1",
+            "CD31",
+            "PD-L1",
+            "EGFR",
+            "Ki67",
+            "CD209",
+            "CD11c",
+            "CD138",
+            "CD163",
+            "CD68",
+            "CSF-1R",
+            "CD8",
+            "CD3",
+            "IDO",
+            "Keratin17",
+            "CD63",
+            "CD45RO",
+            "CD20",
+            "p53",
+            "Beta catenin",
+            "HLA-DR",
+            "CD11b",
+            "CD45",
+            "H3K9ac",
+            "Pan-Keratin",
+            "H3K27me3",
+            "phospho-S6",
+            "MPO",
+            "Keratin6",
+            "HLA_Class_1"
+        ]
+        X = DataFrame(np.array(celldata_df[feature_cols]), columns=feature_cols)
+        celldata = AnnData(X=X, obs=celldata_df[[metadata['image_col'], metadata['patient_col'], metadata['cluster_col']]])
+        celldata.var_names_make_unique()
+
+        celldata.uns["metadata"] = metadata
+        img_keys = list(np.unique(celldata_df[metadata["image_col"]]))
+        celldata.uns["img_keys"] = img_keys
+
+        celldata.obsm["spatial"] = np.array(celldata_df[metadata["pos_cols"]])
+
+        img_to_patient_dict = {
+            str(x): celldata_df[metadata["patient_col"]].values[i]
+            for i, x in enumerate(celldata_df[metadata["image_col"]].values)
+        }
+        celldata.uns["img_to_patient_dict"] = img_to_patient_dict
+        self.img_to_patient_dict = img_to_patient_dict
+
+        # add clean cluster column which removes regular expression from cluster_col
+        celldata.obs[metadata["cluster_col_preprocessed"]] = list(
+            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="category").map(self.cell_type_merge_dict[self.cell_type_coarseness])
+        )
+        celldata.obs[metadata["cluster_col_preprocessed"]] = celldata.obs[metadata["cluster_col_preprocessed"]].astype("category")
+
+        # register node type names
+        types = celldata.obs[metadata["cluster_col_preprocessed"]]
+
+        node_type_names = list(np.unique(types[types == types]))
+        celldata.uns["node_type_names"] = {x: x for x in node_type_names}
+        node_types = np.zeros((celldata.shape[0], len(node_type_names)))
+        node_type_idx = np.array(
+            [
+                node_type_names.index(x) if x == x else 0
+                for x in types
+            ]  # index in encoding vector
+        )
+        node_types[np.arange(0, node_type_idx.shape[0]), node_type_idx] = types == types
+        celldata.obsm["node_types"] = node_types
+
+        self.celldata = celldata
+
+    def _register_img_celldata(self):
+        """Load dictionary of of image-wise celldata objects with {imgage key : anndata object of image}."""
+        image_col = self.celldata.uns["metadata"]["image_col"]
+        img_celldata = {}
+        for k in self.celldata.uns["img_keys"]:
+            img_celldata[str(k)] = self.celldata[self.celldata.obs[image_col] == k].copy()
+        self.img_celldata = img_celldata
+
+    def _register_graph_features(self, label_selection):
+        """Load graph level covariates.
+        Parameters
+        ----------
+        label_selection
+            Label selection.
+        """
+        # DEFINE COLUMN NAMES FOR TABULAR DATA.
+        # Define column names to extract from patient-wise tabular data:
+        img_key_col = 'InternalId'
+        patient_col = "patient"  # is added
+        censor_col = "survival_censor"  # will be added if survival is handled
+        # Labels are defined as a column name and a label type:
+        disease_features = {
+            'STAGE': 'categorical',
+            'GRADE': 'categorical'
+        }
+        patient_features = {
+            'age': 'continuous'
+        }
+        survival_features = {
+            'Censored': 'categorical',
+            'Survival_days_capped*': 'survival'
+        }
+        tumor_featues = {
+            'ER': 'categorical',
+            'PR': 'categorical',
+            'HER2NEU': 'categorical',
+            'CS_TUM_SIZE': 'categorical',
+            'RECURRENCE_LABEL': 'categorical'
+        }
+        batch_features = {
+            'YEAR': 'categorical'
+        }
+        label_cols = {}
+        label_cols.update(disease_features)
+        label_cols.update(patient_features)
+        label_cols.update(survival_features)
+        label_cols.update(tumor_featues)
+        label_cols.update(batch_features)
+        # Clean selected labels based on defined labels:
+        if label_selection is None:
+            label_selection = set(label_cols.keys())
+        else:
+            label_selection = set(label_selection)
+        label_cols_toread = list(label_selection.intersection(set(list(label_cols.keys()))))
+        # Make sure censoring information is read if surival is predicted:
+        if 'Survival_days_capped*' in label_cols_toread or 'Survival_days_capped*' in label_cols_toread:
+            if 'Censored' not in label_cols_toread:
+                label_cols_toread.append('Censored')
+
+        # READ RAW LABELS, COVARIATES AND IDENTIFIERS FROM TABLES.
+        # Read all labels and image- and patient-identifiers from table. This full set is overlapped to the existing
+        # columns of file so that files with different column spaces can be read.
+        # The patients are renamed for each patient set with a prefix to guarantee uniqueness.
+        # The output of this workflow is (1) a single table with rows for each image and with all columns modified
+        # so that the can further be processed to tensors of labels and covariates through GLM formula-like commands and
+        # (2) indices of diseased and non-diseased images in this table.
+        cols_toread = [img_key_col] + label_cols_toread  # full list of columns to read
+        tissue_meta_data = read_csv(
+            self.data_path + "1-s2.0-S0092867418311000-mmc2.csv",
+            usecols=cols_toread, sep=";"
+        )
+        tissue_meta_data = tissue_meta_data.iloc[:-3, :].copy()  # drop last rows which are empty
+
+        # Modify specific columns:
+        # Add censoring column if survival is given:
+        # All states recorded: alive, alive w metastases, death, death by primary disease
+        # Also densor non-disease caused death.
+        if 'Survival_days_capped*' in label_selection:
+            tissue_meta_data[censor_col] = [
+                0 if x == 1 else 1  # penalty-scale for over-estimation
+                for x in tissue_meta_data['Censored'].values
+            ]
+
+        # GROUP IMAGES BY PATIENTS
+        # The output of this section is (1) a map from numeric image identifiers to patients (img_to_patient_dict) and
+        # (2) a map of diseased images to the set of corresponding healthy images (nondiseased_ref_dict).
+        img_to_patient_dict = {
+            x: x for x in tissue_meta_data[img_key_col].values
+        }
+
+        # BUILD LABEL VECTORS FROM LABEL COLUMNS
+        # The columns contain unprocessed numeric and categorical entries that are now processed to prediction-ready
+        # numeric tensors. Here we first generate a dictionary of tensors for each label (label_tensors). We then
+        # transform this to have as output of this section dictionary by image with a dictionary by labels as values
+        # which can be easily queried by image in a data generator.
+        # Subset labels and label types:
+        label_cols = {label: type for label, type in label_cols.items() if label in label_selection}
+        label_tensors = {}
+        label_names = {}  # Names of individual variables in each label vector (eg. categories in onehot-encoding).
+        # 1. Standardize continuous labels to z-scores:
+        continuous_mean = {
+            feature: tissue_meta_data[feature].mean(skipna=True)
+            for feature in list(label_cols.keys())
+            if label_cols[feature] == 'continuous'
+        }
+        continuous_std = {
+            feature: tissue_meta_data[feature].std(skipna=True)
+            for feature in list(label_cols.keys())
+            if label_cols[feature] == 'continuous'
+        }
+        for i, feature in enumerate(list(label_cols.keys())):
+            if label_cols[feature] == 'continuous':
+                label_tensors[feature] = (tissue_meta_data[feature].values - continuous_mean[feature]) / continuous_std[
+                    feature]
+                label_names[feature] = [feature]
+        # 2. Scale percentages into [0, 1]
+        for i, feature in enumerate(list(label_cols.keys())):
+            if label_cols[feature] == 'percentage':
+                # Take "%" out of name if present
+                feature_renamed = feature.replace('%', 'percentage_')
+                label_cols = dict([(k, v) if k != feature else (feature_renamed, v) for k, v in label_cols.items()])
+                label_tensors[feature_renamed] = tissue_meta_data[feature].values / 100.
+                label_names[feature_renamed] = [feature_renamed]
+        # 3. One-hot encode categorical columns
+        # Force all entries in categorical columns to be string so that GLM-like formula processing can be performed.
+        for i, feature in enumerate(list(label_cols.keys())):
+            if label_cols[feature] == 'categorical':
+                tissue_meta_data[feature] = tissue_meta_data[feature].astype('str')
+        # One-hot encode each string label vector:
+        for i, feature in enumerate(list(label_cols.keys())):
+            if label_cols[feature] == 'categorical':
+                oh = pd.get_dummies(
+                    tissue_meta_data[feature],
+                    prefix=feature,
+                    prefix_sep='>',
+                    drop_first=False
+                )
+                # Change all entries of corresponding observation to np.nan instead.
+                idx_nan_col = np.array([i for i, x in enumerate(oh.columns) if x.endswith('>nan')])
+                if len(idx_nan_col) > 0:
+                    assert len(idx_nan_col) == 1, "fatal processing error"
+                    nan_rows = np.where(oh.iloc[:, idx_nan_col[0]].values == 1.)[0]
+                    oh.loc[nan_rows, :] = np.nan
+                # Drop nan element column.
+                oh = oh.loc[:, [x for x in oh.columns if not x.endswith('>nan')]]
+                label_tensors[feature] = oh.values
+                label_names[feature] = oh.columns
+        # 4. Add censoring information to survival
+        survival_mean = {
+            feature: tissue_meta_data[feature].mean(skipna=True)
+            for feature in list(label_cols.keys())
+            if label_cols[feature] == 'survival'
+        }
+        for i, feature in enumerate(list(label_cols.keys())):
+            if label_cols[feature] == 'survival':
+                label_tensors[feature] = np.concatenate([
+                    np.expand_dims(tissue_meta_data[feature].values / survival_mean[feature], axis=1),
+                    np.expand_dims(tissue_meta_data[censor_col].values, axis=1),
+                ], axis=1)
+                label_names[feature] = [feature]
+        # Make sure all tensors are 2D for indexing:
+        for feature in list(label_tensors.keys()):
+            if len(label_tensors[feature].shape) == 1:
+                label_tensors[feature] = np.expand_dims(label_tensors[feature], axis=1)
+        # The dictionary of tensor is nested in slices in a dictionary by image which is easier to query with a
+        # generator.
+        assert np.all([len(list(img_to_patient_dict.keys())) == x.shape[0] for x in list(label_tensors.values())]), \
+            "fatal processing error"
+        label_tensors = {
+            k: {
+                kk: np.array(vv[i, :], ndmin=1) for kk, vv in label_tensors.items()  # iterate over labels
+            } for i, k in enumerate(list(img_to_patient_dict.keys()))  # iterate over images
+        }
+
+        # Save processed data to attributes.
+        for k, adata in self.img_celldata.items():
+            graph_covariates = {
+                "label_names": label_names,
+                "label_tensors": label_tensors[k],
+                "label_selection": list(label_cols.keys()),
+                "continuous_mean": continuous_mean,
+                "continuous_std": continuous_std,
+                "label_data_types": label_cols,
+            }
+            adata.uns["graph_covariates"] = graph_covariates
+
+        graph_covariates = {
+            "label_names": label_names,
+            "label_selection": list(label_cols.keys()),
+            "continuous_mean": continuous_mean,
+            "continuous_std": continuous_std,
+            "label_data_types": label_cols,
         }
         self.celldata.uns["graph_covariates"] = graph_covariates
