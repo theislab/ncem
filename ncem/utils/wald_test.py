@@ -63,24 +63,12 @@ def wald_test(
     pvalues = []
     for idx in range(params.T.shape[0]):
         pvals = _get_p_value(params.T, fisher_inv, idx)
-        #qvals = correct(pvals)
         pvalues.append(pvals)
-        #sign = qvals < significance_threshold
-        #significance.append(sign)
+        
     pvalues = np.concatenate(pvalues)
     qvalues = correct(pvalues)
     pvalues = np.reshape(pvalues, (-1,params.T.shape[1])) 
     qvalues = np.reshape(qvalues, (-1,params.T.shape[1]))  
-    print(qvalues.shape)
     significance = qvalues < significance_threshold
-    
-    #qvalues = np.concatenate(
-    #    np.expand_dims(np.split(qvalues, indices_or_sections=np.sqrt(qvalues.shape[0]), axis=0), axis=0),
-    #    axis=0,
-    #)
-    #significance = np.concatenate(
-    #    np.expand_dims(np.split(significance, indices_or_sections=np.sqrt(significance.shape[0]), axis=0), axis=0),
-    #    axis=0,
-    #)
 
     return significance, pvalues, qvalues

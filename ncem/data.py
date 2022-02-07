@@ -208,7 +208,7 @@ class GraphTools:
         )
         ax = fig.add_subplot(111)
         sns.boxplot(data=sns_data, x="dist", color="steelblue", y="mean_degree", ax=ax)
-        ax.set_yscale("log", basey=10)
+        ax.set_yscale("log")
         ax.grid(False)
         plt.ylabel("")
         plt.xlabel("")
@@ -832,8 +832,12 @@ class PlottingTools:
         if clip_pvalues:
             log_pval[log_pval < clip_pvalues] = clip_pvalues
         fold_change_df = adata_substates.obs[[cluster_col, f"{target_cell_type} substates"] + sorce_type_names]
+        fold_change_df = fold_change_df.replace({"in neighbourhood": 1, "not in neighbourhood": 0})
+        for x in fold_change_df.columns:
+            if x.startswith('source type'):
+                fold_change_df[x] = fold_change_df[x].astype('int')
         counts = pd.pivot_table(
-            fold_change_df.replace({"in neighbourhood": 1, "not in neighbourhood": 0}),
+            fold_change_df,
             index=[f"{target_cell_type} substates"],
             aggfunc=np.sum,
             margins=True,
