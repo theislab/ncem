@@ -189,6 +189,7 @@ class InterpreterBase(estimators.Estimator):
             use_covar_node_label=self.gscontainer_runparams["use_covar_node_label"],
             use_covar_graph_covar=self.gscontainer_runparams["use_covar_graph_covar"],
             domain_type=self.gscontainer_runparams["domain_type"],
+            n_top_genes=n_top_genes
         )
         self.data_path = data_path
         self.n_eval_nodes_per_graph = self.gscontainer_runparams["n_eval_nodes_per_graph"]
@@ -837,11 +838,6 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
             .T
         )
 
-        #interaction_params = np.concatenate(
-        #    np.expand_dims(np.split(interaction_params, indices_or_sections=self.n_features_0, axis=1), axis=-1),
-        #    axis=-1,
-        #)
-
         interactions = []
         y = []
         count = 0
@@ -867,6 +863,7 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
         y = np.concatenate(y, axis=0)
 
         fim_inv = get_fim_inv(interactions, y)
+        print(fim_inv.shape)
 
         bool_significance, significance = wald_test(
             params=interaction_params, fisher_inv=fim_inv, significance_threshold=significance_threshold

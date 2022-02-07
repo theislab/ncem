@@ -6,7 +6,7 @@ def get_fim_inv(x: np.array, y: np.array):
     fim = np.expand_dims(np.matmul(x.T, x), axis=0) / np.expand_dims(var, axis=[1, 2])
 
     fim_inv = np.array([
-        np.linalg.inv(fim[i, :, :])
+        np.linalg.pinv(fim[i, :, :])
         for i in range(fim.shape[0])
     ])
     return fim_inv
@@ -69,17 +69,18 @@ def wald_test(
         #significance.append(sign)
     pvalues = np.concatenate(pvalues)
     qvalues = correct(pvalues)
+    pvalues = np.reshape(pvalues, (-1,params.T.shape[1])) 
     qvalues = np.reshape(qvalues, (-1,params.T.shape[1]))  
     print(qvalues.shape)
     significance = qvalues < significance_threshold
     
-    qvalues = np.concatenate(
-        np.expand_dims(np.split(qvalues, indices_or_sections=np.sqrt(qvalues.shape[0]), axis=0), axis=0),
-        axis=0,
-    )
-    significance = np.concatenate(
-        np.expand_dims(np.split(significance, indices_or_sections=np.sqrt(significance.shape[0]), axis=0), axis=0),
-        axis=0,
-    )
+    #qvalues = np.concatenate(
+    #    np.expand_dims(np.split(qvalues, indices_or_sections=np.sqrt(qvalues.shape[0]), axis=0), axis=0),
+    #    axis=0,
+    #)
+    #significance = np.concatenate(
+    #    np.expand_dims(np.split(significance, indices_or_sections=np.sqrt(significance.shape[0]), axis=0), axis=0),
+    #    axis=0,
+    #)
 
-    return significance, qvalues
+    return significance, pvalues, qvalues

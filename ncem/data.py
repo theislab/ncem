@@ -62,7 +62,7 @@ class GraphTools:
                     transform=transform,
                     key_added="adjacency_matrix"
                 )
-                print(adata.obsp['adjacency_matrix_connectivities'].sum(axis=1).mean())
+                #print(adata.obsp['adjacency_matrix_connectivities'].sum(axis=1).mean())
                 pbar.update(1)
 
     @staticmethod
@@ -606,7 +606,7 @@ class PlottingTools:
             temp_adata = temp_adata[temp_adata.obs[cluster_id] == target_cell_type]
         sc.pp.neighbors(temp_adata, n_neighbors=n_neighbors, n_pcs=n_pcs)
         sc.tl.louvain(temp_adata)
-        sc.tl.umap(temp_adata)
+        sc.tl.umap(temp_adata, random_state=0)
         print("n cells: ", temp_adata.shape[0])
         if target_cell_type:
             temp_adata.obs[f"{target_cell_type} substates"] = (
@@ -628,7 +628,7 @@ class PlottingTools:
             ncols=1,
             figsize=figsize,
         )
-        sc.pl.umap(temp_adata, color=color, ax=ax, show=False, size=size, palette=palette, title="")
+        sc.pl.umap(temp_adata, color=color, ax=ax, show=False, size=size, palette=palette, title="", frameon=False)
         # Save, show and return figure.
         if save is not None:
             plt.savefig(save + image_key + suffix)
@@ -702,7 +702,7 @@ class PlottingTools:
             sc.set_figure_params(scanpy=True, fontsize=fontsize)
         fig, ax = plt.subplots(nrows=1, ncols=1, figsize=figsize)
         sc.pl.spatial(
-            temp_adata, color=cluster_id, spot_size=spot_size, legend_loc=legend_loc, ax=ax, show=False, title=""
+            temp_adata, color=cluster_id, spot_size=spot_size, legend_loc=legend_loc, ax=ax, show=False, title="", frameon=False
         )
         ax.set_xlabel("")
         ax.set_ylabel("")
@@ -1014,7 +1014,7 @@ class PlottingTools:
         ax = axs[:n]
 
         for i, x in enumerate(filter_titles[:-1]):
-            sc.pl.umap(adata, color=f"source type {x}", title=x, show=False, size=size, legend_loc="None", ax=ax[i])
+            sc.pl.umap(adata, color=f"source type {x}", title=x, show=False, size=size, legend_loc="None", ax=ax[i], frameon=False)
             ax[i].set_xlabel("")
             ax[i].set_ylabel("")
         sc.pl.umap(
@@ -1024,6 +1024,7 @@ class PlottingTools:
             size=size,
             show=False,
             ax=ax[n - 1],
+            frameon=False
         )
         ax[n - 1].set_xlabel("")
         ax[n - 1].set_ylabel("")
@@ -1115,6 +1116,7 @@ class PlottingTools:
             show=False,
             na_color="whitesmoke",
             title="",
+            frameon=False
         )
         sc.pl.spatial(
             adata_substates,
@@ -1125,6 +1127,7 @@ class PlottingTools:
             legend_loc=legend_loc,
             title="",
             palette=palette,
+            frameon=False
         )
         ax.invert_yaxis()
         ax.set_xlabel("")
@@ -1947,7 +1950,7 @@ class DataLoaderJarosch(DataLoader):
             pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="str").map(self.cell_type_merge_dict)
         )
         celldata.obs[metadata["cluster_col_preprocessed"]] = celldata.obs[metadata["cluster_col_preprocessed"]].astype(
-            "str"
+            "category"
         )
 
         # register node type names
