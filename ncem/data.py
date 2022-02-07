@@ -266,7 +266,7 @@ class GraphTools:
         elif node_feature_transformation == 'standardize_globally':
             self._standardize_overall()
         elif node_feature_transformation == 'scale_observations':
-            self._scale_observations()
+            self._scale_observations(n=100)
         elif node_feature_transformation is None or node_feature_transformation == "none":
             pass
         else:
@@ -274,7 +274,7 @@ class GraphTools:
 
     def _standardize_features_per_image(self):
         for adata in self.img_celldata.values():
-            adata.X = adata.X - adata.X.mean(axis=0) / (adata.X.std(axis=0) + 1e-8)
+            sc.pp.scale(adata)
 
     def _standardize_overall(self):
         data = np.concatenate([adata.X for adata in self.img_celldata.values()], axis=0)
@@ -283,7 +283,7 @@ class GraphTools:
         for adata in self.img_celldata.values():
             adata.X = adata.X - mean / std
 
-    def _scale_observations(self, n: int = 100):
+    def _scale_observations(self, n: int):
         """
         TPM-like scaling of observation vectors.
         Only makes sense with positive input.
