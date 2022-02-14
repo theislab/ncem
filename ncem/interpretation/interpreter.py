@@ -19,6 +19,8 @@ import ncem.estimators as estimators
 import ncem.models as models
 import ncem.train as train
 from ncem.utils.wald_test import get_fim_inv, wald_test
+from ncem.utils.ols_fit import ols_fit
+from patsy import dmatrix
 
 
 class InterpreterBase(estimators.Estimator):
@@ -104,6 +106,7 @@ class InterpreterBase(estimators.Estimator):
         self.gs_id = gs_id
         self.gscontainer_runparams = self.gscontainer.runparams[self.gs_id][self.model_id]
         self.results_path = results_path
+        self.cv_idx = cv_idx
         print("loaded model %s" % model_id)
 
     def _get_dataset(
@@ -420,23 +423,37 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
         node_covar = []
         g = []
         h_obs = []
-
-        for _step, (x_batch, y_batch) in enumerate(ds):
-            target_batch, interaction_batch, sf_batch, node_covar_batch, g_batch = x_batch
-            target.append(target_batch.numpy().squeeze())
-            interactions.append(
-                csr_matrix(
-                    (
-                        interaction_batch.values.numpy(),
-                        (interaction_batch.indices.numpy()[:, 1], interaction_batch.indices.numpy()[:, 2]),
-                    ),
-                    shape=interaction_batch.dense_shape.numpy()[1:],
-                ).todense()
-            )
-            sf.append(sf_batch.numpy().squeeze())
-            node_covar.append(node_covar_batch.numpy().squeeze())
-            g.append(g_batch.numpy().squeeze())
-            h_obs.append(y_batch[0].numpy().squeeze())
+        
+        count = 0
+        for k, v in nodes_idx.items():
+            count = count + len(v)
+        
+        with tqdm(total=np.int(count / self.n_eval_nodes_per_graph)) as pbar:
+            for _step, (x_batch, y_batch) in enumerate(ds):
+                target_batch, interaction_batch, sf_batch, node_covar_batch, g_batch = x_batch
+                target.append(target_batch.numpy().squeeze())
+                interactions.append(
+                    csr_matrix(
+                        (
+                            interaction_batch.values.numpy(),
+                            (interaction_batch.indices.numpy()[:, 1], interaction_batch.indices.numpy()[:, 2]),
+                        ),
+                        shape=interaction_batch.dense_shape.numpy()[1:],
+                    ).todense()
+                )
+                sf.append(sf_batch.numpy().squeeze())
+                node_covar.append(node_covar_batch.numpy().squeeze())
+                g.append(g_batch.numpy().squeeze())
+                h_obs.append(y_batch[0].numpy().squeeze())
+                pbar.update(1)
+        
+        target = np.concatenate(target, axis=0)
+        interactions = np.concatenate(interactions, axis=0)
+        sf = np.concatenate(sf, axis=0)
+        node_covar = np.concatenate(node_covar, axis=0)
+        g = np.concatenate(g, axis=0)
+        h_obs = np.concatenate(h_obs, axis=0)
+        
         return (target, interactions, sf, node_covar, g), h_obs
 
     def target_cell_relative_performance(
@@ -811,6 +828,389 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
             plt.show()
         plt.close(fig)
         plt.ion()
+    
+    def get_sender_receiver_effects(
+        self,
+        params_type: str = 'ols',
+        significance_threshold: float = 0.05
+    ):
+        (target, interactions, _, _, _), y = self._get_np_data(
+            image_keys=self.img_keys_all, nodes_idx=self.nodes_idx_all)
+
+        print('using ols parameters.')
+        if params_type == 'ols':
+            x_design = np.concatenate([target, interactions], axis=1)
+            ols = ols_fit(x_=x_design, y_=y)
+            params = ols.squeeze()
+        else:
+            params = (
+                self.model.training_model.weights[0]
+                .numpy()
+                .T
+            )
+
+        # get inverse fisher information matrix
+        print('calculating inv fim.')
+        fim_inv = get_fim_inv(x_design, y)
+
+        is_sign, pvalues, qvalues = wald_test(
+            params=params, fisher_inv=fim_inv, significance_threshold=significance_threshold
+        )
+        interaction_shape = self.model.training_model.inputs[1].shape
+        # subset to interaction terms
+        is_sign = is_sign[self.n_features_0 : interaction_shape[-1] + self.n_features_0, :]
+        pvalues = pvalues[self.n_features_0 : interaction_shape[-1] + self.n_features_0, :]
+        qvalues = qvalues[self.n_features_0 : interaction_shape[-1] + self.n_features_0, :]
+
+        self.pvalues = np.concatenate(
+            np.expand_dims(np.split(pvalues, indices_or_sections=np.sqrt(pvalues.shape[0]), axis=0), axis=0),
+            axis=0,
+        )
+        self.qvalues = np.concatenate(
+            np.expand_dims(np.split(qvalues, indices_or_sections=np.sqrt(qvalues.shape[0]), axis=0), axis=0),
+            axis=0,
+        )
+        self.is_sign = np.concatenate(
+            np.expand_dims(np.split(is_sign, indices_or_sections=np.sqrt(is_sign.shape[0]), axis=0), axis=0),
+            axis=0,
+        )
+
+        interaction_params = params[:, self.n_features_0 : interaction_shape[-1] + self.n_features_0]
+        self.fold_change = np.concatenate(
+            np.expand_dims(np.split(interaction_params.T, indices_or_sections=np.sqrt(interaction_params.T.shape[0]), axis=0), axis=0),
+            axis=0,
+        )
+        
+    def type_coupling_analysis(
+        self,
+        undefined_types: Optional[List[str]] = None,
+        fontsize: Optional[int] = None,
+        figsize: Tuple[float, float] = (11.0, 10.0),
+        save: Optional[str] = None,
+        suffix: str = "_type_coupling_analysis.pdf",
+        show: bool = True,
+    ):
+        
+        if fontsize:
+            sc.set_figure_params(scanpy=True, fontsize=fontsize)
+            plt.rcParams['axes.grid'] = False
+        sig_df = pd.DataFrame(
+            np.sum(self.is_sign, axis=-1), 
+            columns=self.cell_names,
+            index=self.cell_names
+        )
+        if undefined_types:
+            sig_df = sig_df.drop(columns=undefined_types, index=undefined_types)
+        np.fill_diagonal(sig_df.values, 0)
+        plt.ioff()   
+        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=figsize)
+        sns.heatmap(sig_df, cmap='Greys',)
+        plt.xlabel('sender')
+        plt.ylabel('receiver')
+        plt.tight_layout()
+        if save is not None:
+            plt.savefig(f"{save}_cv{str(self.cv_idx)}_{suffix}")
+        if show:
+            plt.show()
+        plt.close(fig)
+        plt.ion()
+        
+    def sender_receiver_values(
+        self,
+        receiver: str,
+        sender: str,
+    ):
+        receiver_idx = self.cell_names.index(receiver)
+        sender_idx = self.cell_names.index(sender)
+        
+        fold_change = self.fold_change[receiver_idx,sender_idx,:]
+        pvals = self.pvalues[receiver_idx,sender_idx,:]
+        qvals = self.qvalues[receiver_idx,sender_idx,:]
+        h_0 = pd.DataFrame(
+            self.data.celldata.obsm['node_types'], columns=self.cell_names
+        )
+        target_type = pd.DataFrame(np.array(h_0.idxmax(axis=1)), columns=["target_cell"]).reset_index()
+        self.data.celldata.obs = target_type
+        means = self.data.celldata[self.data.celldata.obs['target_cell'] == receiver].X.mean(axis=0)
+        
+        df = pd.DataFrame(
+            np.array([means, pvals, qvals, fold_change]).T,
+            index=self.data.celldata.var_names, columns=['mean expression', 'pvalue', 'qvalue', 'fold change']
+        )
+        
+        return df
+    
+    def sender_similarity_analysis(
+        self,
+        receiver: str,
+        fontsize: Optional[int] = None,
+        figsize: Tuple[float, float] = (8.0, 8.0),
+        save: Optional[str] = None,
+        suffix: str = "_sender_similarity_analysis.pdf",
+        show: bool = True,
+        cbar_pos: Tuple[float, float, float, float] = (-0.3, .1, .4, .02)
+    ):
+        receiver_idx = self.cell_names.index(receiver)
+        
+        corrcoef = np.corrcoef(self.fold_change[receiver_idx,:,:])
+        corrcoef = pd.DataFrame(
+            corrcoef,
+            columns=self.cell_names,
+            index=self.cell_names
+        )
+        if fontsize:
+            sc.set_figure_params(scanpy=True, fontsize=fontsize)
+            plt.rcParams['axes.grid'] = False
+        plt.ioff()   
+        clustermap = sns.clustermap(
+            corrcoef, cmap='Purples',  
+            figsize=figsize, 
+            row_cluster=True, 
+            cbar_kws={'label': "correlation", "orientation": "horizontal"},
+            cbar_pos=cbar_pos
+        )
+        
+        if save is not None:
+            clustermap.savefig()
+        if show:
+            plt.show()
+        plt.ion()
+        
+    def sender_receiver_effect_vulcanoplot(
+        self,
+        receiver: str,
+        sender: str,
+        significance_threshold: float = 0.05,
+        fold_change_threshold: float = 0.021671495152134755,
+        fontsize: Optional[int] = None,
+        figsize: Tuple[float, float] = (4.5, 7.0),
+        save: Optional[str] = None,
+        suffix: str = "_sender_receiver_volcanoplot.pdf",
+        show: bool = True,
+    ):
+        receiver_idx = self.cell_names.index(receiver)
+        sender_idx = self.cell_names.index(sender)
+        
+        if fontsize:
+            sc.set_figure_params(scanpy=True, fontsize=fontsize)
+            plt.rcParams['axes.grid'] = False
+        fig, ax = plt.subplots(1,1, figsize=figsize)
+
+        # only significant ones 
+        qval_filter = np.where(self.qvalues[receiver_idx,sender_idx,:]>=significance_threshold)
+        vmax = np.max(np.abs(self.fold_change[receiver_idx,sender_idx,:]))
+        print(vmax)
+        
+        # overlaying significant ones with orange
+        sns.scatterplot(
+            x=self.fold_change[receiver_idx,sender_idx,:][qval_filter], 
+            y=-np.log10(self.qvalues[receiver_idx,sender_idx,:])[qval_filter], 
+            color='white', edgecolor = 'black', s=100, ax=ax)
+
+        qval_filter = np.where(self.qvalues[receiver_idx,sender_idx,:]<significance_threshold)
+        x = self.fold_change[receiver_idx,sender_idx,:][qval_filter]
+        fc_filter = np.where(x < fold_change_threshold)
+        y = -np.nan_to_num(np.log10(self.qvalues[receiver_idx,sender_idx,:])[qval_filter])
+        sns.scatterplot(
+            x=x[fc_filter], 
+            y=y[fc_filter], 
+            color='darkgrey', edgecolor = 'black', s=100, ax=ax)
+
+        x = self.fold_change[receiver_idx,sender_idx,:][qval_filter]
+        fc_filter = np.where(x<= -fold_change_threshold)
+        y = -np.nan_to_num(np.log10(self.qvalues[receiver_idx,sender_idx,:])[qval_filter], neginf=-14.5)
+        sns.scatterplot(
+            x=x[fc_filter], 
+            y=y[fc_filter], 
+            color='blue', edgecolor = 'black', s=100, ax=ax)
+
+        x = self.fold_change[receiver_idx,sender_idx,:][qval_filter]
+        fc_filter = np.where(x>= fold_change_threshold)
+        y = -np.nan_to_num(np.log10(self.qvalues[receiver_idx,sender_idx,:])[qval_filter], neginf=-14.5)
+        sns.scatterplot(
+            x=x[fc_filter], 
+            y=y[fc_filter], 
+            color='red', edgecolor = 'black', s=100, ax=ax)
+
+        ax.set_xlim((-vmax*1.1, vmax*1.1))
+        ax.set_ylim((-0.5, 15))
+        ax.set_xlabel('')
+        ax.set_ylabel('')
+        plt.axvline(-fold_change_threshold, color='black', linestyle='--', )
+        plt.axvline(fold_change_threshold, color='black', linestyle='--', )
+        plt.axhline(-np.log10(significance_threshold), linestyle='--', color='black')
+        
+        plt.tight_layout()
+        if save is not None:
+            plt.savefig(f"{save}_cv{str(self.cv_idx)}_{suffix}")
+        if show:
+            plt.show()
+        plt.close(fig)
+        plt.ion()
+        
+    def sender_receiver_gene_subset(
+        self,
+        receiver: str,
+        sender: str,
+        significance_threshold: float = 0.05,
+        fold_change_quantile: float = 0.2
+    ):
+
+        receiver_idx = self.cell_names.index(receiver)
+        sender_idx = self.cell_names.index(sender)
+
+        qvals = pd.DataFrame(
+            self.qvalues[receiver_idx, sender_idx, :], 
+            index=self.data.celldata.var_names
+        )
+        fold_change = pd.DataFrame(
+            np.abs(self.fold_change[receiver_idx, sender_idx, :]), 
+            index=self.data.celldata.var_names
+        )
+        qvals = qvals.replace(0.0, 0.0000001)
+        qvals = qvals[qvals <= significance_threshold]
+        mask_rows = qvals.any(axis=1)
+        qvals = qvals.loc[mask_rows]
+        fold_change = fold_change.loc[mask_rows]
+        fold_change = fold_change[
+            fold_change >= np.max(np.array(fold_change))*fold_change_quantile
+        ]
+        mask_rows = fold_change.any(axis=1)
+        fold_change = fold_change.loc[mask_rows]
+        qvals = qvals.loc[mask_rows]
+        
+        return list(qvals.index)
+    
+    def sender_effect(
+        self,
+        receiver: str,
+        plot_mode: str = 'fold_change',
+        gene_subset: Optional[List[str]] = None,
+        significance_threshold: float = 0.05,
+        cut_pvals: float = -5,
+        fontsize: Optional[int] = None,
+        figsize: Tuple[float, float] = (6, 10),
+        save: Optional[str] = None,
+        suffix: str = "_sender_efect.pdf",
+        show: bool = True,
+    ):
+        receiver_idx = self.cell_names.index(receiver)
+        
+        if fontsize:
+            sc.set_figure_params(scanpy=True, fontsize=fontsize)
+        
+        if plot_mode == 'qvals':
+            arr = np.log(self.qvalues[receiver_idx, :, :])
+            arr[arr < cut_pvals] = cut_pvals
+            df = pd.DataFrame(
+                arr, 
+                index=self.cell_names,
+                columns=self.data.celldata.var_names
+            )
+            if gene_subset:
+                df = df.drop(index=receiver)[gene_subset]
+
+            plt.ioff()
+            fig, ax = plt.subplots(nrows=1, ncols=1, figsize=figsize)
+            sns.heatmap(
+                df.T,
+                cbar_kws={'label': "$\log_{10}$ FDR-corrected pvalues"},
+                cmap='Greys_r', vmin=-5, vmax=0.
+            )
+        elif plot_mode == 'fold_change':
+            arr = self.fold_change[receiver_idx, :, :]
+            arr[np.where(self.qvalues[receiver_idx, :, :] > significance_threshold)] = 0
+            df = pd.DataFrame(
+                arr, 
+                index=self.cell_names,
+                columns=self.data.celldata.var_names
+            )
+            plt.ioff()
+            if gene_subset:
+                df = df.drop(index=receiver)[gene_subset]
+            vmax = np.max(np.abs(df.values))
+
+            fig, ax = plt.subplots(nrows=1, ncols=1, figsize=figsize)
+            sns.heatmap(
+                df.T,
+                cbar_kws={'label': "fold change", 
+                           "location": "top"},
+                cmap="seismic", vmin=-vmax, vmax=vmax, 
+            )
+        plt.xlabel("sender cell type")
+        plt.tight_layout()
+        if save is not None:
+            plt.savefig(f"{save}_cv{str(self.cv_idx)}_{receiver}_{suffix}")
+        if show:
+            plt.show()
+        plt.close(fig)
+        plt.ion()
+        
+    def receiver_effect(
+        self,
+        sender: str,
+        plot_mode: str = 'fold_change',
+        gene_subset: Optional[List[str]] = None,
+        significance_threshold: float = 0.05,
+        cut_pvals: float = -5,
+        fontsize: Optional[int] = None,
+        figsize: Tuple[float, float] = (6, 10),
+        save: Optional[str] = None,
+        suffix: str = "_receiver_efect.pdf",
+        show: bool = True,
+    ):
+        sender_idx = self.cell_names.index(sender)
+        
+        if fontsize:
+            sc.set_figure_params(scanpy=True, fontsize=fontsize)
+        
+        if plot_mode == 'qvals':
+            arr = np.log(self.qvalues[:, sender_idx, :])
+            arr[arr < cut_pvals] = cut_pvals
+            df = pd.DataFrame(
+                arr, 
+                index=self.cell_names,
+                columns=self.data.celldata.var_names
+            )
+            if gene_subset:
+                df = df.drop(index=sender)[gene_subset]
+
+            plt.ioff()
+            fig, ax = plt.subplots(nrows=1, ncols=1, figsize=figsize)
+            sns.heatmap(
+                df.T,
+                cbar_kws={'label': "$\log_{10}$ FDR-corrected pvalues"},
+                cmap='Greys_r', vmin=-5, vmax=0.
+            )
+        elif plot_mode == 'fold_change':
+            arr = self.fold_change[:, sender_idx, :]
+            arr[np.where(self.qvalues[:, sender_idx, :] > significance_threshold)] = 0
+            df = pd.DataFrame(
+                arr, 
+                index=self.cell_names,
+                columns=self.data.celldata.var_names
+            )
+            plt.ioff()
+            if gene_subset:
+                df = df.drop(index=sender)[gene_subset]
+            vmax = np.max(np.abs(df.values))
+
+            fig, ax = plt.subplots(nrows=1, ncols=1, figsize=figsize)
+            sns.heatmap(
+                df.T,
+                cbar_kws={'label': "fold change", 
+                           "location": "top"},
+                cmap="seismic", vmin=-vmax, vmax=vmax, 
+            )
+        plt.xlabel("receiver cell type")
+        plt.tight_layout()
+        if save is not None:
+            plt.savefig(f"{save}_cv{str(self.cv_idx)}_{sender}_{suffix}")
+        if show:
+            plt.show()
+        plt.close(fig)
+        plt.ion()
+        
 
     def interaction_significance(
         self,
@@ -1298,7 +1698,7 @@ class InterpreterNoGraph(estimators.EstimatorNoGraph, InterpreterBase):
         return (h_1, sf, node_covar, g), h_obs
 
 
-class InterpreterDeconvolution(estimators.EstimatorDeconvolution, InterpreterBase):
+class InterpreterDeconvolution(estimators.EstimatorDeconvolution, InterpreterInteraction):
     """Inherits all relevant functions specific to EstimatorDeconvolution estimators."""
 
     def __init__(self):
@@ -1347,6 +1747,65 @@ class InterpreterDeconvolution(estimators.EstimatorDeconvolution, InterpreterBas
             g.append(g_batch.numpy().squeeze())
             h_obs.append(y_batch[0].numpy().squeeze())
         return (target, interactions, sf, node_covar, g), h_obs
+    
+    def get_sender_receiver_effects(
+        self,
+        params_type: str = 'ols',
+        significance_threshold: float = 0.05
+    ):
+        data = {
+            "target": self.data.celldata.obsm['node_types'], 
+            "proportions": self.data.celldata.obsm['proportions']
+        }
+        target = np.asarray(dmatrix("target-1", data))
+        interaction_shape = self.model.training_model.inputs[1].shape
+        interactions = np.asarray(dmatrix("target:proportions-1", data))
+
+        y = self.data.celldata.X[self.nodes_idx_all['1'],:]
+
+        print('using ols parameters.')
+        if params_type == 'ols':
+            x_design = np.concatenate([target, interactions], axis=1)
+            ols = ols_fit(x_=x_design, y_=y)
+            params = ols.squeeze()
+        else:
+            params = (
+                self.model.training_model.weights[0]
+                .numpy()
+                .T
+            )
+
+        # get inverse fisher information matrix
+        print('calculating inv fim.')
+        fim_inv = get_fim_inv(x_design, y)
+
+        is_sign, pvalues, qvalues = wald_test(
+            params=params, fisher_inv=fim_inv, significance_threshold=significance_threshold
+        )
+        interaction_shape = self.model.training_model.inputs[1].shape
+        # subset to interaction terms
+        is_sign = is_sign[self.n_features_0 : interaction_shape[-1] + self.n_features_0, :]
+        pvalues = pvalues[self.n_features_0 : interaction_shape[-1] + self.n_features_0, :]
+        qvalues = qvalues[self.n_features_0 : interaction_shape[-1] + self.n_features_0, :]
+
+        self.pvalues = np.concatenate(
+            np.expand_dims(np.split(pvalues, indices_or_sections=np.sqrt(pvalues.shape[0]), axis=0), axis=0),
+            axis=0,
+        )
+        self.qvalues = np.concatenate(
+            np.expand_dims(np.split(qvalues, indices_or_sections=np.sqrt(qvalues.shape[0]), axis=0), axis=0),
+            axis=0,
+        )
+        self.is_sign = np.concatenate(
+            np.expand_dims(np.split(is_sign, indices_or_sections=np.sqrt(is_sign.shape[0]), axis=0), axis=0),
+            axis=0,
+        )
+
+        interaction_params = params[:, self.n_features_0 : interaction_shape[-1] + self.n_features_0]
+        self.fold_change = np.concatenate(
+            np.expand_dims(np.split(interaction_params.T, indices_or_sections=np.sqrt(interaction_params.T.shape[0]), axis=0), axis=0),
+            axis=0,
+        )
 
     def interaction_significance(
         self,

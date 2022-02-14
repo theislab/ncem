@@ -464,8 +464,6 @@ class Estimator:
             self.h_0 = {k: adata.X for k, adata in self.data.img_celldata.items()}
         elif node_label_space_id == "type":
             self.h_0 = {k: adata.obsm["node_types"] for k, adata in self.data.img_celldata.items()}
-            print(self.data.celldata.obsm['node_types'].shape)
-            print('node_types')
         elif node_label_space_id == 'proportions':
             self.h_0 = {k: adata.obsm["proportions"] for k, adata in self.data.img_celldata.items()}
         else:
@@ -526,9 +524,7 @@ class Estimator:
 
         # Set selection-specific tensor dimensions:
         self.n_features_0 = list(self.h_0.values())[0].shape[1]
-        print('h_0', list(self.h_0.values())[0].shape[1])
         self.n_features_1 = list(self.h_1.values())[0].shape[1]
-        print('h_1', list(self.h_1.values())[0].shape[1])
         self.n_graph_covariates = list(self.graph_covar.values())[0].shape[0]
         self.n_node_covariates = list(self.node_covar.values())[0].shape[1]
         self.max_nodes = max([self.a[i].shape[0] for i in self.complete_img_keys])

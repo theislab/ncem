@@ -981,7 +981,7 @@ class GridSearchContainer:
                 )
                 sns.swarmplot(x=param_x, y=ycol, hue=param_hue, data=summary_table, ax=ax)
         elif plot_mode == "lineplot":
-            temp_baseline = summary_table[summary_table["model_class"] == baseline_model_class]
+            temp_baseline = summary_table[summary_table["model_class"] == baseline_model_class].reset_index()
             sns.scatterplot(
                 x=param_x,
                 y=ycol,
@@ -992,14 +992,14 @@ class GridSearchContainer:
                 s=100,
                 ax=ax,
             )
-            temp_graph = summary_table[summary_table["model_class"] == graph_model_class]
+            temp_graph = summary_table[summary_table["model_class"] == graph_model_class].reset_index()
             sns.lineplot(
                 x=param_x,
                 y=ycol,
                 style="cv",
                 palette=palette,
                 data=temp_graph,
-                #hue=param_hue,
+                hue=param_hue,
                 ax=ax,
                 markers=True,
             )

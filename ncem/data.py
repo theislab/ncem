@@ -1018,13 +1018,14 @@ class PlottingTools:
         ax = axs[:n]
 
         for i, x in enumerate(filter_titles[:-1]):
-            sc.pl.umap(adata, color=f"source type {x}", title=x, show=False, size=size, legend_loc="None", ax=ax[i], frameon=False)
+            sc.pl.umap(adata, color=f"source type {x}", title='', show=False, size=size, legend_loc="None", ax=ax[i], frameon=False, hspace=0., wspace=0.)
             ax[i].set_xlabel("")
             ax[i].set_ylabel("")
+            ax[i].set_title(x)
         sc.pl.umap(
             adata,
             color=f"source type {filter_titles[-1]}",
-            title=filter_titles[-1],
+            title='',
             size=size,
             show=False,
             ax=ax[n - 1],
@@ -1032,8 +1033,9 @@ class PlottingTools:
         )
         ax[n - 1].set_xlabel("")
         ax[n - 1].set_ylabel("")
+        ax[n - 1].set_title(filter_titles[-1])
         # Save, show and return figure.
-        # plt.tight_layout()
+        #plt.tight_layout(pad=1.2)
         if save is not None:
             plt.savefig(save + suffix)
 
@@ -1241,7 +1243,7 @@ class PlottingTools:
 
         sq.gr.ligrec(temp_adata, interactions=interactions, cluster_key=cluster_id, use_raw=False, seed=seed)
         if save is not None:
-            save = save + image_key + suffix
+            save = save + suffix
 
         if fontsize:
             sc.set_figure_params(scanpy=True, fontsize=fontsize)
@@ -1824,7 +1826,7 @@ class DataLoaderZhang(DataLoader):
             pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="str").map(self.cell_type_merge_dict)
         )
         celldata.obs[metadata["cluster_col_preprocessed"]] = celldata.obs[metadata["cluster_col_preprocessed"]].astype(
-            "str"
+            "category"
         )
 
         # register node type names
