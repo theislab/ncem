@@ -451,7 +451,7 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
         interactions = np.concatenate(interactions, axis=0)
         sf = np.concatenate(sf, axis=0)
         node_covar = np.concatenate(node_covar, axis=0)
-        g = np.concatenate(g, axis=0)
+        g = np.array(g)
         h_obs = np.concatenate(h_obs, axis=0)
         
         return (target, interactions, sf, node_covar, g), h_obs
