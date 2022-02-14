@@ -554,17 +554,17 @@ class GridSearchContainer:
                                                         "gs_id": [runparams[x]["gs_id"]],
                                                         "model_id": [runparams[x]["model_id"]],
                                                         #"split_mode": [runparams[x]["split_mode"]],
-                                                        "radius": [runparams[x]["radius"]],
+                                                        "radius": [runparams[x]["radius"]] if "radius" in list(runparams[x].keys()) else [runparams[x]["max_dist"]],
                                                         "n_rings": [runparams[x]["n_rings"]] if "n_rings" in list(runparams[x].keys()) else "none",
                                                         "graph_covar_selection": [
                                                             runparams[x]["graph_covar_selection"]
                                                         ],
-                                                        "node_label_space_id": [
-                                                            runparams[x]["node_label_space_id"]
-                                                        ],
-                                                        "node_feature_space_id": [
-                                                            runparams[x]["node_feature_space_id"]
-                                                        ],
+                                                        #"node_label_space_id": [
+                                                        #    runparams[x]["node_label_space_id"]
+                                                        #],
+                                                        #"node_feature_space_id": [
+                                                        #    runparams[x]["node_feature_space_id"]
+                                                        #],
                                                         #"feature_transformation": [
                                                         #    runparams[x]["feature_transformation"]
                                                         #],
@@ -1065,6 +1065,7 @@ class GridSearchContainer:
         return_axs: bool = False,
         yaxis_limit: Optional[Tuple[float, float]] = None,
         panelsize: Tuple[float, float] = (3.0, 3.0),
+        sharey: bool = False,
     ):
         """Plot target cell evaluation.
 
@@ -1102,7 +1103,7 @@ class GridSearchContainer:
         nrows = len(params_tc_unique) // ncols + int(len(params_tc_unique) % ncols > 0)
 
         fig, ax = plt.subplots(
-            ncols=ncols, nrows=nrows, figsize=(ncols * panelsize[0], nrows * panelsize[1]), sharex=True, sharey=True
+            ncols=ncols, nrows=nrows, figsize=(ncols * panelsize[0], nrows * panelsize[1]), sharex=True, sharey=sharey
         )
         ax = ax.flat
         for a in ax[ct:]:
