@@ -956,7 +956,7 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
         edge_width_scale: float = 3.,
         fontsize: Optional[int] = None,
         figsize: Tuple[float, float] = (9, 8),
-        interaction_threshold: int = 200
+        interaction_threshold: int = 200,
         save: Optional[str] = None,
         suffix: str = "_type_coupling_analysis_circular.pdf",
         show: bool = True,
