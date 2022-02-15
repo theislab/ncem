@@ -14,6 +14,7 @@ from diffxpy.testing.correction import correct
 from scipy import sparse, stats
 from scipy.sparse import csr_matrix
 from tqdm import tqdm
+import networkx as nx
 
 import ncem.estimators as estimators
 import ncem.models as models
@@ -21,6 +22,40 @@ import ncem.train as train
 from ncem.utils.wald_test import get_fim_inv, wald_test
 from ncem.utils.ols_fit import ols_fit
 from patsy import dmatrix
+
+
+def _get_scanpy_colors():
+    from typing import Mapping, Sequence
+    from matplotlib import cm, colors
+
+    # Colorblindness adjusted vega_10
+    # See https://github.com/theislab/scanpy/issues/387
+    vega_10 = list(map(colors.to_hex, cm.tab10.colors))
+    vega_10_scanpy = vega_10.copy()
+    vega_10_scanpy[2] = '#279e68'  # green
+    vega_10_scanpy[4] = '#aa40fc'  # purple
+    vega_10_scanpy[8] = '#b5bd61'  # kakhi
+
+    # default matplotlib 2.0 palette
+    # see 'category20' on https://github.com/vega/vega/wiki/Scales#scale-range-literals
+    vega_20 = list(map(colors.to_hex, cm.tab20.colors))
+
+    # reorderd, some removed, some added
+    vega_20_scanpy = [
+        # dark without grey:
+        *vega_20[0:14:2],
+        *vega_20[16::2],
+        # light without grey:
+        *vega_20[1:15:2],
+        *vega_20[17::2],
+        # manual additions:
+        '#ad494a',
+        '#8c6d31',
+    ]
+    vega_20_scanpy[2] = vega_10_scanpy[2]
+    vega_20_scanpy[4] = vega_10_scanpy[4]
+    vega_20_scanpy[7] = vega_10_scanpy[8]  # kakhi shifted by missing grey
+    return vega_10_scanpy, vega_20_scanpy
 
 
 class InterpreterBase(estimators.Estimator):
@@ -907,6 +942,100 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
         sns.heatmap(sig_df, cmap='Greys',)
         plt.xlabel('sender')
         plt.ylabel('receiver')
+        plt.tight_layout()
+        if save is not None:
+            plt.savefig(f"{save}_cv{str(self.cv_idx)}_{suffix}")
+        if show:
+            plt.show()
+        plt.close(fig)
+        plt.ion()
+        
+    def type_coupling_analysis_circular(
+        self,
+        edge_attr: str,
+        edge_width_scale: float = 3.,
+        fontsize: Optional[int] = None,
+        figsize: Tuple[float, float] = (9, 8),
+        interaction_threshold: int = 200
+        save: Optional[str] = None,
+        suffix: str = "_type_coupling_analysis_circular.pdf",
+        show: bool = True,
+    ):
+        coeff = self.fold_change * self.is_sign
+        coeff_df = pd.DataFrame(
+            np.sqrt(np.sum(coeff**2, axis=-1)), 
+            columns=self.cell_names,
+            index=self.cell_names
+        )
+        network_coeff_df = pd.DataFrame(coeff_df.unstack()).reset_index().rename(columns={'level_0': 'receiver', 'level_1': 'sender'})
+        network_coeff_df = network_coeff_df[network_coeff_df['receiver'] != network_coeff_df['sender']]
+        
+        sig_df = pd.DataFrame(
+            np.sum(self.is_sign, axis=-1), 
+            columns=self.cell_names,
+            index=self.cell_names
+        )
+        network_df = pd.DataFrame(sig_df.unstack()).reset_index().rename(columns={'level_0': 'receiver', 'level_1': 'sender'})
+        network_df = network_df[network_df['receiver'] != network_df['sender']]
+        network_df["magnitude"] = network_coeff_df[0]
+
+        network_df["de_genes"] = [
+            (np.abs(x) - np.min(np.abs(network_df[0].values))) / 
+            (np.max(np.abs(network_df[0].values)) - np.min(np.abs(network_df[0].values)))
+            for x in network_df[0].values]
+        
+        if fontsize:
+            sc.set_figure_params(scanpy=True, fontsize=fontsize)
+        vega_10_scanpy, vega_20_scanpy = _get_scanpy_colors()
+        plt.ioff()   
+        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=figsize)
+        ax.axis('off')
+        G=nx.from_pandas_edgelist(
+            network_df[network_df[0]>interaction_threshold], source='sender', target='receiver', 
+            edge_attr=["magnitude", 'de_genes'], 
+            create_using=nx.DiGraph()
+        )
+        nodes = np.unique(network_df['receiver'])
+        pos=nx.circular_layout(G)
+        labels_width = nx.get_edge_attributes(G, edge_attr)
+        if len(nodes) > 10:
+            nx.set_node_attributes(G, dict([(x,vega_20_scanpy[i]) for i, x in enumerate(nodes)]), "color")
+        else:
+            nx.set_node_attributes(G, dict([(x,vega_10_scanpy[i]) for i, x in enumerate(nodes)]), "color")
+            
+        node_color = nx.get_node_attributes(G, 'color')
+
+        description = nx.draw_networkx_labels(G,pos, font_size=17)
+        n = len(self.cell_names)
+        node_list = sorted(G.nodes())
+        angle = []
+        angle_dict = {}
+        for i, node in zip(range(n),node_list):
+            theta = 2.0*np.pi*i/n
+            angle.append((np.cos(theta),np.sin(theta)))
+            angle_dict[node] = theta
+        pos = {}
+        for node_i, node in enumerate(node_list):
+            pos[node] = angle[node_i]
+
+        r = fig.canvas.get_renderer()
+        trans = plt.gca().transData.inverted()
+        for node, t in description.items():
+            bb = t.get_window_extent(renderer=r)
+            bbdata = bb.transformed(trans)
+            radius = 1.15+bbdata.width/1.
+            position = (radius*np.cos(angle_dict[node]),radius* np.sin(angle_dict[node]))
+            t.set_position(position)
+            t.set_rotation(angle_dict[node]*360.0/(2.0*np.pi))
+            t.set_clip_on(False)
+
+        nx.draw_networkx(
+            G, pos, with_labels=False, node_size=500,
+            width=[x * edge_width_scale for x in list(labels_width.values())], 
+            edge_vmin=0., edge_vmax=1., edge_cmap=plt.cm.seismic, arrowstyle='-|>',
+            vmin=0., vmax=1., cmap=plt.cm.binary, node_color=list(node_color.values()),
+            ax=ax, connectionstyle='arc3, rad = 0.1'
+        )
         plt.tight_layout()
         if save is not None:
             plt.savefig(f"{save}_cv{str(self.cv_idx)}_{suffix}")
