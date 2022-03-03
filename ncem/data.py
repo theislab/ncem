@@ -3877,3 +3877,211 @@ class DataLoaderCell2locationLymphnode(DataLoader):
             "label_data_types": {},
         }
         self.celldata.uns["graph_covariates"] = graph_covariates
+
+
+class DataLoaderSalasIss(DataLoader):
+    """DataLoader10xVisiumMouseBrain class. Inherits all functions from DataLoader."""
+
+    cell_type_merge_dict = {
+        "x_0_": "Mesenchymal",
+        "x_1_": "Mesenchymal",
+        "x_2_": "Mesenchymal",
+        "x_3_": "Mesenchymal",
+        "x_4_": "Prol. Mesench.",
+        "x_5_": "Mesenchymal",
+        "x_6_": "Mesenchymal",
+        "x_7_": "Mesenchymal",
+        "x_8_": "ASM",
+        "x_9_": "immature ASM",
+        "x_10_": "Vasc. Endothelial",
+        "x_11_": "Prol. Mesench.",
+        "x_12_": "Epith. Proximal",
+        "x_13_": "Epith. Distal",
+        "x_14_": "Mesenchymal",
+        "x_15_": "Prol. Mesench.",
+        "x_16_": "Pericytes",
+        "x_17_": "Immune myeloid",
+        "x_18_": "Prol. Mesench.",
+        "x_19_": "Chondroblasts",
+        "x_20_": "Mesothelial",
+        "x_21_": "Erythroblast-RBC",
+        "x_22_": "Immune Lymphoid",
+        "x_23_": "Neuronal",
+        "x_24_": "Epithelial NE",
+        "x_25_": "Mesenchymal",
+        "x_26_": "Lymph. Endoth.",
+        "x_27_": "Epi. Ciliated",
+        "x_28_": "Megacaryocyte",
+        "x_29_": "Mesenchymal",
+    }
+
+    def _register_celldata(self, n_top_genes: Optional[int] = None):
+        """Load AnnData object of complete dataset."""
+        metadata = {
+            "lateral_resolution": 1.,
+            "fn": "Cell_type/PCW13/S1T1_pciseq_mALL_pciseq_results_V02.csv",
+            "cluster_col": "name",
+            "cluster_col_preprocessed": "name_preprocessed",
+            "pos_cols": ["X", "Y"],
+        }
+
+        celldata_df = read_csv(os.path.join(self.data_path, metadata["fn"]))
+
+        feature_cols = [
+            "BCL2",
+            "CCL21",
+            "CDON",
+            "CPM",
+            "CTGF",
+            "CTNND2",
+            "CXXC4",
+            "DLL1",
+            "DLL3",
+            "DLL4",
+            "DNAH12",
+            "DTX1",
+            "ETS1",
+            "ETS2",
+            "ETV1",
+            "ETV3",
+            "ETV5",
+            "ETV6",
+            "FGF10",
+            "FGF18",
+            "FGF2",
+            "FGF20",
+            "FGF7",
+            "FGF9",
+            "FGFR1",
+            "FGFR2",
+            "FGFR3",
+            "FGFR4",
+            "FLT1",
+            "FLT4",
+            "FZD1",
+            "FZD2",
+            "FZD3",
+            "FZD6",
+            "FZD7",
+            "GLI2",
+            "GLI3",
+            "GRP",
+            "HES1",
+            "HEY1",
+            "HEYL",
+            "HGF",
+            "IGFBP7",
+            "JAG1",
+            "JAG2",
+            "KDR",
+            "LEF1",
+            "LRP2",
+            "LRP5",
+            "LYZ",
+            "MET",
+            "MFNG",
+            "NKD1",
+            "NOTCH1",
+            "NOTCH2",
+            "NOTCH3",
+            "NOTCH4",
+            "NOTUM",
+            "PDGFA",
+            "PDGFB",
+            "PDGFC",
+            "PDGFD",
+            "PDGFRA",
+            "PDGFRB",
+            "PHOX2B",
+            "PTCH1",
+            "RSPH1",
+            "RSPO2",
+            "RSPO3",
+            "SEC11C",
+            "SFRP1",
+            "SFRP2",
+            "SHH",
+            "SMO",
+            "SOX17",
+            "SPOPL",
+            "SPRY1",
+            "SPRY2",
+            "TCF7L1",
+            "TPPP3",
+            "VEGFB",
+            "VEGFC",
+            "VEGFD",
+            "WIF1",
+            "WNT11",
+            "WNT2",
+            "WNT2B",
+            "WNT5A",
+            "WNT7B",
+        ]
+        X = DataFrame(np.array(celldata_df[feature_cols]), columns=feature_cols)
+        celldata = AnnData(X=X, obs=celldata_df[["name"]])
+        celldata.var_names_make_unique()
+
+        celldata.uns["metadata"] = metadata
+
+        celldata.obsm["spatial"] = np.array(celldata_df[metadata["pos_cols"]])
+
+        img_to_patient_dict = {"image": "patient"}
+        celldata.uns["img_to_patient_dict"] = img_to_patient_dict
+        self.img_to_patient_dict = img_to_patient_dict
+
+        # add clean cluster column which removes regular expression from cluster_col
+        celldata.obs[metadata["cluster_col_preprocessed"]] = list(
+            pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="category").map(self.cell_type_merge_dict)
+        )
+        celldata.obs[metadata["cluster_col_preprocessed"]] = celldata.obs[metadata["cluster_col_preprocessed"]].astype(
+            "category"
+        )
+
+        # register node type names
+        node_type_names = list(np.unique(celldata.obs[metadata["cluster_col_preprocessed"]]))
+        celldata.uns["node_type_names"] = {x: x for x in node_type_names}
+        node_types = np.zeros((celldata.shape[0], len(node_type_names)))
+        node_type_idx = np.array(
+            [
+                node_type_names.index(x) for x in celldata.obs[metadata["cluster_col_preprocessed"]].values
+            ]  # index in encoding vector
+        )
+        node_types[np.arange(0, node_type_idx.shape[0]), node_type_idx] = 1
+        celldata.obsm["node_types"] = node_types
+
+        self.celldata = celldata
+
+    def _register_img_celldata(self):
+        """Load dictionary of of image-wise celldata objects with {imgage key : anndata object of image}."""
+        img_celldata = {}
+        self.img_celldata = {"image": self.celldata}
+
+    def _register_graph_features(self, label_selection):
+        """Load graph level covariates.
+
+        Parameters
+        ----------
+        label_selection
+            Label selection.
+        """
+        # Save processed data to attributes.
+        for adata in self.img_celldata.values():
+            graph_covariates = {
+                "label_names": {},
+                "label_tensors": {},
+                "label_selection": [],
+                "continuous_mean": {},
+                "continuous_std": {},
+                "label_data_types": {},
+            }
+            adata.uns["graph_covariates"] = graph_covariates
+
+        graph_covariates = {
+            "label_names": {},
+            "label_selection": [],
+            "continuous_mean": {},
+            "continuous_std": {},
+            "label_data_types": {},
+        }
+        self.celldata.uns["graph_covariates"] = graph_covariates

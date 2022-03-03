@@ -215,6 +215,11 @@ class Estimator:
 
             self.undefined_node_types = None
 
+        elif data_origin == "salasiss":
+            from ncem.data import DataLoaderSalasIss as DataLoader
+
+            self.undefined_node_types = None
+
         self.data = DataLoader(
             data_path, radius=radius, coord_type=coord_type, n_rings=n_rings, label_selection=label_selection,
             n_top_genes=n_top_genes
