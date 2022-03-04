@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import scanpy as sc
 import seaborn as sns
+from tqdm import tqdm
 from matplotlib.ticker import FormatStrFormatter
 
 
@@ -99,355 +100,357 @@ class GridSearchContainer:
         self.histories = {}
         self.source_gs = {}
         self.cv_ids = {}
-        for gs_id in self.gs_ids:
-            # Collect runs that belong to grid search by looping over file names in directory.
-            indir = self.source_path + gs_id + "/results/"
-            # runs_ids are the unique hyper-parameter settings, which are again subsetted by cross-validation.
-            # These ids are present in all files names but are only collected from the *model.tf file names here.
+        with tqdm(total=len(self.gs_ids)) as pbar:
+            for gs_id in self.gs_ids:
+                # Collect runs that belong to grid search by looping over file names in directory.
+                indir = self.source_path + gs_id + "/results/"
+                # runs_ids are the unique hyper-parameter settings, which are again subsetted by cross-validation.
+                # These ids are present in all files names but are only collected from the *model.tf file names here.
 
-            run_ids = np.sort(
-                np.unique(
-                    [
-                        "_".join(".".join(x.split(".")[:-1]).split("_")[:-1])
-                        for x in os.listdir(indir)
-                        if x.split("_")[-1].split(".")[0] == "time"
-                    ]
+                run_ids = np.sort(
+                    np.unique(
+                        [
+                            "_".join(".".join(x.split(".")[:-1]).split("_")[:-1])
+                            for x in os.listdir(indir)
+                            if x.split("_")[-1].split(".")[0] == "time"
+                        ]
+                    )
                 )
-            )
-            cv_ids = np.sort(np.unique([x.split("_")[-1] for x in run_ids]))  # identifiers of cross-validation splits
-            run_ids = np.sort(
-                np.unique(["_".join(x.split("_")[:-1]) for x in run_ids])  # identifiers of hyper-parameters settings
-            )
-            run_ids_clean = []  # only IDs of completed runs (all files present)
-            for r in run_ids:
-                complete_run = True
-                for cv in cv_ids:
-                    # Check pickled files:
-                    for end in expected_pickle:
-                        fn = r + "_" + cv + "_" + end + ".pickle"
-                        if not os.path.isfile(indir + fn):
-                            if report_unsuccessful_runs:
-                                print("File %r missing" % fn)
-                            complete_run = False
-                # Check run parameter files (one per cross-validation set):
-                fn = r + "_runparams.pickle"
-                if not os.path.isfile(indir + fn):
-                    if report_unsuccessful_runs:
-                        print("File %r missing" % fn)
-                    complete_run = False
-                if not complete_run:
-                    if report_unsuccessful_runs:
-                        print("Run %r not successful" % r + "_" + cv)
-                else:
-                    run_ids_clean.append(r)
-            # Load results and settings from completed runs:
-            evals = (
-                {}
-            )  # Dictionary over runs with dictionary over cross-validations with results from model evaluation.
-            runparams = {}  # Dictionary over runs with model settings.
-            histories = {}
-            for x in run_ids_clean:
-                # Load model settings (these are shared across all partitions).
-                fn_runparams = indir + x + "_runparams.pickle"
-                with open(fn_runparams, "rb") as f:
-                    runparams[x] = pickle.load(f)
-                evals[x] = {}
-                for cv in cv_ids:
-                    fn_eval = indir + x + "_" + cv + "_evaluation.pickle"
-                    with open(fn_eval, "rb") as f:
-                        evals[x][cv] = pickle.load(f)
-                histories[x] = {}
-                for cv in cv_ids:
-                    fn_eval = indir + x + "_" + cv + "_history.pickle"
-                    with open(fn_eval, "rb") as f:
-                        histories[x][cv] = pickle.load(f)
-            self.runparams[gs_id] = runparams
-            self.run_ids_clean[gs_id] = run_ids_clean
-            self.evals[gs_id] = evals
-            self.histories[gs_id] = histories
-            self.cv_ids[gs_id] = cv_ids
-            for run_id in run_ids_clean:
-                self.source_gs[run_id] = gs_id
-            if len(run_ids_clean) == 0:
-                raise ValueError("no complete runs found")
-
-            # Summarise all metrics in a single table with rows for each runs and CV partition.
-            params_list = list(
-                {
-                    "data_set": [runparams[x]["data_set"] for x in run_ids_clean],
-                    "model_class": [runparams[x]["model_class"] for x in run_ids_clean],
-                    "cond_type": [runparams[x]["cond_type"] for x in run_ids_clean]
-                    if "cond_type" in list(runparams[x].keys())
-                    else "none",
-                    "gs_id": [runparams[x]["gs_id"] for x in run_ids_clean],
-                    "model_id": [runparams[x]["model_id"] for x in run_ids_clean],
-                    #"split_mode": [runparams[x]["split_mode"] for x in run_ids_clean],
-                    "radius": [runparams[x]["radius"] for x in run_ids_clean] if "radius" in list(runparams[x].keys()) else [runparams[x]["max_dist"] for x in run_ids_clean],
-                    "n_rings": [runparams[x]["n_rings"] for x in run_ids_clean] if "n_rings" in list(runparams[x].keys()) else "none",
-                    "graph_covar_selection": [runparams[x]["graph_covar_selection"] for x in run_ids_clean],
-                    #"node_label_space_id": [runparams[x]["node_label_space_id"] for x in run_ids_clean],
-                    #"node_feature_space_id": [runparams[x]["node_feature_space_id"] for x in run_ids_clean],
-                    #"feature_transformation": [runparams[x]["feature_transformation"] for x in run_ids_clean],
-                    "use_covar_node_position": [runparams[x]["use_covar_node_position"] for x in run_ids_clean],
-                    "use_covar_node_label": [runparams[x]["use_covar_node_label"] for x in run_ids_clean],
-                    "use_covar_graph_covar": [runparams[x]["use_covar_graph_covar"] for x in run_ids_clean],
-                    "target_cell_type": [runparams[x]["target_cell_type"] for x in run_ids_clean]
-                    if "target_cell_type" in list(runparams[x].keys())
-                    else "none",
-                    "optimizer": [runparams[x]["optimizer"] for x in run_ids_clean],
-                    "learning_rate": [runparams[x]["learning_rate"] for x in run_ids_clean],
-                    "intermediate_dim_enc": [runparams[x]["intermediate_dim_enc"] for x in run_ids_clean]
-                    if "intermediate_dim_enc" in list(runparams[x].keys())
-                    else "none",
-                    "intermediate_dim_dec": [runparams[x]["intermediate_dim_dec"] for x in run_ids_clean]
-                    if "intermediate_dim_dec" in list(runparams[x].keys())
-                    else "none",
-                    "latent_dim": [runparams[x]["latent_dim"] for x in run_ids_clean]
-                    if "latent_dim" in list(runparams[x].keys())
-                    else "none",
-                    "depth_enc": [runparams[x]["depth_enc"] for x in run_ids_clean]
-                    if "depth_enc" in list(runparams[x].keys())
-                    else "none",
-                    "depth_dec": [runparams[x]["depth_dec"] for x in run_ids_clean]
-                    if "depth_dec" in list(runparams[x].keys())
-                    else "none",
-                    "dropout_rate": [runparams[x]["dropout_rate"] for x in run_ids_clean]
-                    if "dropout_rate" in list(runparams[x].keys())
-                    else "none",
-                    "l2_coef": [runparams[x]["l2_coef"] for x in run_ids_clean]
-                    if "l2_coef" in list(runparams[x].keys())
-                    else "none",
-                    "l1_coef": [runparams[x]["l1_coef"] for x in run_ids_clean]
-                    if "l1_coef" in list(runparams[x].keys())
-                    else "none",
-                    "pretrain_decoder": [runparams[x]["pretrain_decoder"] for x in run_ids_clean]
-                    if "pretrain_decoder" in list(runparams[x].keys())
-                    else "none",
-                    "aggressive": [runparams[x]["aggressive"] for x in run_ids_clean]
-                    if "aggressive" in list(runparams[x].keys())
-                    else "none",
-                    "cond_depth": [str(runparams[x]["cond_depth"]) for x in run_ids_clean]
-                    if "cond_depth" in list(runparams[x].keys())
-                    else "none",
-                    "cond_dim": [str(runparams[x]["cond_dim"]) for x in run_ids_clean]
-                    if "cond_dim" in list(runparams[x].keys())
-                    else "none",
-                    "cond_dropout_rate": [str(runparams[x]["cond_dropout_rate"]) for x in run_ids_clean]
-                    if "cond_dropout_rate" in list(runparams[x].keys())
-                    else "none",
-                    "cond_activation": [str(runparams[x]["cond_activation"]) for x in run_ids_clean]
-                    if "cond_activation" in list(runparams[x].keys())
-                    else "none",
-                    "cond_l2_reg": [str(runparams[x]["cond_l2_reg"]) for x in run_ids_clean]
-                    if "cond_l2_reg" in list(runparams[x].keys())
-                    else "none",
-                    "cond_use_bias": [str(runparams[x]["cond_use_bias"]) for x in run_ids_clean]
-                    if "cond_bias" in list(runparams[x].keys())
-                    else "none",
-                    "use_domain": [runparams[x]["use_domain"] for x in run_ids_clean],
-                    "domain_type": [runparams[x]["domain_type"] for x in run_ids_clean],
-                    "use_batch_norm": [runparams[x]["use_batch_norm"] for x in run_ids_clean] if "use_batch_norm" in list(runparams[x].keys())
-                    else "none",
-                    "use_type_cond": [runparams[x]["use_type_cond"] for x in run_ids_clean]
-                    if "use_type_cond" in list(runparams[x].keys())
-                    else "none",
-                    "scale_node_size": [runparams[x]["scale_node_size"] for x in run_ids_clean],
-                    "transform_input": [runparams[x]["transform_input"] for x in run_ids_clean] if "transform_input" in list(runparams[x].keys())
-                    else "none",
-                    "output_layer": [runparams[x]["output_layer"] for x in run_ids_clean],
-                    "log_transform": [runparams[x]["log_transform"] for x in run_ids_clean]
-                    if "log_transform" in list(runparams[x].keys())
-                    else False,
-                    "segmentation_robustness_node_fraction": [runparams[x]["segmentation_robustness_node_fraction"] for x in run_ids_clean]
-                    if "segmentation_robustness_node_fraction" in list(runparams[x].keys())
-                    else False,
-                    "segmentation_robustness_overflow_fraction": [runparams[x]["segmentation_robustness_overflow_fraction"] for x in run_ids_clean]
-                    if "segmentation_robustness_overflow_fraction" in list(runparams[x].keys())
-                    else False,
-                    "resimulate_nodes_w_depdency": [runparams[x]["resimulate_nodes_w_depdency"] for x in run_ids_clean]
-                    if "resimulate_nodes_w_depdency" in list(runparams[x].keys())
-                    else False,
-                    "resimulate_nodes_sparsity_rate": [runparams[x]["resimulate_nodes_sparsity_rate"] for x in run_ids_clean]
-                    if "resimulate_nodes_sparsity_rate" in list(runparams[x].keys())
-                    else False,
-                    "epochs": [runparams[x]["epochs"] for x in run_ids_clean],
-                    "batch_size": [runparams[x]["batch_size"] for x in run_ids_clean],
-                    "n_eval_nodes_per_graph": [runparams[x]["n_eval_nodes_per_graph"] for x in run_ids_clean],
-                    "run_id_params": run_ids_clean,
-                }.items()
-            )
-            self.runparams_table.append(pd.DataFrame(dict(params_list)))
-
-            self.summary_table.append(
-                pd.concat(
-                    [
-                        pd.DataFrame(
-                            dict(
-                                list(params_list)
-                                + list(
-                                    {
-                                        "cv": cv,
-                                        "run_id": run_ids_clean,
-                                        "model": "_".join(gs_id.split("/")[-1].split("_")[1:-1]),
-                                        "forward_pass_eval": True,
-                                    }.items()
-                                )
-                                + list(
-                                    dict(
-                                        [
-                                            (
-                                                "train_" + m.replace("reconstruction_", "").replace("logp1_", ""),
-                                                [evals[x][cv]["train"][m] for x in run_ids_clean],
-                                            )
-                                            for m in list(evals[run_ids_clean[0]][cv]["train"].keys())
-                                        ]
-                                    ).items()
-                                )
-                                + list(
-                                    dict(
-                                        [
-                                            (
-                                                "val_" + m.replace("reconstruction_", "").replace("logp1_", ""),
-                                                [evals[x][cv]["val"][m] for x in run_ids_clean],
-                                            )
-                                            for m in list(evals[run_ids_clean[0]][cv]["val"].keys())
-                                        ]
-                                    ).items()
-                                )
-                                + list(
-                                    dict(
-                                        [
-                                            (
-                                                "test_" + m.replace("reconstruction_", "").replace("logp1_", ""),
-                                                [evals[x][cv]["test"][m] for x in run_ids_clean],
-                                            )
-                                            for m in list(evals[run_ids_clean[0]][cv]["test"].keys())
-                                        ]
-                                    ).items()
-                                )
-                                + list(
-                                    dict(
-                                        [
-                                            (
-                                                "all_" + m.replace("reconstruction_", "").replace("logp1_", ""),
-                                                [evals[x][cv]["all"][m] for x in run_ids_clean],
-                                            )
-                                            for m in list(evals[run_ids_clean[0]][cv]["all"].keys())
-                                        ]
-                                    ).items()
-                                )
-                            )
-                        )
-                        for cv in cv_ids
-                    ]
+                cv_ids = np.sort(np.unique([x.split("_")[-1] for x in run_ids]))  # identifiers of cross-validation splits
+                run_ids = np.sort(
+                    np.unique(["_".join(x.split("_")[:-1]) for x in run_ids])  # identifiers of hyper-parameters settings
                 )
-            )
-            print("%s: loaded %i runs with %i-fold cross validation" % (gs_id, len(run_ids_clean), len(cv_ids)))
-
-            if runparams[run_ids_clean[0]]["model_class"] in ["vae", "cvae", "cvae_ncem"]:
-                evals_posterior_sampling = {}  # Dictionary over runs with dictionary over cross-validations with
-                # results from model neighbourhood transfer evaluation.
-                for x in run_ids_clean:
-                    evals_posterior_sampling[x] = {}
+                run_ids_clean = []  # only IDs of completed runs (all files present)
+                for r in run_ids:
+                    complete_run = True
                     for cv in cv_ids:
-                        if add_posterior_sampling_model:
-                            fn_eval = indir + x + "_" + cv + "_evaluation_posterior_sampling.pickle"
-                            with open(fn_eval, "rb") as f:
-                                evals_posterior_sampling[x][cv] = pickle.load(f)
-                self.evals_posterior_sampling[gs_id + "_POSTERIOR_SAMPLING"] = evals_posterior_sampling
+                        # Check pickled files:
+                        for end in expected_pickle:
+                            fn = r + "_" + cv + "_" + end + ".pickle"
+                            if not os.path.isfile(indir + fn):
+                                if report_unsuccessful_runs:
+                                    print("File %r missing" % fn)
+                                complete_run = False
+                    # Check run parameter files (one per cross-validation set):
+                    fn = r + "_runparams.pickle"
+                    if not os.path.isfile(indir + fn):
+                        if report_unsuccessful_runs:
+                            print("File %r missing" % fn)
+                        complete_run = False
+                    if not complete_run:
+                        if report_unsuccessful_runs:
+                            print("Run %r not successful" % r + "_" + cv)
+                    else:
+                        run_ids_clean.append(r)
+                # Load results and settings from completed runs:
+                evals = (
+                    {}
+                )  # Dictionary over runs with dictionary over cross-validations with results from model evaluation.
+                runparams = {}  # Dictionary over runs with model settings.
+                histories = {}
+                for x in run_ids_clean:
+                    # Load model settings (these are shared across all partitions).
+                    fn_runparams = indir + x + "_runparams.pickle"
+                    with open(fn_runparams, "rb") as f:
+                        runparams[x] = pickle.load(f)
+                    evals[x] = {}
+                    for cv in cv_ids:
+                        fn_eval = indir + x + "_" + cv + "_evaluation.pickle"
+                        with open(fn_eval, "rb") as f:
+                            evals[x][cv] = pickle.load(f)
+                    histories[x] = {}
+                    for cv in cv_ids:
+                        fn_eval = indir + x + "_" + cv + "_history.pickle"
+                        with open(fn_eval, "rb") as f:
+                            histories[x][cv] = pickle.load(f)
+                self.runparams[gs_id] = runparams
+                self.run_ids_clean[gs_id] = run_ids_clean
+                self.evals[gs_id] = evals
+                self.histories[gs_id] = histories
+                self.cv_ids[gs_id] = cv_ids
+                for run_id in run_ids_clean:
+                    self.source_gs[run_id] = gs_id
+                if len(run_ids_clean) == 0:
+                    raise ValueError("no complete runs found")
 
-                if add_posterior_sampling_model:
-                    self.summary_table.append(
-                        pd.concat(
-                            [
-                                pd.DataFrame(
-                                    dict(
-                                        list(params_list)
-                                        + list(
-                                            {
-                                                "cv": cv,
-                                                "run_id": [x + "_posterior_sampling" for x in run_ids_clean],
-                                                "model": "_".join(gs_id.split("/")[-1].split("_")[1:-1])
-                                                + "_POSTERIOR_SAMPLING",
-                                                "posterior_sampling_eval": True,
-                                            }.items()
-                                        )
-                                        + list(
-                                            dict(
-                                                [
-                                                    (
-                                                        "train_"
-                                                        + m.replace("reconstruction_", "").replace("logp1_", ""),
-                                                        [
-                                                            evals_posterior_sampling[x][cv]["train"][m]
-                                                            for x in run_ids_clean
-                                                        ],
-                                                    )
-                                                    for m in list(
-                                                        evals_posterior_sampling[run_ids_clean[0]][cv]["train"].keys()
-                                                    )
-                                                ]
-                                            ).items()
-                                        )
-                                        + list(
-                                            dict(
-                                                [
-                                                    (
-                                                        "val_" + m.replace("reconstruction_", "").replace("logp1_", ""),
-                                                        [
-                                                            evals_posterior_sampling[x][cv]["val"][m]
-                                                            for x in run_ids_clean
-                                                        ],
-                                                    )
-                                                    for m in list(
-                                                        evals_posterior_sampling[run_ids_clean[0]][cv]["val"].keys()
-                                                    )
-                                                ]
-                                            ).items()
-                                        )
-                                        + list(
-                                            dict(
-                                                [
-                                                    (
-                                                        "test_"
-                                                        + m.replace("reconstruction_", "").replace("logp1_", ""),
-                                                        [
-                                                            evals_posterior_sampling[x][cv]["test"][m]
-                                                            for x in run_ids_clean
-                                                        ],
-                                                    )
-                                                    for m in list(
-                                                        evals_posterior_sampling[run_ids_clean[0]][cv]["test"].keys()
-                                                    )
-                                                ]
-                                            ).items()
-                                        )
-                                        + list(
-                                            dict(
-                                                [
-                                                    (
-                                                        "all_" + m.replace("reconstruction_", "").replace("logp1_", ""),
-                                                        [
-                                                            evals_posterior_sampling[x][cv]["all"][m]
-                                                            for x in run_ids_clean
-                                                        ],
-                                                    )
-                                                    for m in list(
-                                                        evals_posterior_sampling[run_ids_clean[0]][cv]["all"].keys()
-                                                    )
-                                                ]
-                                            ).items()
-                                        )
+                # Summarise all metrics in a single table with rows for each runs and CV partition.
+                params_list = list(
+                    {
+                        "data_set": [runparams[x]["data_set"] for x in run_ids_clean],
+                        "model_class": [runparams[x]["model_class"] for x in run_ids_clean],
+                        "cond_type": [runparams[x]["cond_type"] for x in run_ids_clean]
+                        if "cond_type" in list(runparams[x].keys())
+                        else "none",
+                        "gs_id": [runparams[x]["gs_id"] for x in run_ids_clean],
+                        "model_id": [runparams[x]["model_id"] for x in run_ids_clean],
+                        #"split_mode": [runparams[x]["split_mode"] for x in run_ids_clean],
+                        "radius": [runparams[x]["radius"] for x in run_ids_clean] if "radius" in list(runparams[x].keys()) else [runparams[x]["max_dist"] for x in run_ids_clean],
+                        "n_rings": [runparams[x]["n_rings"] for x in run_ids_clean] if "n_rings" in list(runparams[x].keys()) else "none",
+                        "graph_covar_selection": [runparams[x]["graph_covar_selection"] for x in run_ids_clean],
+                        #"node_label_space_id": [runparams[x]["node_label_space_id"] for x in run_ids_clean],
+                        #"node_feature_space_id": [runparams[x]["node_feature_space_id"] for x in run_ids_clean],
+                        #"feature_transformation": [runparams[x]["feature_transformation"] for x in run_ids_clean],
+                        "use_covar_node_position": [runparams[x]["use_covar_node_position"] for x in run_ids_clean],
+                        "use_covar_node_label": [runparams[x]["use_covar_node_label"] for x in run_ids_clean],
+                        "use_covar_graph_covar": [runparams[x]["use_covar_graph_covar"] for x in run_ids_clean],
+                        "target_cell_type": [runparams[x]["target_cell_type"] for x in run_ids_clean]
+                        if "target_cell_type" in list(runparams[x].keys())
+                        else "none",
+                        "optimizer": [runparams[x]["optimizer"] for x in run_ids_clean],
+                        "learning_rate": [runparams[x]["learning_rate"] for x in run_ids_clean],
+                        "intermediate_dim_enc": [runparams[x]["intermediate_dim_enc"] for x in run_ids_clean]
+                        if "intermediate_dim_enc" in list(runparams[x].keys())
+                        else "none",
+                        "intermediate_dim_dec": [runparams[x]["intermediate_dim_dec"] for x in run_ids_clean]
+                        if "intermediate_dim_dec" in list(runparams[x].keys())
+                        else "none",
+                        "latent_dim": [runparams[x]["latent_dim"] for x in run_ids_clean]
+                        if "latent_dim" in list(runparams[x].keys())
+                        else "none",
+                        "depth_enc": [runparams[x]["depth_enc"] for x in run_ids_clean]
+                        if "depth_enc" in list(runparams[x].keys())
+                        else "none",
+                        "depth_dec": [runparams[x]["depth_dec"] for x in run_ids_clean]
+                        if "depth_dec" in list(runparams[x].keys())
+                        else "none",
+                        "dropout_rate": [runparams[x]["dropout_rate"] for x in run_ids_clean]
+                        if "dropout_rate" in list(runparams[x].keys())
+                        else "none",
+                        "l2_coef": [runparams[x]["l2_coef"] for x in run_ids_clean]
+                        if "l2_coef" in list(runparams[x].keys())
+                        else "none",
+                        "l1_coef": [runparams[x]["l1_coef"] for x in run_ids_clean]
+                        if "l1_coef" in list(runparams[x].keys())
+                        else "none",
+                        "pretrain_decoder": [runparams[x]["pretrain_decoder"] for x in run_ids_clean]
+                        if "pretrain_decoder" in list(runparams[x].keys())
+                        else "none",
+                        "aggressive": [runparams[x]["aggressive"] for x in run_ids_clean]
+                        if "aggressive" in list(runparams[x].keys())
+                        else "none",
+                        "cond_depth": [str(runparams[x]["cond_depth"]) for x in run_ids_clean]
+                        if "cond_depth" in list(runparams[x].keys())
+                        else "none",
+                        "cond_dim": [str(runparams[x]["cond_dim"]) for x in run_ids_clean]
+                        if "cond_dim" in list(runparams[x].keys())
+                        else "none",
+                        "cond_dropout_rate": [str(runparams[x]["cond_dropout_rate"]) for x in run_ids_clean]
+                        if "cond_dropout_rate" in list(runparams[x].keys())
+                        else "none",
+                        "cond_activation": [str(runparams[x]["cond_activation"]) for x in run_ids_clean]
+                        if "cond_activation" in list(runparams[x].keys())
+                        else "none",
+                        "cond_l2_reg": [str(runparams[x]["cond_l2_reg"]) for x in run_ids_clean]
+                        if "cond_l2_reg" in list(runparams[x].keys())
+                        else "none",
+                        "cond_use_bias": [str(runparams[x]["cond_use_bias"]) for x in run_ids_clean]
+                        if "cond_bias" in list(runparams[x].keys())
+                        else "none",
+                        "use_domain": [runparams[x]["use_domain"] for x in run_ids_clean],
+                        "domain_type": [runparams[x]["domain_type"] for x in run_ids_clean],
+                        "use_batch_norm": [runparams[x]["use_batch_norm"] for x in run_ids_clean] if "use_batch_norm" in list(runparams[x].keys())
+                        else "none",
+                        "use_type_cond": [runparams[x]["use_type_cond"] for x in run_ids_clean]
+                        if "use_type_cond" in list(runparams[x].keys())
+                        else "none",
+                        "scale_node_size": [runparams[x]["scale_node_size"] for x in run_ids_clean],
+                        "transform_input": [runparams[x]["transform_input"] for x in run_ids_clean] if "transform_input" in list(runparams[x].keys())
+                        else "none",
+                        "output_layer": [runparams[x]["output_layer"] for x in run_ids_clean],
+                        "log_transform": [runparams[x]["log_transform"] for x in run_ids_clean]
+                        if "log_transform" in list(runparams[x].keys())
+                        else False,
+                        "segmentation_robustness_node_fraction": [runparams[x]["segmentation_robustness_node_fraction"] for x in run_ids_clean]
+                        if "segmentation_robustness_node_fraction" in list(runparams[x].keys())
+                        else False,
+                        "segmentation_robustness_overflow_fraction": [runparams[x]["segmentation_robustness_overflow_fraction"] for x in run_ids_clean]
+                        if "segmentation_robustness_overflow_fraction" in list(runparams[x].keys())
+                        else False,
+                        "resimulate_nodes_w_depdency": [runparams[x]["resimulate_nodes_w_depdency"] for x in run_ids_clean]
+                        if "resimulate_nodes_w_depdency" in list(runparams[x].keys())
+                        else False,
+                        "resimulate_nodes_sparsity_rate": [runparams[x]["resimulate_nodes_sparsity_rate"] for x in run_ids_clean]
+                        if "resimulate_nodes_sparsity_rate" in list(runparams[x].keys())
+                        else False,
+                        "epochs": [runparams[x]["epochs"] for x in run_ids_clean],
+                        "batch_size": [runparams[x]["batch_size"] for x in run_ids_clean],
+                        "n_eval_nodes_per_graph": [runparams[x]["n_eval_nodes_per_graph"] for x in run_ids_clean],
+                        "run_id_params": run_ids_clean,
+                    }.items()
+                )
+                self.runparams_table.append(pd.DataFrame(dict(params_list)))
+
+                self.summary_table.append(
+                    pd.concat(
+                        [
+                            pd.DataFrame(
+                                dict(
+                                    list(params_list)
+                                    + list(
+                                        {
+                                            "cv": cv,
+                                            "run_id": run_ids_clean,
+                                            "model": "_".join(gs_id.split("/")[-1].split("_")[1:-1]),
+                                            "forward_pass_eval": True,
+                                        }.items()
+                                    )
+                                    + list(
+                                        dict(
+                                            [
+                                                (
+                                                    "train_" + m.replace("reconstruction_", "").replace("logp1_", ""),
+                                                    [evals[x][cv]["train"][m] for x in run_ids_clean],
+                                                )
+                                                for m in list(evals[run_ids_clean[0]][cv]["train"].keys())
+                                            ]
+                                        ).items()
+                                    )
+                                    + list(
+                                        dict(
+                                            [
+                                                (
+                                                    "val_" + m.replace("reconstruction_", "").replace("logp1_", ""),
+                                                    [evals[x][cv]["val"][m] for x in run_ids_clean],
+                                                )
+                                                for m in list(evals[run_ids_clean[0]][cv]["val"].keys())
+                                            ]
+                                        ).items()
+                                    )
+                                    + list(
+                                        dict(
+                                            [
+                                                (
+                                                    "test_" + m.replace("reconstruction_", "").replace("logp1_", ""),
+                                                    [evals[x][cv]["test"][m] for x in run_ids_clean],
+                                                )
+                                                for m in list(evals[run_ids_clean[0]][cv]["test"].keys())
+                                            ]
+                                        ).items()
+                                    )
+                                    + list(
+                                        dict(
+                                            [
+                                                (
+                                                    "all_" + m.replace("reconstruction_", "").replace("logp1_", ""),
+                                                    [evals[x][cv]["all"][m] for x in run_ids_clean],
+                                                )
+                                                for m in list(evals[run_ids_clean[0]][cv]["all"].keys())
+                                            ]
+                                        ).items()
                                     )
                                 )
-                                for cv in cv_ids
-                            ]
+                            )
+                            for cv in cv_ids
+                        ]
+                    )
+                )
+                print("%s: loaded %i runs with %i-fold cross validation" % (gs_id, len(run_ids_clean), len(cv_ids)))
+
+                if runparams[run_ids_clean[0]]["model_class"] in ["vae", "cvae", "cvae_ncem"]:
+                    evals_posterior_sampling = {}  # Dictionary over runs with dictionary over cross-validations with
+                    # results from model neighbourhood transfer evaluation.
+                    for x in run_ids_clean:
+                        evals_posterior_sampling[x] = {}
+                        for cv in cv_ids:
+                            if add_posterior_sampling_model:
+                                fn_eval = indir + x + "_" + cv + "_evaluation_posterior_sampling.pickle"
+                                with open(fn_eval, "rb") as f:
+                                    evals_posterior_sampling[x][cv] = pickle.load(f)
+                    self.evals_posterior_sampling[gs_id + "_POSTERIOR_SAMPLING"] = evals_posterior_sampling
+
+                    if add_posterior_sampling_model:
+                        self.summary_table.append(
+                            pd.concat(
+                                [
+                                    pd.DataFrame(
+                                        dict(
+                                            list(params_list)
+                                            + list(
+                                                {
+                                                    "cv": cv,
+                                                    "run_id": [x + "_posterior_sampling" for x in run_ids_clean],
+                                                    "model": "_".join(gs_id.split("/")[-1].split("_")[1:-1])
+                                                    + "_POSTERIOR_SAMPLING",
+                                                    "posterior_sampling_eval": True,
+                                                }.items()
+                                            )
+                                            + list(
+                                                dict(
+                                                    [
+                                                        (
+                                                            "train_"
+                                                            + m.replace("reconstruction_", "").replace("logp1_", ""),
+                                                            [
+                                                                evals_posterior_sampling[x][cv]["train"][m]
+                                                                for x in run_ids_clean
+                                                            ],
+                                                        )
+                                                        for m in list(
+                                                            evals_posterior_sampling[run_ids_clean[0]][cv]["train"].keys()
+                                                        )
+                                                    ]
+                                                ).items()
+                                            )
+                                            + list(
+                                                dict(
+                                                    [
+                                                        (
+                                                            "val_" + m.replace("reconstruction_", "").replace("logp1_", ""),
+                                                            [
+                                                                evals_posterior_sampling[x][cv]["val"][m]
+                                                                for x in run_ids_clean
+                                                            ],
+                                                        )
+                                                        for m in list(
+                                                            evals_posterior_sampling[run_ids_clean[0]][cv]["val"].keys()
+                                                        )
+                                                    ]
+                                                ).items()
+                                            )
+                                            + list(
+                                                dict(
+                                                    [
+                                                        (
+                                                            "test_"
+                                                            + m.replace("reconstruction_", "").replace("logp1_", ""),
+                                                            [
+                                                                evals_posterior_sampling[x][cv]["test"][m]
+                                                                for x in run_ids_clean
+                                                            ],
+                                                        )
+                                                        for m in list(
+                                                            evals_posterior_sampling[run_ids_clean[0]][cv]["test"].keys()
+                                                        )
+                                                    ]
+                                                ).items()
+                                            )
+                                            + list(
+                                                dict(
+                                                    [
+                                                        (
+                                                            "all_" + m.replace("reconstruction_", "").replace("logp1_", ""),
+                                                            [
+                                                                evals_posterior_sampling[x][cv]["all"][m]
+                                                                for x in run_ids_clean
+                                                            ],
+                                                        )
+                                                        for m in list(
+                                                            evals_posterior_sampling[run_ids_clean[0]][cv]["all"].keys()
+                                                        )
+                                                    ]
+                                                ).items()
+                                            )
+                                        )
+                                    )
+                                    for cv in cv_ids
+                                ]
+                            )
                         )
-                    )
-                    print(
-                        "%s: loaded posterior sampling as seperate model (%i runs with %i-fold cross validation)"
-                        % (gs_id, len(run_ids_clean), len(cv_ids))
-                    )
+                        print(
+                            "%s: loaded posterior sampling as seperate model (%i runs with %i-fold cross validation)"
+                            % (gs_id, len(run_ids_clean), len(cv_ids))
+                        )
+            pbar.update(1)
 
         self.summary_table = pd.concat(self.summary_table)
         self.runparams_table = pd.concat(self.runparams_table)
@@ -1003,7 +1006,7 @@ class GridSearchContainer:
                 ax=ax,
                 markers=True,
             )
-            ax.set_xscale("symlog")
+            ax.set_xscale("symlog", linthresh=10)
         elif plot_mode == "mean_lineplot":
             temp_summary_table = summary_table[[param_hue, param_x, ycol]].groupby([param_hue, param_x]).mean()
             sns.lineplot(
@@ -1023,7 +1026,7 @@ class GridSearchContainer:
         box = ax.get_position()
         ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
         # Put a legend to the right of the current axis
-        lgd = ax.legend(loc="center left", bbox_to_anchor=(1, 0.5))
+        lgd = ax.legend(loc="center left", bbox_to_anchor=(1.5, 0.5))
         ax.set_xlabel("")
         ax.set_ylabel("")
         ax.set_title("")
@@ -1033,9 +1036,10 @@ class GridSearchContainer:
             ax.set_xticks(xticks)
             ax.set_xticklabels(xticks)
         ax.yaxis.set_major_formatter(FormatStrFormatter("%0.3f"))
-
         if rotate_xticks:
             plt.xticks(rotation=90)
+        #ax.yaxis.tick_right()
+        #plt.yticks(rotation=180)
 
         # Save, show and return figure.
         # plt.tight_layout()

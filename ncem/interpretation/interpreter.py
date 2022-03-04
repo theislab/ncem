@@ -891,11 +891,11 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
         is_sign, pvalues, qvalues = wald_test(
             params=params, fisher_inv=fim_inv, significance_threshold=significance_threshold
         )
-        interaction_shape = self.model.training_model.inputs[1].shape
+        interaction_shape = np.int(self.n_features_0**2)
         # subset to interaction terms
-        is_sign = is_sign[self.n_features_0 : interaction_shape[-1] + self.n_features_0, :]
-        pvalues = pvalues[self.n_features_0 : interaction_shape[-1] + self.n_features_0, :]
-        qvalues = qvalues[self.n_features_0 : interaction_shape[-1] + self.n_features_0, :]
+        is_sign = is_sign[self.n_features_0 : interaction_shape + self.n_features_0, :]
+        pvalues = pvalues[self.n_features_0 : interaction_shape + self.n_features_0, :]
+        qvalues = qvalues[self.n_features_0 : interaction_shape + self.n_features_0, :]
 
         self.pvalues = np.concatenate(
             np.expand_dims(np.split(pvalues, indices_or_sections=np.sqrt(pvalues.shape[0]), axis=0), axis=0),
@@ -910,7 +910,7 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
             axis=0,
         )
 
-        interaction_params = params[:, self.n_features_0 : interaction_shape[-1] + self.n_features_0]
+        interaction_params = params[:, self.n_features_0 : interaction_shape + self.n_features_0]
         self.fold_change = np.concatenate(
             np.expand_dims(np.split(interaction_params.T, indices_or_sections=np.sqrt(interaction_params.T.shape[0]), axis=0), axis=0),
             axis=0,
@@ -967,7 +967,7 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
             columns=self.cell_names,
             index=self.cell_names
         )
-        network_coeff_df = pd.DataFrame(coeff_df.unstack()).reset_index().rename(columns={'level_0': 'receiver', 'level_1': 'sender'})
+        network_coeff_df = pd.DataFrame(coeff_df.unstack()).reset_index().rename(columns={'level_0': 'sender', 'level_1': 'receiver'})
         network_coeff_df = network_coeff_df[network_coeff_df['receiver'] != network_coeff_df['sender']]
         
         sig_df = pd.DataFrame(
@@ -975,7 +975,7 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
             columns=self.cell_names,
             index=self.cell_names
         )
-        network_df = pd.DataFrame(sig_df.unstack()).reset_index().rename(columns={'level_0': 'receiver', 'level_1': 'sender'})
+        network_df = pd.DataFrame(sig_df.unstack()).reset_index().rename(columns={'level_0': 'sender', 'level_1': 'receiver'})
         network_df = network_df[network_df['receiver'] != network_df['sender']]
         network_df["magnitude"] = network_coeff_df[0]
 
@@ -983,7 +983,7 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
             (np.abs(x) - np.min(np.abs(network_df[0].values))) / 
             (np.max(np.abs(network_df[0].values)) - np.min(np.abs(network_df[0].values)))
             for x in network_df[0].values]
-        
+        print(network_df)
         if fontsize:
             sc.set_figure_params(scanpy=True, fontsize=fontsize)
         vega_10_scanpy, vega_20_scanpy = _get_scanpy_colors()
@@ -1023,7 +1023,7 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
         for node, t in description.items():
             bb = t.get_window_extent(renderer=r)
             bbdata = bb.transformed(trans)
-            radius = 1.15+bbdata.width/1.
+            radius = 1.15 +bbdata.width/1.
             position = (radius*np.cos(angle_dict[node]),radius* np.sin(angle_dict[node]))
             t.set_position(position)
             t.set_rotation(angle_dict[node]*360.0/(2.0*np.pi))
