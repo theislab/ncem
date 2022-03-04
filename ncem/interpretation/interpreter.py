@@ -983,7 +983,6 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
             (np.abs(x) - np.min(np.abs(network_df[0].values))) / 
             (np.max(np.abs(network_df[0].values)) - np.min(np.abs(network_df[0].values)))
             for x in network_df[0].values]
-        print(network_df)
         if fontsize:
             sc.set_figure_params(scanpy=True, fontsize=fontsize)
         vega_10_scanpy, vega_20_scanpy = _get_scanpy_colors()
