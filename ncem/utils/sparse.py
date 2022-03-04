@@ -4,7 +4,7 @@ import tensorflow as tf
 def sparse_dense_matmult_batch(sp_a, b):
     """Multiply sparse with dense.
 
-    Multiplies a tf.SparseTensor sp_a with an additional batch dimension with a 2 dimensional dense matrix and
+    Multiplies a tf.SparseTensor sp_a with an additional batch dimension with a 3 dimensional dense matrix and
     returns a 3 dimensional dense matrix.
 
     Parameters
