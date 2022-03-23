@@ -1209,8 +1209,8 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
 
         ax.set_xlim((-vmax*1.1, vmax*1.1))
         ax.set_ylim((-0.5, 15))
-        ax.set_xlabel('')
-        ax.set_ylabel('')
+        ax.set_xlabel('$\log$ fold change')
+        ax.set_ylabel('$-\log_{10}$ FDR-corrected pvalues')
         plt.axvline(-fold_change_threshold, color='black', linestyle='--', )
         plt.axvline(fold_change_threshold, color='black', linestyle='--', )
         plt.axhline(-np.log10(significance_threshold), linestyle='--', color='black')
@@ -1275,7 +1275,7 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
             sc.set_figure_params(scanpy=True, fontsize=fontsize)
         
         if plot_mode == 'qvals':
-            arr = np.log(self.qvalues[receiver_idx, :, :])
+            arr = np.log(self.qvalues[receiver_idx, :, :].copy())
             arr[arr < cut_pvals] = cut_pvals
             df = pd.DataFrame(
                 arr, 
@@ -1293,7 +1293,7 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
                 cmap='Greys_r', vmin=-5, vmax=0.
             )
         elif plot_mode == 'fold_change':
-            arr = self.fold_change[receiver_idx, :, :]
+            arr = self.fold_change[receiver_idx, :, :].copy()
             arr[np.where(self.qvalues[receiver_idx, :, :] > significance_threshold)] = 0
             df = pd.DataFrame(
                 arr, 
@@ -1308,7 +1308,7 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
             fig, ax = plt.subplots(nrows=1, ncols=1, figsize=figsize)
             sns.heatmap(
                 df.T,
-                cbar_kws={'label': "fold change", 
+                cbar_kws={'label': "$\log$ fold change", 
                            "location": "top"},
                 cmap="seismic", vmin=-vmax, vmax=vmax, 
             )
@@ -1373,7 +1373,7 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
             fig, ax = plt.subplots(nrows=1, ncols=1, figsize=figsize)
             sns.heatmap(
                 df.T,
-                cbar_kws={'label': "fold change", 
+                cbar_kws={'label': "$\log$ fold change", 
                            "location": "top"},
                 cmap="seismic", vmin=-vmax, vmax=vmax, 
             )
