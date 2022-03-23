@@ -1174,7 +1174,7 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
         # only significant ones 
         qval_filter = np.where(self.qvalues[receiver_idx,sender_idx,:]>=significance_threshold)
         vmax = np.max(np.abs(self.fold_change[receiver_idx,sender_idx,:]))
-        print(vmax)
+        #print(vmax)
         
         # overlaying significant ones with orange
         sns.scatterplot(
