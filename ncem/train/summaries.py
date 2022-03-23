@@ -842,14 +842,14 @@ class GridSearchContainer:
     # Plotting functions:
     def plot_best_model_by_hyperparam(
         self,
-        partition_show: str,
-        metric_show: str,
-        partition_select: str,
-        metric_select: str,
-        param_x: str,
-        param_hue: str,
         graph_model_class: str,
         baseline_model_class: str,
+        partition_show: str = 'test',
+        metric_show: str = 'r_squared_linreg',
+        partition_select: str = 'val',
+        metric_select: str = 'r_squared_linreg',
+        param_x: str = 'um_radius',
+        param_hue: str = 'model',
         rename_levels: Optional[List[Tuple[str, str]]] = None,
         subset_hyperparameters: Optional[List[Tuple[str, str]]] = None,
         cv_mode: str = "mean",
@@ -858,8 +858,9 @@ class GridSearchContainer:
         rotate_xticks: bool = True,
         figsize: Tuple[float, float] = (3.5, 4.0),
         fontsize: Optional[int] = None,
-        plot_mode: str = "boxplot",
-        palette: Optional[dict] = None,
+        example_cellradius: Optional[int] = 10,
+        plot_mode: str = "lineplot",
+        palette: Optional[dict] = {"baseline": "C0", "NCEM": "C1"},
         color: Optional[str] = None,
         save: Optional[str] = None,
         suffix: str = "best_by_hyperparam.pdf",
@@ -870,6 +871,10 @@ class GridSearchContainer:
 
         Parameters
         ----------
+        graph_model_class : str
+            Graph model class.
+        baseline_model_class : str
+            Baseline model class.
         partition_show : str
             Showing partition.
         metric_show : str
@@ -882,10 +887,6 @@ class GridSearchContainer:
             Parameter on x axis.
         param_hue : str
             Parameter for hue.
-        graph_model_class : str
-            Graph model class.
-        baseline_model_class : str
-            Baseline model class.
         rename_levels : list, optional
             Rename levels with stated logic.
         subset_hyperparameters : list, optional
@@ -1007,6 +1008,8 @@ class GridSearchContainer:
                 markers=True,
             )
             ax.set_xscale("symlog", linthresh=10)
+            if example_cellradius:
+                plt.axvline(example_cellradius, color='limegreen', linewidth=3.)
         elif plot_mode == "mean_lineplot":
             temp_summary_table = summary_table[[param_hue, param_x, ycol]].groupby([param_hue, param_x]).mean()
             sns.lineplot(

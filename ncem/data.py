@@ -2083,11 +2083,49 @@ class DataLoaderHartmann(DataLoader):
             # "donor",
             # "Cluster",
         ]
+        var_names = [
+            'H3-4', 
+            'VIM', 
+            'SMN1', 
+            'SLC3A2', 
+            'NFE2L2', 
+            'CD4', 
+            'CD14', 
+            'PTPRC', 
+            'PDCD1',
+            'PECAM1', 
+            'SDHA', 
+            'MKI67', 
+            'CS', 
+            'RPS6', 
+            'ITGAX', 
+            'CD68', 
+            'CD36', 
+            'ATP5F1A',
+            'CD247', 
+            'ENTPD1', 
+            'VDAC1', 
+            'G6PD', 
+            'XBP1', 
+            'PKM', 
+            'SLC1A5', 
+            'SLC2A1', 
+            'CD8A',
+            'B3GAT1', 
+            'LDHA', 
+            'IDH2', 
+            'HK1', 
+            'CDH1', 
+            'CPT1A', 
+            'CKM', 
+            'ATP1A1',
+            'HIF1A'
+        ]
 
         celldata = AnnData(
-            X=celldata_df[feature_cols], obs=celldata_df[
+            X=pd.DataFrame(np.array(celldata_df[feature_cols]), columns=var_names), obs=celldata_df[
                 ["point", "cell_id", "cell_size", "donor", "Cluster"]
-            ].astype("category")
+            ].astype("category"),
         )
 
         celldata.uns["metadata"] = metadata
