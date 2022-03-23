@@ -137,7 +137,7 @@ class Estimator:
             If `data_origin` not recognized.
         """
         coord_type = 'generic'
-
+        self.targeted_assay = True
         if data_origin.startswith("zhang"):
             from ncem.data import DataLoaderZhang as DataLoader
 
@@ -182,13 +182,43 @@ class Estimator:
 
             self.undefined_node_types = None
             if n_rings > 1:
-                coord_type = 'visium'
+                coord_type = 'grid'
             else:
                 n_rings = 1
                 coord_type = 'generic'
                 radius = 0
-        else:
-            raise ValueError(f"data_origin {data_origin} not recognized")
+        elif data_origin == "10xvisium_lymphnode":
+            from ncem.data import DataLoader10xLymphnode as DataLoader
+
+            self.undefined_node_types = None
+            if n_rings > 1:
+                coord_type = 'grid'
+            else:
+                n_rings = 1
+                coord_type = 'generic'
+                radius = 0
+
+        elif data_origin.startswith('destvi_lymphnode'):
+            self.targeted_assay = False
+            from ncem.data import DataLoaderDestViLymphnode as DataLoader
+
+            self.undefined_node_types = None
+        elif data_origin.startswith('destvi_mousebrain'):
+            self.targeted_assay = False
+            from ncem.data import DataLoaderDestViMousebrain as DataLoader
+
+            self.undefined_node_types = None
+
+        elif data_origin.startswith('cell2location_lymphnode'):
+            self.targeted_assay = False
+            from ncem.data import DataLoaderCell2locationLymphnode as DataLoader
+
+            self.undefined_node_types = None
+
+        elif data_origin == "salasiss":
+            from ncem.data import DataLoaderSalasIss as DataLoader
+
+            self.undefined_node_types = None
 
         self.data = DataLoader(
             data_path, radius=radius, coord_type=coord_type, n_rings=n_rings, label_selection=label_selection,
@@ -210,7 +240,11 @@ class Estimator:
         domain_type: str = "image",
         robustness: Optional[float] = None,
         robustness_seed: int = 1,
-        n_top_genes: Optional[int] = None
+        n_top_genes: Optional[int] = None,
+        segmentation_robustness: Optional[List[float]] = None,
+        resimulate_nodes: bool = False,
+        resimulate_nodes_w_depdency: bool = False,
+        resimulate_nodes_sparsity_rate: float = 0.5,
     ):
         """Get data used in estimator classes.
 
@@ -244,6 +278,8 @@ class Estimator:
             Seed for robustness analysis
         n_top_genes: int, optional
             N top genes for highly variable gene selection.
+        segmentation_robustness: list, optional
+            Parameters for segmentation robustness fit, float for fraction of nodes and float for signal overflow.
         Raises
         ------
         ValueError
@@ -285,6 +321,128 @@ class Estimator:
                     n_images,
                 )
             )
+        if segmentation_robustness:
+            node_fraction = segmentation_robustness[0]
+            overflow_fraction = segmentation_robustness[1]
+            total_size = np.int(self.data.celldata.shape[0] * node_fraction)
+
+            for key, ad in self.data.img_celldata.items():
+                size = np.int(ad.shape[0] * node_fraction)
+                random_indices = np.random.choice(ad.shape[0], size=size, replace=False)
+                a = ad.obsp['adjacency_matrix_connectivities'].toarray()
+                err_ad = ad.copy()
+                for idx in random_indices:
+                    adj = a[idx, :]
+                    neigh_idx = np.random.choice(np.where(adj == 1.)[0], size=1, replace=False)
+                    err_ad.X[idx, :] = ad.X[idx, :] + overflow_fraction * ad.X[neigh_idx, :]
+                    err_ad.X[neigh_idx, :] = (1. - overflow_fraction) * ad.X[neigh_idx, :]
+                self.data.img_celldata[key] = err_ad
+
+            print(
+                "\nAttention: Running segmentation robustness model on %f of all nodes, so [%i] nodes. \n"
+                "\nSignal overflow is set to %f . This adjusts img_celldata, celldata remains unchanged.\n"
+                % (
+                    node_fraction,
+                    total_size,
+                    overflow_fraction
+                )
+            )
+        self.simulation = False
+        if resimulate_nodes:
+            self.simulation = True
+            n_target_cell_types = 2 if resimulate_nodes_w_depdency else 1
+            dependencies_per_type = 1
+
+            # Create map from real cell types to simulated ones (can be coarser):
+            found_all_types = False
+            futile_counter = 0
+            node_type_map_idx = None
+            while not found_all_types:
+                node_type_map_idx = np.array([
+                    np.random.randint(low=0, high=n_target_cell_types)
+                    for _ in self.data.celldata.uns["node_type_names"].keys()
+                ])
+                futile_counter += 1
+                if np.all([x in node_type_map_idx for x in range(n_target_cell_types)]):
+                    found_all_types = True
+                if futile_counter > 100:
+                    raise ValueError("did not manage to sample all target cell types")
+            node_type_names = dict([
+                (x, "sim_" + str(y))
+                for x, y in zip(self.data.celldata.uns["node_type_names"].keys(), node_type_map_idx)
+            ])
+            self.data.celldata.uns["node_type_names"] = node_type_names
+
+            nfeatures = self.data.img_celldata[list(self.data.img_celldata.keys())[0]].n_vars
+            # Mean effect per simulated cell types:
+            effect_ct = np.random.uniform(low=0., high=10., size=(n_target_cell_types, nfeatures))
+            # Create dependency structure of cell types.
+            # Base line dependency structure with all dependencies as 0.
+            cov_ct = np.zeros((n_target_cell_types, n_target_cell_types))
+            if resimulate_nodes_w_depdency:
+                # Add dependencies_per_type for each cell type:
+                for i in range(n_target_cell_types):
+                    # Sample desired dependencies from non-self cell types:
+                    js = np.random.choice(a=[ii for ii in range(n_target_cell_types) if i != ii],
+                                          size=dependencies_per_type, replace=False)
+                    cov_ct[i, js] = 1.
+                # Pairwise dependencies: Effect (self cell type, neighbor cell type, feature)
+                effect_neighbors = np.random.uniform(low=4., high=6.,
+                                                     size=(n_target_cell_types, n_target_cell_types, nfeatures))
+                # Simulate sparse effects:
+                sparsity_rate = resimulate_nodes_sparsity_rate  # fraction of zero effects
+                effect_neighbors[np.random.binomial(n=1, p=sparsity_rate, size=effect_neighbors.shape) == 1.] = 0.
+            else:
+                effect_neighbors = np.zeros((n_target_cell_types, n_target_cell_types, nfeatures))
+            sigma_sq = 1.
+
+            self._simulation_parameters = {
+                "effect_ct": effect_ct,
+                "cov_ct": cov_ct,
+                "effect_neighbors": effect_neighbors,
+                "sigma_sq": sigma_sq,
+                "adatas": {}
+            }
+            for key, ad in self.data.img_celldata.items():
+                adj = ad.obsp['adjacency_matrix_connectivities'].toarray()
+                sim_ad = ad.copy()
+                nobs = sim_ad.n_obs
+                # Assign all cells from old cell type sets to corresponding new cell types, assumes one hot encoding.
+                sim_ad.obsm["node_types"] = np.concatenate([
+                    np.expand_dims(
+                        np.max(sim_ad.obsm["node_types"][:, np.where(node_type_map_idx == i)[0]], axis=1),
+                        axis=1
+                    )
+                    for i in range(n_target_cell_types)
+                ], axis=1)
+                assert np.all(sim_ad.obsm["node_types"].sum(axis=1) == 1.)
+                # Simulate count matrix:
+                dmat_ct = sim_ad.obsm["node_types"]
+                loc_neighbors = np.zeros((nobs, nfeatures))
+                for i in range(nobs):
+                    ct = np.where(dmat_ct[i, :] == 1.)[0]
+                    ct = ct[0]  # flatten list of length 1
+                    dmat_neighhors_i = np.zeros((1, n_target_cell_types,))
+                    if resimulate_nodes_w_depdency:
+                        for j in np.where(np.asarray(adj[i, :]).flatten() > 0)[0]:
+                            ct_j = np.where(dmat_ct[j, :] == 1.)[0]
+                            ct_j = ct_j[0]  # flatten list of length 1
+                            dmat_neighhors_i[0, ct_j] = 1.
+                    loc_neighbors[i, :] = np.matmul(dmat_neighhors_i, effect_neighbors[ct])[0]
+                loc = np.matmul(dmat_ct, effect_ct) + loc_neighbors
+                sim_ad.X = np.random.normal(loc=loc, scale=sigma_sq)
+                self.data.img_celldata[key] = sim_ad
+                # Record simulation:
+                self._simulation_parameters["adatas"][key] = {
+                    "adj": adj,
+                    "ct": sim_ad.obsm["node_types"],
+                    "x": sim_ad.X,
+                }
+
+            print(
+                "\nAttention: Running simulation-based expression augmentation. \n"
+                "\nThis adjusts img_celldata, celldata remains unchanged.\n"
+            )
 
         # Validate graph-wise covariate selection:
         if len(graph_covar_selection) > 0:
@@ -311,6 +469,8 @@ class Estimator:
             self.h_0 = {k: adata.X for k, adata in self.data.img_celldata.items()}
         elif node_label_space_id == "type":
             self.h_0 = {k: adata.obsm["node_types"] for k, adata in self.data.img_celldata.items()}
+        elif node_label_space_id == 'proportions':
+            self.h_0 = {k: adata.obsm["proportions"] for k, adata in self.data.img_celldata.items()}
         else:
             raise ValueError("node_label_space_id %s not recognized" % node_label_space_id)
         if node_feature_space_id == "standard":
@@ -385,6 +545,11 @@ class Estimator:
         else:
             assert False
         self.n_domains = len(np.unique(list(self.domains.values())))
+
+        if self.targeted_assay:
+            self.proportions = None
+        else:
+            self.proportions = {k: adata.obsm["proportions"] for k, adata in self.data.img_celldata.items()}
 
         # Report summary statistics of loaded graph:
         print(
@@ -805,7 +970,7 @@ class Estimator:
             If evaluation or test dataset are empty.
         """
         print(
-            "Using split method: node. \n Train-test-validation split is based on total number of nodes "
+            "Using split method: target cell. \n Train-test-validation split is based on total number of nodes "
             "per patients over all images."
         )
 
@@ -1614,7 +1779,7 @@ class Estimator:
             seed=None,
             reinit_n_eval=None,
         )
-        results = self.model.training_model.evaluate(ds, verbose=2)
+        results = self.model.training_model.evaluate(ds, verbose=False)
         eval_dict = dict(zip(self.model.training_model.metrics_names, results))
         return eval_dict
 
@@ -1630,28 +1795,32 @@ class Estimator:
         -------
         split_per_node_type, evaluation_per_node_type
         """
-        evaluation_per_node_type = {}
-        split_per_node_type = {}
-        node_types = list(self.node_type_names.keys())
-        for nt in node_types:
-            img_keys = list(self.complete_img_keys)
-            nodes_idx = {k: np.where(self.node_types[k][:, node_types.index(nt)] == 1)[0] for k in img_keys}
-            split_per_node_type.update({nt: {"img_keys": img_keys, "nodes_idx": nodes_idx}})
-            test = {k: len(np.where(self.node_types[k][:, node_types.index(nt)] == 1)[0]) for k in img_keys}
-            print("Evaluation for %s with %i cells" % (nt, sum(test.values())))
-            ds = self._get_dataset(
-                image_keys=img_keys,
-                nodes_idx=nodes_idx,
-                batch_size=batch_size,
-                shuffle_buffer_size=1,
-                train=False,
-                seed=None,
-                reinit_n_eval=None,
-            )
-            results = self.model.training_model.evaluate(ds, verbose=False)
-            eval_dict = dict(zip(self.model.training_model.metrics_names, results))
-            print(eval_dict)
-            evaluation_per_node_type.update({nt: eval_dict})
+        if self.simulation:
+            split_per_node_type = None
+            evaluation_per_node_type = None
+        else:
+            evaluation_per_node_type = {}
+            split_per_node_type = {}
+            node_types = list(self.node_type_names.keys())
+            for nt in node_types:
+                img_keys = list(self.complete_img_keys)
+                nodes_idx = {k: np.where(self.node_types[k][:, node_types.index(nt)] == 1)[0] for k in img_keys}
+                split_per_node_type.update({nt: {"img_keys": img_keys, "nodes_idx": nodes_idx}})
+                test = {k: len(np.where(self.node_types[k][:, node_types.index(nt)] == 1)[0]) for k in img_keys}
+                print("Evaluation for %s with %i cells" % (nt, sum(test.values())))
+                ds = self._get_dataset(
+                    image_keys=img_keys,
+                    nodes_idx=nodes_idx,
+                    batch_size=batch_size,
+                    shuffle_buffer_size=1,
+                    train=False,
+                    seed=None,
+                    reinit_n_eval=None,
+                )
+                results = self.model.training_model.evaluate(ds, verbose=False)
+                eval_dict = dict(zip(self.model.training_model.metrics_names, results))
+                print(eval_dict)
+                evaluation_per_node_type.update({nt: eval_dict})
         return split_per_node_type, evaluation_per_node_type
 
 

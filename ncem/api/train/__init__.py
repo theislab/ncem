@@ -2,5 +2,5 @@
 from ncem.estimators import (Estimator, EstimatorCVAE, EstimatorCVAEncem,
                              EstimatorED, EstimatorEDncem, EstimatorEdNcemNeighborhood, EstimatorGraph,
                              EstimatorInteractions, EstimatorLinear,
-                             EstimatorNoGraph)
+                             EstimatorNoGraph, EstimatorDeconvolution)
 from ncem.models import BetaScheduler

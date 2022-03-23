@@ -232,7 +232,7 @@ class EstimatorEdNcemNeighborhood(EstimatorNeighborhood, EstimatorEDncemBase):
         """
         super(EstimatorEdNcemNeighborhood, self).__init__()
         self.model_type = "ed_ncem"
-        if cond_type in ["gat", "lr_gat", "max", "gcn"]:
+        if cond_type in ["gat", "lr_gat", "max", "gcn", "none"]:
             self.adj_type = "full"
         else:
             raise ValueError("cond_type %s not recognized" % cond_type)
@@ -250,7 +250,6 @@ class EstimatorEdNcemNeighborhood(EstimatorNeighborhood, EstimatorEDncemBase):
         dropout_rate: float,
         l2_coef: float,
         l1_coef: float,
-        cond_type: str,
         n_eval_nodes_per_graph: int,
         use_domain: bool,
         scale_node_size: bool,
@@ -281,7 +280,7 @@ class EstimatorEdNcemNeighborhood(EstimatorNeighborhood, EstimatorEDncemBase):
             use_type_cond=self.use_type_cond,
             scale_node_size=scale_node_size,
             output_layer=output_layer,
-            cond_type=cond_type,
+            cond_type=self.cond_type,
             dec_intermediate_dim=dec_intermediate_dim,
             dec_n_hidden=dec_n_hidden,
             dec_dropout_rate=dec_dropout_rate,

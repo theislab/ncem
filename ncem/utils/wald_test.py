@@ -1,6 +1,17 @@
 import numpy as np
 
 
+def get_fim_inv(x: np.array, y: np.array):
+    var = np.var(y, axis=0)
+    fim = np.expand_dims(np.matmul(x.T, x), axis=0) / np.expand_dims(var, axis=[1, 2])
+
+    fim_inv = np.array([
+        np.linalg.pinv(fim[i, :, :])
+        for i in range(fim.shape[0])
+    ])
+    return fim_inv
+
+
 def _get_p_value(a_var: np.array, fisher_inv: np.array, coef_loc_totest: int):
     """Return the p-value for differential expression for each gene.
 
@@ -47,19 +58,17 @@ def wald_test(
     bool_res, res
     """
     from diffxpy.testing.correction import correct
+    significance = []
+    qvalues = []
+    pvalues = []
+    for idx in range(params.T.shape[0]):
+        pvals = _get_p_value(params.T, fisher_inv, idx)
+        pvalues.append(pvals)
+        
+    pvalues = np.concatenate(pvalues)
+    qvalues = correct(pvalues)
+    pvalues = np.reshape(pvalues, (-1,params.T.shape[1])) 
+    qvalues = np.reshape(qvalues, (-1,params.T.shape[1]))  
+    significance = qvalues < significance_threshold
 
-    res = []
-    bool_res = []
-    for i, fi in enumerate(fisher_inv):
-        sig = []
-        bool_sig = []
-        a_var = params[:, i, :].T
-        for idx in range(a_var.shape[0]):
-            p_val = _get_p_value(a_var, fi, idx)
-            significance = correct(p_val)
-            bool_significance = significance < significance_threshold
-            sig.append(significance)
-            bool_sig.append(bool_significance)
-        res.append(np.array(sig))  # produces (target, sources, genes) array
-        bool_res.append(np.array(bool_sig))
-    return np.array(bool_res), np.array(res)
+    return significance, pvalues, qvalues
