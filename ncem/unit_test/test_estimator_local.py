@@ -4,7 +4,7 @@ from typing import Union
 import ncem.api as ncem
 from ncem.estimators import Estimator
 
-from ncem.unit_test.directories import DATA_PATH_ZHANG, DATA_PATH_HARTMANN, DATA_PATH_LU
+from ncem.unit_test.directories import DATA_PATH_ZHANG, DATA_PATH_HARTMANN, DATA_PATH_LU, DATA_PATH_DESTVI
 
 
 class HelperTestEstimator:
@@ -16,12 +16,15 @@ class HelperTestEstimator:
         data_origin: str = "zhang",
         **kwargs
     ):
-        node_label_space_id = "type"
+        #node_label_space_id = "type"
+        node_label_space_id = "proportions"
         node_feature_space_id = "standard"
         if model in ["linear_baseline", "linear"]:
             self.est = ncem.train.EstimatorLinear()
         elif model in ["interactions_baseline", "interactions"]:
             self.est = ncem.train.EstimatorInteractions()
+        elif model in ["linear_deconvolution"]:
+            self.est = ncem.train.EstimatorDeconvolution()
         elif model == "ed":
             self.est = ncem.train.EstimatorED()
         elif model == "ed_ncem_max":
@@ -56,6 +59,9 @@ class HelperTestEstimator:
         elif data_origin.startswith("lu"):
             radius = 100
             data_path = DATA_PATH_LU
+        elif data_origin.startswith("destvi_lymphnode"):
+            radius = 100
+            data_path = DATA_PATH_DESTVI
         else:
             assert False
 
@@ -93,6 +99,9 @@ class HelperTestEstimator:
             train_kwargs = {}
         elif model == "interactions_baseline":
             kwargs = {"use_interactions": False, "use_domain": True, "learning_rate": 1e-2}
+            train_kwargs = {}
+        elif model == "linear_deconvolution":
+            kwargs = {"use_interactions": True, "learning_rate": 1e-2}
             train_kwargs = {}
         elif model == "ed":
             kwargs = {
@@ -160,6 +169,7 @@ class HelperTestEstimator:
         self._model_kwargs = kwargs
         self.est.init_model(**kwargs)
         self.est.split_data_node(validation_split=0.5, test_split=0.5)
+        #self.est.split_data_target_cell("B cells", validation_split=0.5, test_split=0.5)
 
         if data_origin == "hartmann":
             batch_size = None
@@ -203,7 +213,7 @@ class HelperTestEstimatorEd(HelperTestEstimator):
 ])
 def test_data_transformations(transformation_kwargs: dict):
     estim = HelperTestEstimator()
-    estim.test_train(model="interactions", data_origin="luwt", **transformation_kwargs)
+    estim.test_train(model="interaction_baseline", data_origin="luwt", **transformation_kwargs)
 
 
 @pytest.mark.parametrize("dataset", ["luwt"])
@@ -235,3 +245,12 @@ def test_ed2(dataset: str, model: str):
     estim.test_train(model=model, data_origin=dataset)
     estim.test_embedding()
     estim.test_decoding_weights()
+
+
+@pytest.mark.parametrize("dataset", ["destvi_lymphnode"])
+@pytest.mark.parametrize("model", ["linear_deconvolution"])
+def test_deconv(dataset: str, model: str):
+    estim = HelperTestEstimator()
+    estim.test_train(model=model, data_origin=dataset)
+
+

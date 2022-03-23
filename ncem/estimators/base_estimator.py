@@ -137,7 +137,7 @@ class Estimator:
             If `data_origin` not recognized.
         """
         coord_type = 'generic'
-
+        self.targeted_assay = True
         if data_origin.startswith("zhang"):
             from ncem.data import DataLoaderZhang as DataLoader
 
@@ -182,13 +182,43 @@ class Estimator:
 
             self.undefined_node_types = None
             if n_rings > 1:
-                coord_type = 'visium'
+                coord_type = 'grid'
             else:
                 n_rings = 1
                 coord_type = 'generic'
                 radius = 0
-        else:
-            raise ValueError(f"data_origin {data_origin} not recognized")
+        elif data_origin == "10xvisium_lymphnode":
+            from ncem.data import DataLoader10xLymphnode as DataLoader
+
+            self.undefined_node_types = None
+            if n_rings > 1:
+                coord_type = 'grid'
+            else:
+                n_rings = 1
+                coord_type = 'generic'
+                radius = 0
+
+        elif data_origin.startswith('destvi_lymphnode'):
+            self.targeted_assay = False
+            from ncem.data import DataLoaderDestViLymphnode as DataLoader
+
+            self.undefined_node_types = None
+        elif data_origin.startswith('destvi_mousebrain'):
+            self.targeted_assay = False
+            from ncem.data import DataLoaderDestViMousebrain as DataLoader
+
+            self.undefined_node_types = None
+
+        elif data_origin.startswith('cell2location_lymphnode'):
+            self.targeted_assay = False
+            from ncem.data import DataLoaderCell2locationLymphnode as DataLoader
+
+            self.undefined_node_types = None
+
+        elif data_origin == "salasiss":
+            from ncem.data import DataLoaderSalasIss as DataLoader
+
+            self.undefined_node_types = None
 
         self.data = DataLoader(
             data_path, radius=radius, coord_type=coord_type, n_rings=n_rings, label_selection=label_selection,
@@ -439,6 +469,8 @@ class Estimator:
             self.h_0 = {k: adata.X for k, adata in self.data.img_celldata.items()}
         elif node_label_space_id == "type":
             self.h_0 = {k: adata.obsm["node_types"] for k, adata in self.data.img_celldata.items()}
+        elif node_label_space_id == 'proportions':
+            self.h_0 = {k: adata.obsm["proportions"] for k, adata in self.data.img_celldata.items()}
         else:
             raise ValueError("node_label_space_id %s not recognized" % node_label_space_id)
         if node_feature_space_id == "standard":
@@ -513,6 +545,11 @@ class Estimator:
         else:
             assert False
         self.n_domains = len(np.unique(list(self.domains.values())))
+
+        if self.targeted_assay:
+            self.proportions = None
+        else:
+            self.proportions = {k: adata.obsm["proportions"] for k, adata in self.data.img_celldata.items()}
 
         # Report summary statistics of loaded graph:
         print(
@@ -933,7 +970,7 @@ class Estimator:
             If evaluation or test dataset are empty.
         """
         print(
-            "Using split method: node. \n Train-test-validation split is based on total number of nodes "
+            "Using split method: target cell. \n Train-test-validation split is based on total number of nodes "
             "per patients over all images."
         )
 
@@ -1742,7 +1779,7 @@ class Estimator:
             seed=None,
             reinit_n_eval=None,
         )
-        results = self.model.training_model.evaluate(ds, verbose=2)
+        results = self.model.training_model.evaluate(ds, verbose=False)
         eval_dict = dict(zip(self.model.training_model.metrics_names, results))
         return eval_dict
 
