@@ -55,7 +55,42 @@ def _get_scanpy_colors():
     vega_20_scanpy[2] = vega_10_scanpy[2]
     vega_20_scanpy[4] = vega_10_scanpy[4]
     vega_20_scanpy[7] = vega_10_scanpy[8]  # kakhi shifted by missing grey
-    return vega_10_scanpy, vega_20_scanpy
+    
+    zeileis_28 = [
+        "#023fa5",
+        "#7d87b9",
+        "#bec1d4",
+        "#d6bcc0",
+        "#bb7784",
+        "#8e063b",
+        "#4a6fe3",
+        "#8595e1",
+        "#b5bbe3",
+        "#e6afb9",
+        "#e07b91",
+        "#d33f6a",
+        "#11c638",
+        "#8dd593",
+        "#c6dec7",
+        "#ead3c6",
+        "#f0b98d",
+        "#ef9708",
+        "#0fcfc0",
+        "#9cded6",
+        "#d5eae7",
+        "#f3e1eb",
+        "#f6c4e1",
+        "#f79cd4",
+        # these last ones were added:
+        '#7f7f7f',
+        "#c7c7c7",
+        "#1CE6FF",
+        "#336600",
+    ]
+
+    default_28 = zeileis_28
+    
+    return vega_10_scanpy, vega_20_scanpy, default_28
 
 
 class InterpreterBase(estimators.Estimator):
@@ -956,10 +991,13 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
         edge_width_scale: float = 3.,
         fontsize: Optional[int] = None,
         figsize: Tuple[float, float] = (9, 8),
-        interaction_threshold: int = 200,
+        de_genes_threshold: float = 0,
+        magnitude_threshold: Optional[float] = None,
         save: Optional[str] = None,
         suffix: str = "_type_coupling_analysis_circular.pdf",
         show: bool = True,
+        undefined_types: Optional[List[str]] = None,
+        text_space: float = 1.15
     ):
         coeff = self.fold_change * self.is_sign
         coeff_df = pd.DataFrame(
@@ -983,24 +1021,33 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
             (np.abs(x) - np.min(np.abs(network_df[0].values))) / 
             (np.max(np.abs(network_df[0].values)) - np.min(np.abs(network_df[0].values)))
             for x in network_df[0].values]
+        if undefined_types:
+            network_df = network_df[network_df['receiver'] != undefined_types]
+            network_df = network_df[network_df['sender'] != undefined_types]
         if fontsize:
             sc.set_figure_params(scanpy=True, fontsize=fontsize)
-        vega_10_scanpy, vega_20_scanpy = _get_scanpy_colors()
+        vega_10_scanpy, vega_20_scanpy, default_28 = _get_scanpy_colors()
         plt.ioff()   
         fig, ax = plt.subplots(nrows=1, ncols=1, figsize=figsize)
         ax.axis('off')
+        if de_genes_threshold:
+            network_df = network_df[network_df[0]>de_genes_threshold]
+        if magnitude_threshold:
+            network_df = network_df[network_df['magnitude']>magnitude_threshold]
         G=nx.from_pandas_edgelist(
-            network_df[network_df[0]>interaction_threshold], source='sender', target='receiver', 
+            network_df, source='sender', target='receiver', 
             edge_attr=["magnitude", 'de_genes'], 
             create_using=nx.DiGraph()
-        )
+        ) 
         nodes = np.unique(network_df['receiver'])
         pos=nx.circular_layout(G)
         labels_width = nx.get_edge_attributes(G, edge_attr)
-        if len(nodes) > 10:
+        if len(nodes) <= 10:
+            nx.set_node_attributes(G, dict([(x,vega_10_scanpy[i]) for i, x in enumerate(nodes)]), "color")
+        elif len(nodes) <= 20:
             nx.set_node_attributes(G, dict([(x,vega_20_scanpy[i]) for i, x in enumerate(nodes)]), "color")
         else:
-            nx.set_node_attributes(G, dict([(x,vega_10_scanpy[i]) for i, x in enumerate(nodes)]), "color")
+            nx.set_node_attributes(G, dict([(x,default_28[i]) for i, x in enumerate(nodes)]), "color")
             
         node_color = nx.get_node_attributes(G, 'color')
 
@@ -1022,7 +1069,7 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
         for node, t in description.items():
             bb = t.get_window_extent(renderer=r)
             bbdata = bb.transformed(trans)
-            radius = 1.15 +bbdata.width/1.
+            radius = text_space +bbdata.width/1.
             position = (radius*np.cos(angle_dict[node]),radius* np.sin(angle_dict[node]))
             t.set_position(position)
             t.set_rotation(angle_dict[node]*360.0/(2.0*np.pi))
