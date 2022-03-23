@@ -14,11 +14,83 @@ from diffxpy.testing.correction import correct
 from scipy import sparse, stats
 from scipy.sparse import csr_matrix
 from tqdm import tqdm
+import networkx as nx
 
 import ncem.estimators as estimators
 import ncem.models as models
 import ncem.train as train
-from ncem.utils.wald_test import wald_test
+from ncem.utils.wald_test import get_fim_inv, wald_test
+from ncem.utils.ols_fit import ols_fit
+from patsy import dmatrix
+
+
+def _get_scanpy_colors():
+    from typing import Mapping, Sequence
+    from matplotlib import cm, colors
+
+    # Colorblindness adjusted vega_10
+    # See https://github.com/theislab/scanpy/issues/387
+    vega_10 = list(map(colors.to_hex, cm.tab10.colors))
+    vega_10_scanpy = vega_10.copy()
+    vega_10_scanpy[2] = '#279e68'  # green
+    vega_10_scanpy[4] = '#aa40fc'  # purple
+    vega_10_scanpy[8] = '#b5bd61'  # kakhi
+
+    # default matplotlib 2.0 palette
+    # see 'category20' on https://github.com/vega/vega/wiki/Scales#scale-range-literals
+    vega_20 = list(map(colors.to_hex, cm.tab20.colors))
+
+    # reorderd, some removed, some added
+    vega_20_scanpy = [
+        # dark without grey:
+        *vega_20[0:14:2],
+        *vega_20[16::2],
+        # light without grey:
+        *vega_20[1:15:2],
+        *vega_20[17::2],
+        # manual additions:
+        '#ad494a',
+        '#8c6d31',
+    ]
+    vega_20_scanpy[2] = vega_10_scanpy[2]
+    vega_20_scanpy[4] = vega_10_scanpy[4]
+    vega_20_scanpy[7] = vega_10_scanpy[8]  # kakhi shifted by missing grey
+    
+    zeileis_28 = [
+        "#023fa5",
+        "#7d87b9",
+        "#bec1d4",
+        "#d6bcc0",
+        "#bb7784",
+        "#8e063b",
+        "#4a6fe3",
+        "#8595e1",
+        "#b5bbe3",
+        "#e6afb9",
+        "#e07b91",
+        "#d33f6a",
+        "#11c638",
+        "#8dd593",
+        "#c6dec7",
+        "#ead3c6",
+        "#f0b98d",
+        "#ef9708",
+        "#0fcfc0",
+        "#9cded6",
+        "#d5eae7",
+        "#f3e1eb",
+        "#f6c4e1",
+        "#f79cd4",
+        # these last ones were added:
+        '#7f7f7f',
+        "#c7c7c7",
+        "#1CE6FF",
+        "#336600",
+    ]
+
+    default_28 = zeileis_28
+    
+    return vega_10_scanpy, vega_20_scanpy, default_28
 
 
 class InterpreterBase(estimators.Estimator):
@@ -104,6 +176,7 @@ class InterpreterBase(estimators.Estimator):
         self.gs_id = gs_id
         self.gscontainer_runparams = self.gscontainer.runparams[self.gs_id][self.model_id]
         self.results_path = results_path
+        self.cv_idx = cv_idx
         print("loaded model %s" % model_id)
 
     def _get_dataset(
@@ -146,7 +219,7 @@ class InterpreterBase(estimators.Estimator):
         """
         pass
 
-    def get_data_again(self, data_path: str, data_origin: str):
+    def get_data_again(self, data_path: str, data_origin: str, n_top_genes = None):
         """Loads data as previously done during model training.
 
         Args:
@@ -159,28 +232,43 @@ class InterpreterBase(estimators.Estimator):
         self.cond_type = self.gscontainer_runparams["cond_type"] if "cond_type" in self.gscontainer_runparams else None
         if self.cond_type == "gcn":
             self.adj_type = "scaled"
-        elif self.cond_type in ["max", None]:
+        elif self.cond_type in ["max", 'lr_gat', None]:
             self.adj_type = "full"
         else:
             raise ValueError("cond_type %s not recognized" % self.cond_type)
+        if "radius" in self.gscontainer_runparams.keys():
+            radius = int(self.gscontainer_runparams["radius"])
+        else:
+            radius = int(self.gscontainer_runparams["max_dist"])
+
+        if "node_label_space_id" in self.gscontainer_runparams.keys():
+            node_label_space_id = self.gscontainer_runparams["node_label_space_id"]
+        else:
+            node_label_space_id = self.gscontainer_runparams["node_feature_space_id_0"]
+
+        if "node_feature_space_id" in self.gscontainer_runparams.keys():
+            node_feature_space_id = self.gscontainer_runparams["node_feature_space_id"]
+        else:
+            node_feature_space_id = self.gscontainer_runparams["node_feature_space_id_1"]
 
         self.get_data(
             data_origin=data_origin,
             data_path=data_path,
-            radius=int(self.gscontainer_runparams["max_dist"]),
+            radius=radius,
             graph_covar_selection=self.gscontainer_runparams["graph_covar_selection"],
-            node_label_space_id=self.gscontainer_runparams["node_feature_space_id_0"],
-            node_feature_space_id=self.gscontainer_runparams["node_feature_space_id_1"],
+            node_label_space_id=node_label_space_id,
+            node_feature_space_id=node_feature_space_id,
             use_covar_node_position=self.gscontainer_runparams["use_covar_node_position"],
             use_covar_node_label=self.gscontainer_runparams["use_covar_node_label"],
             use_covar_graph_covar=self.gscontainer_runparams["use_covar_graph_covar"],
             domain_type=self.gscontainer_runparams["domain_type"],
+            n_top_genes=n_top_genes
         )
         self.data_path = data_path
         self.n_eval_nodes_per_graph = self.gscontainer_runparams["n_eval_nodes_per_graph"]
         self.model_class = self.gscontainer_runparams["model_class"]
         self.data_set = self.gscontainer_runparams["data_set"]
-        self.radius = int(self.gscontainer_runparams["max_dist"])
+        self.radius = radius
         self.cond_depth = (
             self.gscontainer_runparams["cond_depth"] if "cond_depth" in self.gscontainer_runparams.keys() else None
         )
@@ -225,6 +313,10 @@ class InterpreterBase(estimators.Estimator):
             model = models.ModelLinear(**self._model_kwargs)
         elif self.model_class in ["interactions", "interactions_baseline"]:
             model = models.ModelInteractions(**self._model_kwargs)
+        elif self.model_class in ['ed_ncem2']:
+            model = models.ModelEd2Ncem(cond_type='lr_gat', **self._model_kwargs)
+        elif self.model_class in ["deconvolution", "deconvolution_baseline"]:
+            model = models.ModelInteractions(**self._model_kwargs)
         else:
             raise ValueError("model_class not recognized")
         self.model = model
@@ -263,6 +355,8 @@ class InterpreterBase(estimators.Estimator):
         elif self.model_class in ["linear", "linear_baseline"]:
             reinit_model = models.ModelLinear(**new_model_kwargs)
         elif self.model_class in ["interactions", "interactions_baseline"]:
+            reinit_model = models.ModelInteractions(**new_model_kwargs)
+        elif self.model_class in ["deconvolution", "deconvolution_baseline"]:
             reinit_model = models.ModelInteractions(**new_model_kwargs)
         else:
             raise ValueError("model_class not recognized")
@@ -399,23 +493,37 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
         node_covar = []
         g = []
         h_obs = []
-
-        for _step, (x_batch, y_batch) in enumerate(ds):
-            target_batch, interaction_batch, sf_batch, node_covar_batch, g_batch = x_batch
-            target.append(target_batch.numpy().squeeze())
-            interactions.append(
-                csr_matrix(
-                    (
-                        interaction_batch.values.numpy(),
-                        (interaction_batch.indices.numpy()[:, 1], interaction_batch.indices.numpy()[:, 2]),
-                    ),
-                    shape=interaction_batch.dense_shape.numpy()[1:],
-                ).todense()
-            )
-            sf.append(sf_batch.numpy().squeeze())
-            node_covar.append(node_covar_batch.numpy().squeeze())
-            g.append(g_batch.numpy().squeeze())
-            h_obs.append(y_batch[0].numpy().squeeze())
+        
+        count = 0
+        for k, v in nodes_idx.items():
+            count = count + len(v)
+        
+        with tqdm(total=np.int(count / self.n_eval_nodes_per_graph)) as pbar:
+            for _step, (x_batch, y_batch) in enumerate(ds):
+                target_batch, interaction_batch, sf_batch, node_covar_batch, g_batch = x_batch
+                target.append(target_batch.numpy().squeeze())
+                interactions.append(
+                    csr_matrix(
+                        (
+                            interaction_batch.values.numpy(),
+                            (interaction_batch.indices.numpy()[:, 1], interaction_batch.indices.numpy()[:, 2]),
+                        ),
+                        shape=interaction_batch.dense_shape.numpy()[1:],
+                    ).todense()
+                )
+                sf.append(sf_batch.numpy().squeeze())
+                node_covar.append(node_covar_batch.numpy().squeeze())
+                g.append(g_batch.numpy().squeeze())
+                h_obs.append(y_batch[0].numpy().squeeze())
+                pbar.update(1)
+        
+        target = np.concatenate(target, axis=0)
+        interactions = np.concatenate(interactions, axis=0)
+        sf = np.concatenate(sf, axis=0)
+        node_covar = np.concatenate(node_covar, axis=0)
+        g = np.array(g)
+        h_obs = np.concatenate(h_obs, axis=0)
+        
         return (target, interactions, sf, node_covar, g), h_obs
 
     def target_cell_relative_performance(
@@ -790,6 +898,494 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
             plt.show()
         plt.close(fig)
         plt.ion()
+    
+    def get_sender_receiver_effects(
+        self,
+        params_type: str = 'ols',
+        significance_threshold: float = 0.05
+    ):
+        (target, interactions, _, _, _), y = self._get_np_data(
+            image_keys=self.img_keys_all, nodes_idx=self.nodes_idx_all)
+
+        print('using ols parameters.')
+        if params_type == 'ols':
+            x_design = np.concatenate([target, interactions], axis=1)
+            ols = ols_fit(x_=x_design, y_=y)
+            params = ols.squeeze()
+        else:
+            params = (
+                self.model.training_model.weights[0]
+                .numpy()
+                .T
+            )
+
+        # get inverse fisher information matrix
+        print('calculating inv fim.')
+        fim_inv = get_fim_inv(x_design, y)
+
+        is_sign, pvalues, qvalues = wald_test(
+            params=params, fisher_inv=fim_inv, significance_threshold=significance_threshold
+        )
+        interaction_shape = np.int(self.n_features_0**2)
+        # subset to interaction terms
+        is_sign = is_sign[self.n_features_0 : interaction_shape + self.n_features_0, :]
+        pvalues = pvalues[self.n_features_0 : interaction_shape + self.n_features_0, :]
+        qvalues = qvalues[self.n_features_0 : interaction_shape + self.n_features_0, :]
+
+        self.pvalues = np.concatenate(
+            np.expand_dims(np.split(pvalues, indices_or_sections=np.sqrt(pvalues.shape[0]), axis=0), axis=0),
+            axis=0,
+        )
+        self.qvalues = np.concatenate(
+            np.expand_dims(np.split(qvalues, indices_or_sections=np.sqrt(qvalues.shape[0]), axis=0), axis=0),
+            axis=0,
+        )
+        self.is_sign = np.concatenate(
+            np.expand_dims(np.split(is_sign, indices_or_sections=np.sqrt(is_sign.shape[0]), axis=0), axis=0),
+            axis=0,
+        )
+
+        interaction_params = params[:, self.n_features_0 : interaction_shape + self.n_features_0]
+        self.fold_change = np.concatenate(
+            np.expand_dims(np.split(interaction_params.T, indices_or_sections=np.sqrt(interaction_params.T.shape[0]), axis=0), axis=0),
+            axis=0,
+        )
+        
+    def type_coupling_analysis(
+        self,
+        undefined_types: Optional[List[str]] = None,
+        fontsize: Optional[int] = None,
+        figsize: Tuple[float, float] = (11.0, 10.0),
+        save: Optional[str] = None,
+        suffix: str = "_type_coupling_analysis.pdf",
+        show: bool = True,
+    ):
+        
+        if fontsize:
+            sc.set_figure_params(scanpy=True, fontsize=fontsize)
+            plt.rcParams['axes.grid'] = False
+        sig_df = pd.DataFrame(
+            np.sum(self.is_sign, axis=-1), 
+            columns=self.cell_names,
+            index=self.cell_names
+        )
+        if undefined_types:
+            sig_df = sig_df.drop(columns=undefined_types, index=undefined_types)
+        np.fill_diagonal(sig_df.values, 0)
+        plt.ioff()   
+        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=figsize)
+        sns.heatmap(sig_df, cmap='Greys',)
+        plt.xlabel('sender')
+        plt.ylabel('receiver')
+        plt.tight_layout()
+        if save is not None:
+            plt.savefig(f"{save}_cv{str(self.cv_idx)}_{suffix}")
+        if show:
+            plt.show()
+        plt.close(fig)
+        plt.ion()
+        
+    def type_coupling_analysis_circular(
+        self,
+        edge_attr: str,
+        edge_width_scale: float = 3.,
+        fontsize: Optional[int] = None,
+        figsize: Tuple[float, float] = (9, 8),
+        de_genes_threshold: float = 0,
+        magnitude_threshold: Optional[float] = None,
+        save: Optional[str] = None,
+        suffix: str = "_type_coupling_analysis_circular.pdf",
+        show: bool = True,
+        undefined_types: Optional[List[str]] = None,
+        text_space: float = 1.15
+    ):
+        coeff = self.fold_change * self.is_sign
+        coeff_df = pd.DataFrame(
+            np.sqrt(np.sum(coeff**2, axis=-1)), 
+            columns=self.cell_names,
+            index=self.cell_names
+        )
+        network_coeff_df = pd.DataFrame(coeff_df.unstack()).reset_index().rename(columns={'level_0': 'sender', 'level_1': 'receiver'})
+        network_coeff_df = network_coeff_df[network_coeff_df['receiver'] != network_coeff_df['sender']]
+        
+        sig_df = pd.DataFrame(
+            np.sum(self.is_sign, axis=-1), 
+            columns=self.cell_names,
+            index=self.cell_names
+        )
+        network_df = pd.DataFrame(sig_df.unstack()).reset_index().rename(columns={'level_0': 'sender', 'level_1': 'receiver'})
+        network_df = network_df[network_df['receiver'] != network_df['sender']]
+        network_df["magnitude"] = network_coeff_df[0]
+
+        network_df["de_genes"] = [
+            (np.abs(x) - np.min(np.abs(network_df[0].values))) / 
+            (np.max(np.abs(network_df[0].values)) - np.min(np.abs(network_df[0].values)))
+            for x in network_df[0].values]
+        if undefined_types:
+            network_df = network_df[network_df['receiver'] != undefined_types]
+            network_df = network_df[network_df['sender'] != undefined_types]
+        if fontsize:
+            sc.set_figure_params(scanpy=True, fontsize=fontsize)
+        vega_10_scanpy, vega_20_scanpy, default_28 = _get_scanpy_colors()
+        plt.ioff()   
+        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=figsize)
+        ax.axis('off')
+        if de_genes_threshold:
+            network_df = network_df[network_df[0]>de_genes_threshold]
+        if magnitude_threshold:
+            network_df = network_df[network_df['magnitude']>magnitude_threshold]
+        G=nx.from_pandas_edgelist(
+            network_df, source='sender', target='receiver', 
+            edge_attr=["magnitude", 'de_genes'], 
+            create_using=nx.DiGraph()
+        ) 
+        nodes = np.unique(network_df['receiver'])
+        pos=nx.circular_layout(G)
+        labels_width = nx.get_edge_attributes(G, edge_attr)
+        if len(nodes) <= 10:
+            nx.set_node_attributes(G, dict([(x,vega_10_scanpy[i]) for i, x in enumerate(nodes)]), "color")
+        elif len(nodes) <= 20:
+            nx.set_node_attributes(G, dict([(x,vega_20_scanpy[i]) for i, x in enumerate(nodes)]), "color")
+        else:
+            nx.set_node_attributes(G, dict([(x,default_28[i]) for i, x in enumerate(nodes)]), "color")
+            
+        node_color = nx.get_node_attributes(G, 'color')
+
+        description = nx.draw_networkx_labels(G,pos, font_size=17)
+        n = len(self.cell_names)
+        node_list = sorted(G.nodes())
+        angle = []
+        angle_dict = {}
+        for i, node in zip(range(n),node_list):
+            theta = 2.0*np.pi*i/n
+            angle.append((np.cos(theta),np.sin(theta)))
+            angle_dict[node] = theta
+        pos = {}
+        for node_i, node in enumerate(node_list):
+            pos[node] = angle[node_i]
+
+        r = fig.canvas.get_renderer()
+        trans = plt.gca().transData.inverted()
+        for node, t in description.items():
+            bb = t.get_window_extent(renderer=r)
+            bbdata = bb.transformed(trans)
+            radius = text_space +bbdata.width/1.
+            position = (radius*np.cos(angle_dict[node]),radius* np.sin(angle_dict[node]))
+            t.set_position(position)
+            t.set_rotation(angle_dict[node]*360.0/(2.0*np.pi))
+            t.set_clip_on(False)
+
+        nx.draw_networkx(
+            G, pos, with_labels=False, node_size=500,
+            width=[x * edge_width_scale for x in list(labels_width.values())], 
+            edge_vmin=0., edge_vmax=1., edge_cmap=plt.cm.seismic, arrowstyle='-|>',
+            vmin=0., vmax=1., cmap=plt.cm.binary, node_color=list(node_color.values()),
+            ax=ax, connectionstyle='arc3, rad = 0.1'
+        )
+        plt.tight_layout()
+        if save is not None:
+            plt.savefig(f"{save}_cv{str(self.cv_idx)}_{suffix}")
+        if show:
+            plt.show()
+        plt.close(fig)
+        plt.ion()
+        
+    def sender_receiver_values(
+        self,
+        receiver: str,
+        sender: str,
+    ):
+        receiver_idx = self.cell_names.index(receiver)
+        sender_idx = self.cell_names.index(sender)
+        
+        fold_change = self.fold_change[receiver_idx,sender_idx,:]
+        pvals = self.pvalues[receiver_idx,sender_idx,:]
+        qvals = self.qvalues[receiver_idx,sender_idx,:]
+        h_0 = pd.DataFrame(
+            self.data.celldata.obsm['node_types'], columns=self.cell_names
+        )
+        target_type = pd.DataFrame(np.array(h_0.idxmax(axis=1)), columns=["target_cell"]).reset_index()
+        self.data.celldata.obs = target_type
+        means = self.data.celldata[self.data.celldata.obs['target_cell'] == receiver].X.mean(axis=0)
+        
+        df = pd.DataFrame(
+            np.array([means, pvals, qvals, fold_change]).T,
+            index=self.data.celldata.var_names, columns=['mean expression', 'pvalue', 'qvalue', 'fold change']
+        )
+        
+        return df
+    
+    def sender_similarity_analysis(
+        self,
+        receiver: str,
+        fontsize: Optional[int] = None,
+        figsize: Tuple[float, float] = (8.0, 8.0),
+        save: Optional[str] = None,
+        suffix: str = "_sender_similarity_analysis.pdf",
+        show: bool = True,
+        cbar_pos: Tuple[float, float, float, float] = (-0.3, .1, .4, .02)
+    ):
+        receiver_idx = self.cell_names.index(receiver)
+        
+        corrcoef = np.corrcoef(self.fold_change[receiver_idx,:,:])
+        corrcoef = pd.DataFrame(
+            corrcoef,
+            columns=self.cell_names,
+            index=self.cell_names
+        )
+        if fontsize:
+            sc.set_figure_params(scanpy=True, fontsize=fontsize)
+            plt.rcParams['axes.grid'] = False
+        plt.ioff()   
+        clustermap = sns.clustermap(
+            corrcoef, cmap='Purples',  
+            figsize=figsize, 
+            row_cluster=True, 
+            cbar_kws={'label': "correlation", "orientation": "horizontal"},
+            cbar_pos=cbar_pos
+        )
+        
+        if save is not None:
+            clustermap.savefig()
+        if show:
+            plt.show()
+        plt.ion()
+        
+    def sender_receiver_effect_vulcanoplot(
+        self,
+        receiver: str,
+        sender: str,
+        significance_threshold: float = 0.05,
+        fold_change_threshold: float = 0.021671495152134755,
+        fontsize: Optional[int] = None,
+        figsize: Tuple[float, float] = (4.5, 7.0),
+        save: Optional[str] = None,
+        suffix: str = "_sender_receiver_volcanoplot.pdf",
+        show: bool = True,
+    ):
+        receiver_idx = self.cell_names.index(receiver)
+        sender_idx = self.cell_names.index(sender)
+        
+        if fontsize:
+            sc.set_figure_params(scanpy=True, fontsize=fontsize)
+            plt.rcParams['axes.grid'] = False
+        fig, ax = plt.subplots(1,1, figsize=figsize)
+
+        # only significant ones 
+        qval_filter = np.where(self.qvalues[receiver_idx,sender_idx,:]>=significance_threshold)
+        vmax = np.max(np.abs(self.fold_change[receiver_idx,sender_idx,:]))
+        print(vmax)
+        
+        # overlaying significant ones with orange
+        sns.scatterplot(
+            x=self.fold_change[receiver_idx,sender_idx,:][qval_filter], 
+            y=-np.log10(self.qvalues[receiver_idx,sender_idx,:])[qval_filter], 
+            color='white', edgecolor = 'black', s=100, ax=ax)
+
+        qval_filter = np.where(self.qvalues[receiver_idx,sender_idx,:]<significance_threshold)
+        x = self.fold_change[receiver_idx,sender_idx,:][qval_filter]
+        fc_filter = np.where(x < fold_change_threshold)
+        y = -np.nan_to_num(np.log10(self.qvalues[receiver_idx,sender_idx,:])[qval_filter])
+        sns.scatterplot(
+            x=x[fc_filter], 
+            y=y[fc_filter], 
+            color='darkgrey', edgecolor = 'black', s=100, ax=ax)
+
+        x = self.fold_change[receiver_idx,sender_idx,:][qval_filter]
+        fc_filter = np.where(x<= -fold_change_threshold)
+        y = -np.nan_to_num(np.log10(self.qvalues[receiver_idx,sender_idx,:])[qval_filter], neginf=-14.5)
+        sns.scatterplot(
+            x=x[fc_filter], 
+            y=y[fc_filter], 
+            color='blue', edgecolor = 'black', s=100, ax=ax)
+
+        x = self.fold_change[receiver_idx,sender_idx,:][qval_filter]
+        fc_filter = np.where(x>= fold_change_threshold)
+        y = -np.nan_to_num(np.log10(self.qvalues[receiver_idx,sender_idx,:])[qval_filter], neginf=-14.5)
+        sns.scatterplot(
+            x=x[fc_filter], 
+            y=y[fc_filter], 
+            color='red', edgecolor = 'black', s=100, ax=ax)
+
+        ax.set_xlim((-vmax*1.1, vmax*1.1))
+        ax.set_ylim((-0.5, 15))
+        ax.set_xlabel('')
+        ax.set_ylabel('')
+        plt.axvline(-fold_change_threshold, color='black', linestyle='--', )
+        plt.axvline(fold_change_threshold, color='black', linestyle='--', )
+        plt.axhline(-np.log10(significance_threshold), linestyle='--', color='black')
+        
+        plt.tight_layout()
+        if save is not None:
+            plt.savefig(f"{save}_cv{str(self.cv_idx)}_{suffix}")
+        if show:
+            plt.show()
+        plt.close(fig)
+        plt.ion()
+        
+    def sender_receiver_gene_subset(
+        self,
+        receiver: str,
+        sender: str,
+        significance_threshold: float = 0.05,
+        fold_change_quantile: float = 0.2
+    ):
+
+        receiver_idx = self.cell_names.index(receiver)
+        sender_idx = self.cell_names.index(sender)
+
+        qvals = pd.DataFrame(
+            self.qvalues[receiver_idx, sender_idx, :], 
+            index=self.data.celldata.var_names
+        )
+        fold_change = pd.DataFrame(
+            np.abs(self.fold_change[receiver_idx, sender_idx, :]), 
+            index=self.data.celldata.var_names
+        )
+        qvals = qvals.replace(0.0, 0.0000001)
+        qvals = qvals[qvals <= significance_threshold]
+        mask_rows = qvals.any(axis=1)
+        qvals = qvals.loc[mask_rows]
+        fold_change = fold_change.loc[mask_rows]
+        fold_change = fold_change[
+            fold_change >= np.max(np.array(fold_change))*fold_change_quantile
+        ]
+        mask_rows = fold_change.any(axis=1)
+        fold_change = fold_change.loc[mask_rows]
+        qvals = qvals.loc[mask_rows]
+        
+        return list(qvals.index)
+    
+    def sender_effect(
+        self,
+        receiver: str,
+        plot_mode: str = 'fold_change',
+        gene_subset: Optional[List[str]] = None,
+        significance_threshold: float = 0.05,
+        cut_pvals: float = -5,
+        fontsize: Optional[int] = None,
+        figsize: Tuple[float, float] = (6, 10),
+        save: Optional[str] = None,
+        suffix: str = "_sender_efect.pdf",
+        show: bool = True,
+    ):
+        receiver_idx = self.cell_names.index(receiver)
+        
+        if fontsize:
+            sc.set_figure_params(scanpy=True, fontsize=fontsize)
+        
+        if plot_mode == 'qvals':
+            arr = np.log(self.qvalues[receiver_idx, :, :])
+            arr[arr < cut_pvals] = cut_pvals
+            df = pd.DataFrame(
+                arr, 
+                index=self.cell_names,
+                columns=self.data.celldata.var_names
+            )
+            if gene_subset:
+                df = df.drop(index=receiver)[gene_subset]
+
+            plt.ioff()
+            fig, ax = plt.subplots(nrows=1, ncols=1, figsize=figsize)
+            sns.heatmap(
+                df.T,
+                cbar_kws={'label': "$\log_{10}$ FDR-corrected pvalues"},
+                cmap='Greys_r', vmin=-5, vmax=0.
+            )
+        elif plot_mode == 'fold_change':
+            arr = self.fold_change[receiver_idx, :, :]
+            arr[np.where(self.qvalues[receiver_idx, :, :] > significance_threshold)] = 0
+            df = pd.DataFrame(
+                arr, 
+                index=self.cell_names,
+                columns=self.data.celldata.var_names
+            )
+            plt.ioff()
+            if gene_subset:
+                df = df.drop(index=receiver)[gene_subset]
+            vmax = np.max(np.abs(df.values))
+
+            fig, ax = plt.subplots(nrows=1, ncols=1, figsize=figsize)
+            sns.heatmap(
+                df.T,
+                cbar_kws={'label': "fold change", 
+                           "location": "top"},
+                cmap="seismic", vmin=-vmax, vmax=vmax, 
+            )
+        plt.xlabel("sender cell type")
+        plt.tight_layout()
+        if save is not None:
+            plt.savefig(f"{save}_cv{str(self.cv_idx)}_{receiver}_{suffix}")
+        if show:
+            plt.show()
+        plt.close(fig)
+        plt.ion()
+        
+    def receiver_effect(
+        self,
+        sender: str,
+        plot_mode: str = 'fold_change',
+        gene_subset: Optional[List[str]] = None,
+        significance_threshold: float = 0.05,
+        cut_pvals: float = -5,
+        fontsize: Optional[int] = None,
+        figsize: Tuple[float, float] = (6, 10),
+        save: Optional[str] = None,
+        suffix: str = "_receiver_efect.pdf",
+        show: bool = True,
+    ):
+        sender_idx = self.cell_names.index(sender)
+        
+        if fontsize:
+            sc.set_figure_params(scanpy=True, fontsize=fontsize)
+        
+        if plot_mode == 'qvals':
+            arr = np.log(self.qvalues[:, sender_idx, :])
+            arr[arr < cut_pvals] = cut_pvals
+            df = pd.DataFrame(
+                arr, 
+                index=self.cell_names,
+                columns=self.data.celldata.var_names
+            )
+            if gene_subset:
+                df = df.drop(index=sender)[gene_subset]
+
+            plt.ioff()
+            fig, ax = plt.subplots(nrows=1, ncols=1, figsize=figsize)
+            sns.heatmap(
+                df.T,
+                cbar_kws={'label': "$\log_{10}$ FDR-corrected pvalues"},
+                cmap='Greys_r', vmin=-5, vmax=0.
+            )
+        elif plot_mode == 'fold_change':
+            arr = self.fold_change[:, sender_idx, :]
+            arr[np.where(self.qvalues[:, sender_idx, :] > significance_threshold)] = 0
+            df = pd.DataFrame(
+                arr, 
+                index=self.cell_names,
+                columns=self.data.celldata.var_names
+            )
+            plt.ioff()
+            if gene_subset:
+                df = df.drop(index=sender)[gene_subset]
+            vmax = np.max(np.abs(df.values))
+
+            fig, ax = plt.subplots(nrows=1, ncols=1, figsize=figsize)
+            sns.heatmap(
+                df.T,
+                cbar_kws={'label': "fold change", 
+                           "location": "top"},
+                cmap="seismic", vmin=-vmax, vmax=vmax, 
+            )
+        plt.xlabel("receiver cell type")
+        plt.tight_layout()
+        if save is not None:
+            plt.savefig(f"{save}_cv{str(self.cv_idx)}_{sender}_{suffix}")
+        if show:
+            plt.show()
+        plt.close(fig)
+        plt.ion()
+        
 
     def interaction_significance(
         self,
@@ -817,44 +1413,35 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
             .T
         )
 
-        interaction_params = np.concatenate(
-            np.expand_dims(np.split(interaction_params, indices_or_sections=self.n_features_0, axis=1), axis=-1),
-            axis=-1,
-        )
-
         interactions = []
         y = []
-        for _step, (x_batch, y_batch) in enumerate(ds):
-            target_batch, interactions_batch, sf_batch, node_covar_batch, g_batch = x_batch
-            interactions.append(
-                sparse.csr_matrix(
-                    (
-                        interactions_batch.values.numpy(),
-                        (interactions_batch.indices.numpy()[:, 1], interactions_batch.indices.numpy()[:, 2]),
-                    ),
-                    shape=interactions_batch.dense_shape.numpy()[1:],
-                ).todense()
-            )
-            y.append(y_batch[0].numpy().squeeze())
+        count = 0
+        for k, v in nodes_idx.items():
+            count = count + len(v)
+
+        with tqdm(total=count) as pbar:
+            for _step, (x_batch, y_batch) in enumerate(ds):
+                target_batch, interactions_batch, sf_batch, node_covar_batch, g_batch = x_batch
+                interactions.append(
+                    sparse.csr_matrix(
+                        (
+                            interactions_batch.values.numpy(),
+                            (interactions_batch.indices.numpy()[:, 1], interactions_batch.indices.numpy()[:, 2]),
+                        ),
+                        shape=interactions_batch.dense_shape.numpy()[1:],
+                    ).todense()
+                )
+                y.append(y_batch[0].numpy().squeeze())
+                pbar.update(1)
 
         interactions = np.concatenate(interactions, axis=0)
         y = np.concatenate(y, axis=0)
 
-        interactions = np.concatenate(
-            np.expand_dims(np.split(interactions, indices_or_sections=self.n_features_0, axis=1), axis=-1), axis=-1
-        )
-
-        fisher_inv = []
-        for i in range(interactions.shape[1]):
-            target_x = interactions[:, i, :]
-            target_fisher_inv = np.divide(
-                np.expand_dims(np.matmul(target_x.T, target_x), axis=0),
-                np.expand_dims(np.expand_dims(np.var(y, axis=0), axis=-1), axis=-1),
-            )
-            fisher_inv.append(target_fisher_inv)
+        fim_inv = get_fim_inv(interactions, y)
+        print(fim_inv.shape)
 
         bool_significance, significance = wald_test(
-            parameters=interaction_params, fisher_inv=fisher_inv, significance_threshold=significance_threshold
+            params=interaction_params, fisher_inv=fim_inv, significance_threshold=significance_threshold
         )
         return interaction_params, bool_significance, significance
 
@@ -1284,3 +1871,180 @@ class InterpreterNoGraph(estimators.EstimatorNoGraph, InterpreterBase):
             g.append(g_batch.numpy().squeeze())
             h_obs.append(y_batch[0].numpy().squeeze())
         return (h_1, sf, node_covar, g), h_obs
+
+
+class InterpreterDeconvolution(estimators.EstimatorDeconvolution, InterpreterInteraction):
+    """Inherits all relevant functions specific to EstimatorDeconvolution estimators."""
+
+    def __init__(self):
+        """Initialize InterepreterInteraction."""
+        super().__init__()
+
+    def _get_np_data(
+        self, image_keys: Union[np.ndarray, str], nodes_idx: Union[dict, str]
+    ) -> Tuple[Tuple[list, List[csr_matrix], list, list, list], list]:
+        """Collects numpy objects from tensorflow dataset.
+
+        Args:
+            image_keys: Observation images indices.
+            nodes_idx: Observation nodes indices.
+
+        Returns:
+            Tuple of list of raw data, one list entry per image / graph
+        """
+        if isinstance(image_keys, (int, np.int32, np.int64)):
+            image_keys = [image_keys]
+        ds = self._get_dataset(
+            image_keys=image_keys, nodes_idx=nodes_idx, batch_size=1, shuffle_buffer_size=1, train=False, seed=None
+        )
+        # Loop over sub-selected data set and sum gradients across all selected observations.
+        target = []
+        interactions = []
+        sf = []
+        node_covar = []
+        g = []
+        h_obs = []
+
+        for _step, (x_batch, y_batch) in enumerate(ds):
+            target_batch, interaction_batch, sf_batch, node_covar_batch, g_batch = x_batch
+            target.append(target_batch.numpy().squeeze())
+            interactions.append(
+                csr_matrix(
+                    (
+                        interaction_batch.values.numpy(),
+                        (interaction_batch.indices.numpy()[:, 1], interaction_batch.indices.numpy()[:, 2]),
+                    ),
+                    shape=interaction_batch.dense_shape.numpy()[1:],
+                ).todense()
+            )
+            sf.append(sf_batch.numpy().squeeze())
+            node_covar.append(node_covar_batch.numpy().squeeze())
+            g.append(g_batch.numpy().squeeze())
+            h_obs.append(y_batch[0].numpy().squeeze())
+        return (target, interactions, sf, node_covar, g), h_obs
+    
+    def get_sender_receiver_effects(
+        self,
+        params_type: str = 'ols',
+        significance_threshold: float = 0.05
+    ):
+        data = {
+            "target": self.data.celldata.obsm['node_types'], 
+            "proportions": self.data.celldata.obsm['proportions']
+        }
+        target = np.asarray(dmatrix("target-1", data))
+        interaction_shape = self.model.training_model.inputs[1].shape
+        interactions = np.asarray(dmatrix("target:proportions-1", data))
+
+        y = self.data.celldata.X[self.nodes_idx_all['1'],:]
+
+        print('using ols parameters.')
+        if params_type == 'ols':
+            x_design = np.concatenate([target, interactions], axis=1)
+            ols = ols_fit(x_=x_design, y_=y)
+            params = ols.squeeze()
+        else:
+            params = (
+                self.model.training_model.weights[0]
+                .numpy()
+                .T
+            )
+
+        # get inverse fisher information matrix
+        print('calculating inv fim.')
+        fim_inv = get_fim_inv(x_design, y)
+
+        is_sign, pvalues, qvalues = wald_test(
+            params=params, fisher_inv=fim_inv, significance_threshold=significance_threshold
+        )
+        interaction_shape = self.model.training_model.inputs[1].shape
+        # subset to interaction terms
+        is_sign = is_sign[self.n_features_0 : interaction_shape[-1] + self.n_features_0, :]
+        pvalues = pvalues[self.n_features_0 : interaction_shape[-1] + self.n_features_0, :]
+        qvalues = qvalues[self.n_features_0 : interaction_shape[-1] + self.n_features_0, :]
+
+        self.pvalues = np.concatenate(
+            np.expand_dims(np.split(pvalues, indices_or_sections=np.sqrt(pvalues.shape[0]), axis=0), axis=0),
+            axis=0,
+        )
+        self.qvalues = np.concatenate(
+            np.expand_dims(np.split(qvalues, indices_or_sections=np.sqrt(qvalues.shape[0]), axis=0), axis=0),
+            axis=0,
+        )
+        self.is_sign = np.concatenate(
+            np.expand_dims(np.split(is_sign, indices_or_sections=np.sqrt(is_sign.shape[0]), axis=0), axis=0),
+            axis=0,
+        )
+
+        interaction_params = params[:, self.n_features_0 : interaction_shape[-1] + self.n_features_0]
+        self.fold_change = np.concatenate(
+            np.expand_dims(np.split(interaction_params.T, indices_or_sections=np.sqrt(interaction_params.T.shape[0]), axis=0), axis=0),
+            axis=0,
+        )
+
+    def interaction_significance(
+        self,
+        image_keys,
+        nodes_idx,
+        significance_threshold: float = 0.01,
+    ):
+        """Compute interaction parameter significance.
+
+        Args:
+            image_keys: Image keys.
+            nodes_idx: Node indices.
+            significance_threshold (float): Significance threshold for p-values.
+
+        Returns:
+            (Tuple): Interaction parameters of model, aaray of boolean significance, significance values.
+        """
+        ds = self._get_dataset(
+            image_keys=image_keys, nodes_idx=nodes_idx, batch_size=1, shuffle_buffer_size=1, train=False, seed=None
+        )
+        interaction_shape = self.model.training_model.inputs[1].shape
+        interaction_params = (
+            self.model.training_model.weights[0]
+            .numpy()[self.n_features_0 : interaction_shape[-1] + self.n_features_0, :]
+            .T
+        )
+
+        interaction_params = np.concatenate(
+            np.expand_dims(np.split(interaction_params, indices_or_sections=self.n_features_0, axis=1), axis=-1),
+            axis=-1,
+        )
+
+        interactions = []
+        y = []
+        for _step, (x_batch, y_batch) in enumerate(ds):
+            target_batch, interactions_batch, sf_batch, node_covar_batch, g_batch = x_batch
+            interactions.append(
+                sparse.csr_matrix(
+                    (
+                        interactions_batch.values.numpy(),
+                        (interactions_batch.indices.numpy()[:, 1], interactions_batch.indices.numpy()[:, 2]),
+                    ),
+                    shape=interactions_batch.dense_shape.numpy()[1:],
+                ).todense()
+            )
+            y.append(y_batch[0].numpy().squeeze())
+
+        interactions = np.concatenate(interactions, axis=0)
+        y = np.concatenate(y, axis=0)
+
+        interactions = np.concatenate(
+            np.expand_dims(np.split(interactions, indices_or_sections=self.n_features_0, axis=1), axis=-1), axis=-1
+        )
+
+        fisher_inv = []
+        for i in range(interactions.shape[1]):
+            target_x = interactions[:, i, :]
+            target_fisher_inv = np.divide(
+                np.expand_dims(np.matmul(target_x.T, target_x), axis=0),
+                np.expand_dims(np.expand_dims(np.var(y, axis=0), axis=-1), axis=-1),
+            )
+            fisher_inv.append(target_fisher_inv)
+
+        bool_significance, significance = wald_test(
+            params=interaction_params, fisher_inv=fisher_inv, significance_threshold=significance_threshold
+        )
+        return interaction_params, bool_significance, significance

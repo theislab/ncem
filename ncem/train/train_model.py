@@ -4,12 +4,13 @@ from typing import Union
 
 from ncem.estimators import (EstimatorCVAE, EstimatorCVAEncem, EstimatorED,
                              EstimatorEDncem, EstimatorEdNcemNeighborhood, EstimatorInteractions,
-                             EstimatorLinear)
+                             EstimatorLinear, EstimatorDeconvolution)
 
 
 class TrainModel:
     estimator: Union[
-        EstimatorLinear, EstimatorInteractions, EstimatorED, EstimatorEDncem, EstimatorCVAE, EstimatorCVAEncem
+        EstimatorLinear, EstimatorInteractions, EstimatorED, EstimatorEDncem, EstimatorCVAE, EstimatorCVAEncem,
+        EstimatorDeconvolution
     ]
 
     @staticmethod
@@ -102,6 +103,16 @@ class TrainModelLinear(TrainModel):
 
     def init_estim(self, **kwargs):
         self.estimator = EstimatorLinear(**kwargs)
+
+    def _save_specific(self, fn):
+        self._save_evaluation_per_node_type(fn=fn)
+
+
+class TrainModelLinearDeconvolution(TrainModel):
+    estimator: EstimatorDeconvolution
+
+    def init_estim(self, **kwargs):
+        self.estimator = EstimatorDeconvolution(**kwargs)
 
     def _save_specific(self, fn):
         self._save_evaluation_per_node_type(fn=fn)
