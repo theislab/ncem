@@ -21,6 +21,51 @@ from scipy import sparse, stats
 from tqdm import tqdm
 
 
+def get_data_custom(interpreter, n_eval_nodes_per_graph: int=10):
+    interpreter.undefined_node_types = None
+    interpreter.img_to_patient_dict = interpreter.data.celldata.uns["img_to_patient_dict"]
+    interpreter.complete_img_keys = list(interpreter.data.img_celldata.keys())
+
+    interpreter.a = {k: adata.obsp["adjacency_matrix_connectivities"] for k, adata in interpreter.data.img_celldata.items()}
+    interpreter.h_0 = {k: adata.obsm["node_types"] for k, adata in interpreter.data.img_celldata.items()}
+    interpreter.h_1 = {k: adata.X for k, adata in interpreter.data.img_celldata.items()}
+    interpreter.node_types = {k: adata.obsm["node_types"] for k, adata in interpreter.data.img_celldata.items()}
+    interpreter.node_type_names = interpreter.data.celldata.uns["node_type_names"]
+    interpreter.n_features_type = list(interpreter.node_types.values())[0].shape[1]
+    interpreter.n_features_standard = interpreter.data.celldata.shape[1]
+    interpreter.node_feature_names = list(interpreter.data.celldata.var_names)
+    interpreter.size_factors = interpreter.data.size_factors()
+
+    # Add covariates:
+    # Add graph-level covariate information
+    interpreter.graph_covar_names = interpreter.data.celldata.uns["graph_covariates"]["label_names"]
+
+    interpreter.graph_covar = {k: np.array([], ndmin=1) for k, adata in interpreter.data.img_celldata.items()}
+    # Add node-level conditional information
+    interpreter.node_covar = {k: np.empty((adata.shape[0], 0)) for k, adata in interpreter.data.img_celldata.items()}
+
+    # Set selection-specific tensor dimensions:
+    interpreter.n_features_0 = list(interpreter.h_0.values())[0].shape[1]
+    interpreter.n_features_1 = list(interpreter.h_1.values())[0].shape[1]
+    interpreter.n_graph_covariates = list(interpreter.graph_covar.values())[0].shape[0]
+    interpreter.n_node_covariates = list(interpreter.node_covar.values())[0].shape[1]
+    interpreter.max_nodes = max([interpreter.a[i].shape[0] for i in interpreter.complete_img_keys])
+
+    interpreter.domains = {key: i for i, key in enumerate(interpreter.complete_img_keys)}
+    interpreter.n_domains = len(np.unique(list(interpreter.domains.values())))
+
+    # Report summary statistics of loaded graph:
+    print(
+        "Mean of mean node degree per images across images: %f"
+        % np.mean([np.mean(v.sum(axis=1)) for k, v in interpreter.a.items()])
+    )
+    
+    # splitting data into test and validation sets, can be ignored for non sender-receiver focused analysis
+    interpreter.split_data_node(0.1, 0.1)
+    interpreter.n_eval_nodes_per_graph = n_eval_nodes_per_graph
+    interpreter.cell_names = list(interpreter.data.celldata.uns['node_type_names'].values())
+    
+
 class GraphTools:
     """GraphTools class."""
 
@@ -756,7 +801,7 @@ class PlottingTools:
         adata, adata_substates, log_pval, fold_change
         """
         titles = list(self.celldata.uns["node_type_names"].values())
-        sorce_type_names = [f"source type {x.replace('_', ' ')}" for x in titles]
+        sorce_type_names = [f"source type {x}" for x in titles]
 
         pbar_total = len(self.img_celldata.keys()) + len(self.img_celldata.keys()) + len(titles)
         with tqdm(total=pbar_total) as pbar:
@@ -1761,6 +1806,120 @@ class DataLoader(GraphTools, PlottingTools):
     @property
     def var_names(self):
         return self.celldata.var_names
+    
+
+class customLoader(DataLoader):
+    
+    def __init__(
+        self,
+        adata, 
+        cluster, 
+        patient, 
+        library_id,
+        radius,
+        coord_type='generic',
+        n_rings=1,
+        n_top_genes=None,
+        label_selection=None
+    ):
+        self.adata = adata.copy()
+        self.cluster = cluster
+        self.patient = patient
+        self.library_id = library_id
+
+        print("Loading data from raw files")
+        self.register_celldata(n_top_genes=n_top_genes)
+        self.register_img_celldata()
+        self.register_graph_features(label_selection=label_selection)
+        self.compute_adjacency_matrices(radius=radius, coord_type=coord_type, n_rings=n_rings)
+        self.radius = radius
+
+        print(
+            "Loaded %i images with complete data from %i patients "
+            "over %i cells with %i cell features and %i distinct celltypes."
+            % (
+                len(self.img_celldata),
+                len(self.patients),
+                self.celldata.shape[0],
+                self.celldata.shape[1],
+                len(self.celldata.uns["node_type_names"]),
+            )
+        )
+    
+    def _register_celldata(self, n_top_genes):
+        
+        metadata = {
+            "cluster_col_preprocessed": self.cluster,
+            "image_col": self.library_id
+        }
+        
+        celldata = self.adata.copy()
+        celldata.X = celldata.X.toarray()
+        celldata.uns["metadata"] = metadata
+        del celldata.uns['spatial']
+
+        # register node type names
+        node_type_names = list(np.unique(celldata.obs[self.cluster]))
+        celldata.uns["node_type_names"] = {x: x for x in node_type_names}
+        node_types = np.zeros((celldata.shape[0], len(node_type_names)))
+        node_type_idx = np.array(
+            [
+                node_type_names.index(x) for x in celldata.obs[self.cluster].values
+            ]  # index in encoding vector
+        )
+        node_types[np.arange(0, node_type_idx.shape[0]), node_type_idx] = 1
+        celldata.obsm["node_types"] = node_types
+
+        if self.patient:
+            img_to_patient_dict = {}
+            for p in np.unique(celldata.obs[self.patient]):
+                for i in np.unique(celldata.obs[celldata.obs[self.patient] == p][self.library_id]):
+                    img_to_patient_dict[i] = p
+        else:
+            img_to_patient_dict = {"image": "patient"}
+        celldata.uns["img_to_patient_dict"] = img_to_patient_dict
+        self.img_to_patient_dict = img_to_patient_dict
+
+        self.celldata = celldata
+        
+    def _register_img_celldata(self):
+        """Load dictionary of of image-wise celldata objects with {imgage key : anndata object of image}."""
+        img_celldata = {}
+        if self.library_id:
+            for k in np.unique(self.celldata.obs[self.library_id]):
+                img_celldata[str(k)] = self.celldata[self.celldata.obs[self.library_id] == k].copy()
+            self.img_celldata = img_celldata
+        else:
+            self.img_celldata = {"image": self.celldata}
+
+    def _register_graph_features(self, label_selection):
+        """Load graph level covariates.
+
+        Parameters
+        ----------
+        label_selection
+            Label selection.
+        """
+        # Save processed data to attributes.
+        for adata in self.img_celldata.values():
+            graph_covariates = {
+                "label_names": {},
+                "label_tensors": {},
+                "label_selection": [],
+                "continuous_mean": {},
+                "continuous_std": {},
+                "label_data_types": {},
+            }
+            adata.uns["graph_covariates"] = graph_covariates
+
+        graph_covariates = {
+            "label_names": {},
+            "label_selection": [],
+            "continuous_mean": {},
+            "continuous_std": {},
+            "label_data_types": {},
+        }
+        self.celldata.uns["graph_covariates"] = graph_covariates
 
 
 class DataLoaderZhang(DataLoader):
