@@ -57,7 +57,6 @@ def main():
     )
     # TODO: improve checkpointing stuff.
     # Create a PyTorch Lightning trainer with the generation callback
-    trainer: pl.Trainer = pl.Trainer.from_argparse_args(args, callbacks=[checkpoint_callback])
 
     # Choosing the dataset
     if args.dataset == "hartmann":
@@ -75,12 +74,12 @@ def main():
     else:
         raise NotImplementedError()
 
-    print(train_data)
+    trainer: pl.Trainer = pl.Trainer.from_argparse_args(args, callbacks=[checkpoint_callback])
 
     train_dataloader = NeighborLoader(
         data=train_data,
         # input_nodes=train_data,
-        num_neighbors=[30] * 2,
+        num_neighbors=[120] * 2,
         batch_size=args.batch_size,
         num_workers=12,
         shuffle=True,
@@ -88,7 +87,7 @@ def main():
     val_dataloader = NeighborLoader(
         data=val_data,
         # input_nodes=val_data.label_mask,
-        num_neighbors=[30] * 2,
+        num_neighbors=[120] * 2,
         batch_size=args.batch_size,
         num_workers=12,
         shuffle=False

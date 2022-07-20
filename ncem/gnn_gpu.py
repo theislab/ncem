@@ -15,6 +15,7 @@ import torch.optim as optim
 import os
 from sklearn.metrics import r2_score
 
+
 class GNNModel(nn.Module):
 
     def __init__(self, in_channels=11, hidden_dims=None, out_channels=34, **kwargs):
@@ -35,12 +36,16 @@ class GNNModel(nn.Module):
                         in_channels=prev_dim,
                         out_channels=dim),
                     nn.ReLU(inplace=True),
-                    nn.Softmax()
+                    nn.Softmax(dim=1)
                 ]
                 prev_dim = dim
 
-        layers += [geom_nn.GCNConv(in_channels=prev_dim,
-                                   out_channels=out_channels)]
+        layers += [
+            geom_nn.GCNConv(in_channels=prev_dim,
+                            out_channels=out_channels),
+            nn.ReLU(inplace=True),
+            nn.Softmax(dim=1)
+        ]
 
         self.layers = nn.ModuleList(layers)
 
@@ -108,18 +113,23 @@ class NonLinearNCEM(pl.LightningModule):
             out_channels=self.hparams.latent_dim,
         )
 
-        self.decoder = MLPModel(
+        self.decoder_sigma = MLPModel(
             in_channels=self.hparams.latent_dim,
-            out_channels=self.hparams.out_channels * 2,  # one for means one for vars
+            out_channels=self.hparams.out_channels,
+            hidden_dims=self.hparams.decoder_hidden_dims,
+        )
+        self.decoder_mu = MLPModel(
+            in_channels=self.hparams.latent_dim,
+            out_channels=self.hparams.out_channels,
             hidden_dims=self.hparams.decoder_hidden_dims,
         )
 
         self.loss_module = nn.GaussianNLLLoss(eps=1e-5)
 
         def init_weights(m):
-            if isinstance(m, geom_nn.GCNConv): 
-                # TODO: how to init weights of GNN's?
+            if isinstance(m, geom_nn.GCNConv):
                 pass
+                # TODO: how to init weights of GNN's?
                 # torch.nn.init.kaiming_normal_(m.weight, nonlinearity='relu')
                 # m.bias.data.fill_(0.01)
             elif isinstance(m, nn.Linear):
@@ -127,38 +137,35 @@ class NonLinearNCEM(pl.LightningModule):
                 m.bias.data.fill_(0.01)
 
         self.encoder.apply(init_weights)
-        self.decoder.apply(init_weights)
+        self.decoder_mu.apply(init_weights)
+        self.decoder_sigma.apply(init_weights)
 
     @staticmethod
     def add_model_specific_args(parent_parser):
         parser = parent_parser.add_argument_group("NonLinearNCEM")
         parser.add_argument("--lr", type=float, default=0.1, help="the initial learning rate")
         parser.add_argument("--momentum", type=float, default=0.9, help="momentum")
-        parser.add_argument("--weight-decay", type=float, default=2e-3, help="the weight decay")
+        parser.add_argument("--weight_decay", type=float, default=2e-3, help="the weight decay")
         parser.add_argument("--latent_dim", type=int, default=30, help="the weight decay")
-        parser.add_argument("--decoder_hidden_dims", action='append',
-                            default=None, help="Decoder Hidden Layer Dim")  # TODO Test
-        parser.add_argument("--encoder_hidden_dims", action='append',
-                            default=None, help="Encoder Hidden Layer Dim")  # TODO Test
+        parser.add_argument("--decoder_hidden_dims", nargs='+', type=int,
+                            default=None, help="Decoder Hidden Layer Dim")  #
+        parser.add_argument("--encoder_hidden_dims", nargs='+', type=int,
+                            default=None, help="Encoder Hidden Layer Dim")  #
         parser.add_argument("--dp_rate", type=float, default=0.1, help="Dropout Rate")
         return parent_parser
 
     def forward(self, data):
         x, edge_index = data.x, data.edge_index
         x = self.encoder(x, edge_index)
-        x = self.decoder(x)
-        latent_dim = x.shape[-1]
-        assert latent_dim == self.hparams.out_channels * 2
-        mu, sigma = x[:, :latent_dim // 2], x[:, latent_dim // 2:]
-        sigma = sigma + 1 # for numeric stability, TODO: is this OK?
+        sigma = self.decoder_sigma(x)
+        mu = self.decoder_mu(x)
         return mu, sigma
 
     def configure_optimizers(self):
         # We use SGD here, but Adam works as well
-        optimizer = optim.SGD(
+        optimizer = optim.AdamW(
             self.parameters(),
             lr=self.hparams["lr"],
-            momentum=self.hparams["momentum"],
             weight_decay=self.hparams["weight_decay"],
         )
         return optimizer
@@ -172,7 +179,7 @@ class NonLinearNCEM(pl.LightningModule):
     def validation_step(self, batch, _):
         mu, sigma = self.forward(batch)
         val_loss = self.loss_module(mu, batch.y, sigma)
-        val_r2_score = r2_score(batch.y, mu)
+        val_r2_score = r2_score(batch.y.cpu(), mu.cpu())
         self.log('val_r2_score', val_r2_score, batch_size=batch.batch_size, prog_bar=True)
         self.log('val_loss', val_loss, batch_size=batch.batch_size, prog_bar=True)
 
