@@ -16,7 +16,7 @@ import os
 
 class GNNModel(nn.Module):
 
-    def __init__(self, c_in, c_hidden, c_out, num_layers=2, layer_name="GCN", dp_rate=0.1, **kwargs):
+    def __init__(self, c_in=11, c_hidden=34, c_out=34, num_layers=2, layer_name="GCN", dp_rate=0.1, **kwargs):
         """
         Inputs:
             c_in - Dimension of input features
@@ -64,7 +64,7 @@ class GNNModel(nn.Module):
 
 class MLPModel(nn.Module):
 
-    def __init__(self, c_in, c_hidden, c_out, num_layers=2, dp_rate=0.1):
+    def __init__(self, c_in=34, c_hidden=34, c_out=34, num_layers=1, dp_rate=0.1):
         """
         Inputs:
             c_in - Dimension of input features
@@ -74,17 +74,18 @@ class MLPModel(nn.Module):
             dp_rate - Dropout rate to apply throughout the network
         """
         super().__init__()
-        layers = []
-        in_channels, out_channels = c_in, c_hidden
-        for l_idx in range(num_layers-1):
+        #layers = []
+        in_channels, out_channels = c_in, c_out
+        '''for l_idx in range(num_layers-1):
             layers += [
                 nn.Linear(in_channels, out_channels),
                 nn.ReLU(inplace=True),
                 nn.Dropout(dp_rate)
             ]
             in_channels = c_hidden
-        layers += [nn.Linear(in_channels, c_out)]
-        self.layers = nn.Sequential(*layers)
+        layers += [nn.Linear(in_channels, c_out)]'''
+        self.layers = nn.Sequential(nn.Linear(34, 34),
+                nn.ReLU(inplace=True))
 
     def forward(self, x, *args, **kwargs):
         """
@@ -159,36 +160,37 @@ def train_node_classifier(cur_dir, model_name, data, **model_kwargs):
     # Use a batch size of 128 for sampling training nodes
     batch_size=128)'''
 
-    CHECKPOINT_PATH = cur_dir + "checkpoints"
+    CHECKPOINT_PATH = cur_dir + "/checkpoints/"
 
     # Create a PyTorch Lightning trainer with the generation callback
     root_dir = os.path.join(CHECKPOINT_PATH, model_name)
     os.makedirs(root_dir, exist_ok=True)
     trainer = pl.Trainer(strategy=strategy, default_root_dir=root_dir, callbacks=[ModelCheckpoint(save_weights_only=True, mode="min", monitor="val_loss")],
-                         max_epochs=200,
+                         min_epochs=20, max_epochs=20,
                          progress_bar_refresh_rate=0) # 0 because epoch size is 1
 
+    
+    model = NodeLevelGNN(model_name=model_name, **model_kwargs)
+    trainer.fit(model, node_data_loader)
 
-    # Check whether pretrained model exists. If yes, load it and skip training
+    '''# Check whether pretrained model exists. If yes, load it and skip training
     pretrained_filename = os.path.join(CHECKPOINT_PATH, f"{model_name}.ckpt")
     if os.path.isfile(pretrained_filename):
         print("Found pretrained model, loading...")
         model = NodeLevelGNN.load_from_checkpoint(pretrained_filename)
     else:
         pl.seed_everything()
-        model = NodeLevelGNN(model_name=model_name, c_in=data.x.shape[1], c_out=data.y.shape[1], **model_kwargs)
+        model = NodeLevelGNN(model_name=model_name, **model_kwargs)
         trainer.fit(model, node_data_loader)
-        model = NodeLevelGNN.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
-
+        #model = NodeLevelGNN.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
+        '''
     # Test best model on the test set
-    test_result = trainer.test(model, node_data_loader, verbose=False)
-    batch = next(iter(node_data_loader))
-    batch = batch.to(model.device)
-    train_loss = model.forward(batch, mode="train")
-    val_loss = model.forward(batch, mode="val")
-    result = {"train": train_loss,
+    
+    val_result = trainer.validate(model, node_data_loader, verbose=False)
+    '''result = {"train": train_loss,
               "val": val_loss,
-              "test": test_result['test_loss']}
+              "test": test_result['test_loss']}'''
+    result=val_result
     return model, result
 
 def print_results(result_dict):

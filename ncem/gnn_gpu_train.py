@@ -38,7 +38,7 @@ def get_data():
     A_sparse = torch.sparse.FloatTensor(torch.LongTensor([Acoo.row.tolist(), Acoo.col.tolist()]),
                                 torch.FloatTensor(Acoo.data)).coalesce()
 
-    data = Data(x=X,edge_index=A_sparse.indices(), y=Y, train_mask=torch.arange(A.shape[0]))
+    data = Data(x=X,edge_index=A_sparse.indices(), y=Y, train_mask=torch.arange(A.shape[0]), val_mask=torch.arange(A.shape[0]))
 
     return data
 
