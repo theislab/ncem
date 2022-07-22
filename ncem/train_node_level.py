@@ -1,26 +1,15 @@
 
-import scanpy as sc
-from sklearn.utils import shuffle
-import squidpy as sq
 import torch
-import torch.nn as nn
-import numpy as np
-import pandas as pd
-from dataset import HartmannWrapper
-from torch_geometric.data import Data, LightningNodeData
 from torch_geometric.transforms import RandomLinkSplit
 
-import torch_sparse
-import torch_geometric.nn as geom_nn
-from torch.utils.data import DataLoader
 from torch_geometric.loader import NeighborLoader
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
-import torch.optim as optim
+from pytorch_lightning.callbacks import ModelCheckpoint
 import argparse
 import os
 
-from gnn_gpu import NonLinearNCEM
+from dataset import HartmannWrapper
+from torch_models.non_linear_ncem import NonLinearNCEM
 
 
 def parse_args():
@@ -28,7 +17,7 @@ def parse_args():
     Program arguments
     """
     parser = argparse.ArgumentParser(description="Train")
-    parser.add_argument("--data_path", default="./data", help="data path")
+    parser.add_argument("--data_path", default="./data/hartmann", help="data path")
     parser.add_argument("--dataset", type=str, default="hartmann", help="dataset to load", choices=["hartmann"])
     parser.add_argument("--init_model", default=None, help="initial model to load")
     parser.add_argument("--batch_size", type=int, default=128, help="train batch size")

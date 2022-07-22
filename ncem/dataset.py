@@ -1,9 +1,9 @@
 import os.path as osp
-from typing import overload
+import pathlib
 import torch
 from torch_geometric.data import Data, Dataset
 from torch_geometric.transforms import RandomLinkSplit
-import ncem
+from interpretation.interpreter import InterpreterInteraction
 
 
 class HartmannWrapper(Dataset):
@@ -13,16 +13,16 @@ class HartmannWrapper(Dataset):
         root (str): Data path
     """
 
-    def __init__(self, root="./data", transform=None, pre_transform=None, pre_filter=None):
+    def __init__(self, root, transform=None, pre_transform=None, pre_filter=None):
         self.img_count = 58
-        self.root = root
-        self.interpreter = ncem.interpretation.interpreter.InterpreterInteraction()
+        self.root = pathlib.Path(root)
+        self.interpreter = InterpreterInteraction()
         super().__init__(root, transform, pre_transform, pre_filter)
 
     # raw file name
     @property
     def raw_file_names(self):
-        return ["scMEP_MIBI_singlecell/scMEP_MIBI_singlecell.csv"]
+        return [self.root / "scMEP_MIBI_singlecell" / "scMEP_MIBI_singlecell.csv"]
 
     # Each graph is saved as a file
     # Is this ideal?

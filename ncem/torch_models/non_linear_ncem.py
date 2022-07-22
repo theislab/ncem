@@ -1,23 +1,15 @@
-
-import scanpy as sc
-import squidpy as sq
+"""
+NonLinearNCEM module
+"""
 import torch
 import torch.nn as nn
-import numpy as np
-import pandas as pd
-from torch_geometric.data import Dataset, Data, HeteroData, LightningNodeData
-import torch_sparse
 import torch_geometric.nn as geom_nn
-from torch_geometric.loader import NeighborLoader
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 import torch.optim as optim
-import os
 from sklearn.metrics import r2_score
 
 
 class GNNModel(nn.Module):
-
     def __init__(self, in_channels=11, hidden_dims=None, out_channels=34, **kwargs):
         """
         Inputs:
