@@ -1,4 +1,4 @@
-python train_node_level.py \
+python torch_models/graph_vae/train.py \
 --latent_dim=30 \
 --num_workers=12 \
 --batch_size=2 \

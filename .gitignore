@@ -143,6 +143,7 @@ dmypy.json
 *.orig
 
 # PL
-ncem/lightning_logs/*
+**/lightning_logs/*
 **.ckpt
 **.pt
+checkpoints/**
