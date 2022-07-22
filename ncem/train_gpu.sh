@@ -1,7 +1,7 @@
 python train_node_level.py \
 --latent_dim=30 \
 --num_workers=12 \
---batch_size=128 \
+--batch_size=2 \
 --accelerator=gpu \
 --lr=0.01 \
 --weight_decay=0.0 \

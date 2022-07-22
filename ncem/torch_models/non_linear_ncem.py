@@ -136,7 +136,6 @@ class NonLinearNCEM(pl.LightningModule):
     def add_model_specific_args(parent_parser):
         parser = parent_parser.add_argument_group("NonLinearNCEM")
         parser.add_argument("--lr", type=float, default=0.1, help="the initial learning rate")
-        parser.add_argument("--momentum", type=float, default=0.9, help="momentum")
         parser.add_argument("--weight_decay", type=float, default=2e-3, help="the weight decay")
         parser.add_argument("--latent_dim", type=int, default=30, help="the weight decay")
         parser.add_argument("--decoder_hidden_dims", nargs='+', type=int,
@@ -154,8 +153,7 @@ class NonLinearNCEM(pl.LightningModule):
         return mu, sigma
 
     def configure_optimizers(self):
-        # We use SGD here, but Adam works as well
-        optimizer = optim.AdamW(
+        optimizer = optim.Adam(
             self.parameters(),
             lr=self.hparams["lr"],
             weight_decay=self.hparams["weight_decay"],
