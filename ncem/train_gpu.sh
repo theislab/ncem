@@ -3,7 +3,7 @@ python torch_models/graph_vae/train.py \
 --num_workers=12 \
 --batch_size=2 \
 --accelerator=gpu \
---lr=0.01 \
+--lr=0.1 \
 --weight_decay=0.0 \
 --check_val_every_n_epoch=5 \
 --log_every_n_steps=10 \

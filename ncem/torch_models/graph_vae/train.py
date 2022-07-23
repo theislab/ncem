@@ -49,7 +49,7 @@ def main():
             train_dataset,
             num_workers=args.num_workers,
             shuffle=True,
-            batch_size=args.batch_size
+            batch_size=args.batch_size,
         )
         val_dataloader = loader.DataListLoader(
             val_dataset,

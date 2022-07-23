@@ -6,6 +6,7 @@ import torch
 from ncem.utils.init_weights import init_weights
 import pytorch_lightning as pl
 from torch_geometric.nn import VGAE, GCNConv
+from torch_geometric.data import Batch
 
 
 # taken from https://colab.research.google.com/github/AntonioLonga/PytorchGeometricTutorial/blob/main/Tutorial6/Tutorial6.ipynb
@@ -52,38 +53,41 @@ class GraphVAE(pl.LightningModule):
         optim = {"optimizer": optim, "lr_scheduler": sch, "monitor": "train_loss"}
         return optim
 
-    def training_step(self, batch, _):
-        loss = torch.zeros(1, device=batch[0].x.device, requires_grad=True)
-        for data in batch:
-            z = self.model.encode(data.x, data.edge_index)
-            recon_loss = self.model.recon_loss(z, data.edge_index)
-            kl_loss = self.model.kl_loss()
-            train_loss = recon_loss + (1.0 / data.num_nodes) * kl_loss
+    def training_step(self, data_list, _):
+        batch_size = len(data_list)
+        batch = Batch.from_data_list(data_list)
+        
+        # for data in batch:
+        z = self.model.encode(batch.x, batch.edge_index)
+        recon_loss = self.model.recon_loss(z, batch.edge_index)
+        kl_loss = self.model.kl_loss()
+        loss = recon_loss + (1.0 / batch.num_nodes) * kl_loss
 
-            loss = loss + train_loss
-
-            self.log('train_recon_loss', recon_loss, batch_size=1)
-            self.log('train_kl_loss', kl_loss, batch_size=1)
-            self.log('train_loss', train_loss, batch_size=1)
+        self.log('train_recon_loss', recon_loss, batch_size=batch_size)
+        self.log('train_kl_loss', kl_loss, batch_size=batch_size)
+        self.log('train_loss', loss, batch_size=batch_size)
         return loss
 
-    def validation_step(self, batch, _):
-        for data in batch:
-            z = self.model.encode(data.x, data.edge_index)
-            recon_loss = self.model.recon_loss(z, data.edge_index)
-            kl_loss = self.model.kl_loss()
-            loss = recon_loss + (1.0 / data.num_nodes) * kl_loss
-            self.log('val_recon_loss', recon_loss, batch_size=1)
-            self.log('val_kl_loss', kl_loss, batch_size=1)
-            self.log('val_loss', loss, batch_size=1)
+    def validation_step(self, data_list, _):
+        batch_size = len(data_list)
+        batch = Batch.from_data_list(data_list)
+        #for data in batch:
+        z = self.model.encode(batch.x, batch.edge_index)
+        recon_loss = self.model.recon_loss(z, batch.edge_index)
+        kl_loss = self.model.kl_loss()
+        loss = recon_loss + (1.0 / batch.num_nodes) * kl_loss
+        self.log('val_recon_loss', recon_loss, batch_size=batch_size)
+        self.log('val_kl_loss', kl_loss, batch_size=batch_size)
+        self.log('val_loss', loss, batch_size=batch_size,prog_bar=True)
 
     def test_step(self, batch, _):
-        for data in batch:
-            z = self.model.encode(data.x, data.edge_index)
-            recon_loss = self.model.recon_loss(z, data.edge_index)
-            kl_loss = self.model.kl_loss()
-            loss = recon_loss + (1.0 / data.num_nodes) * kl_loss
+        batch_size = len(data_list)
+        batch = Batch.from_data_list(data_list)
+        z = self.model.encode(data.x, data.edge_index)
+        recon_loss = self.model.recon_loss(z, data.edge_index)
+        kl_loss = self.model.kl_loss()
+        loss = recon_loss + (1.0 / data.num_nodes) * kl_loss
 
-            self.log('train_recon_loss', recon_loss, batch_size=1)
-            self.log('train_kl_loss', kl_loss, batch_size=1)
-            self.log('train_loss', loss, batch_size=1)
+        self.log('train_recon_loss', recon_loss, batch_size=batch_size)
+        self.log('train_kl_loss', kl_loss, batch_size=batch_size)
+        self.log('train_loss', loss, batch_size=batch_size)
