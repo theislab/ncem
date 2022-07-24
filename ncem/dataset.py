@@ -3,8 +3,13 @@ from typing import overload
 import torch
 from torch_geometric.data import Data, Dataset
 from torch_geometric.transforms import RandomLinkSplit
-import ncem
+import sys
+import os
 
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.dirname(SCRIPT_DIR))
+
+import ncem
 
 class HartmannWrapper(Dataset):
     """ Wrapper class of mibitof to pytorch_geometric Dataset class.
@@ -13,7 +18,7 @@ class HartmannWrapper(Dataset):
         root (str): Data path
     """
 
-    def __init__(self, root="./data", transform=None, pre_transform=None, pre_filter=None):
+    def __init__(self, root="./data/", transform=None, pre_transform=None, pre_filter=None):
         self.img_count = 58
         self.root = root
         self.interpreter = ncem.interpretation.interpreter.InterpreterInteraction()

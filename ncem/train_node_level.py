@@ -28,7 +28,7 @@ def parse_args():
     Program arguments
     """
     parser = argparse.ArgumentParser(description="Train")
-    parser.add_argument("--data_path", default="./data", help="data path")
+    parser.add_argument("--data_path", default="./data/", help="data path")
     parser.add_argument("--dataset", type=str, default="hartmann", help="dataset to load", choices=["hartmann"])
     parser.add_argument("--init_model", default=None, help="initial model to load")
     parser.add_argument("--batch_size", type=int, default=128, help="train batch size")
