@@ -75,6 +75,13 @@ class HartmannWrapper(Dataset):
             # Y from paper (n_node, n_genes)
             h_1 = torch.from_numpy(h_1).to(torch.float32)
 
+            #choose n=10 random nodes to evaluate per image 
+            mask=torch.zeros(h_0.X.shape[0])
+            mask[:10]=torch.ones(10)
+            idx = torch.randperm(mask.shape[0])
+            mask=mask[idx]
+
+
             # x for pygeometric convention is node to features
             # x = torch.hstack((h_0, h_1)).to(torch.float32)
 
