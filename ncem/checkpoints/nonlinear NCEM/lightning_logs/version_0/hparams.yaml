@@ -1,6 +1,0 @@
-c_hidden: 30
-c_in: 11
-c_out: 34
-dp_rate: 0.1
-model_name: nonlinear NCEM
-num_layers: 2
