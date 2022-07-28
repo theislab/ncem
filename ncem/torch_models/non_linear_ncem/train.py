@@ -2,12 +2,12 @@
 import os
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
-from torch_data.datasets.hartmann import Hartmann
 from model import NonLinearNCEM
 from torch_geometric import loader
 from torch_geometric.data import Data
 import numpy as np
-from utils.argparser import parse_args
+from ncem.utils.argparser import parse_args
+from ncem.torch_data.datasets.hartmann import Hartmann
 
 
 def main():

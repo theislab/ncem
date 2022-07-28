@@ -1,4 +1,4 @@
-python train_node_level.py \
+python torch_models/non_linear_ncem/train.py  \
 --latent_dim=30 \
 --num_workers=8 \
 --batch_size=1 \

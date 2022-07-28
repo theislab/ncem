@@ -1,14 +1,19 @@
 """
 NonLinearNCEM module
 """
+import sys
+import os
+SCRIPT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(os.path.dirname(SCRIPT_DIR))
+
 import torch
 import torch.nn as nn
 import torch_geometric.nn as geom_nn
 import pytorch_lightning as pl
 import torch.optim as optim
 from sklearn.metrics import r2_score
-from torch_models.modules.gnn_model import GNNModel
-from torch_models.modules.mlp_model import MLPModel
+from ncem.torch_models.modules.gnn_model import GNNModel
+from ncem.torch_models.modules.mlp_model import MLPModel
 from ncem.utils.init_weights import init_weights
 
 
@@ -46,7 +51,7 @@ class NonLinearNCEM(pl.LightningModule):
         parser = parent_parser.add_argument_group("NonLinearNCEM")
         parser.add_argument("--lr", type=float, default=0.1, help="the initial learning rate")
         parser.add_argument("--weight_decay", type=float, default=2e-3, help="the weight decay")
-        parser.add_argument("--latent_dim", type=int, default=30, help="the weight decay")
+        parser.add_argument("--latent_dim", type=int, default=30, help="the encoder latent dimension")
         parser.add_argument("--decoder_hidden_dims", nargs='+', type=int,
                             default=None, help="Decoder Hidden Layer Dim")  #
         parser.add_argument("--encoder_hidden_dims", nargs='+', type=int,
@@ -70,21 +75,27 @@ class NonLinearNCEM(pl.LightningModule):
         return optimizer
 
     def training_step(self, batch, _):
+        if type(batch)==list:
+            batch=batch[0]
         mu, sigma = self.forward(batch)
         loss = self.loss_module(mu, batch.y, sigma)
-        self.log('train_loss', loss, batch_size=batch.batch_size)
+        self.log('train_loss', loss)
         return loss
 
     def validation_step(self, batch, _):
+        if type(batch)==list:
+            batch=batch[0]
         mu, sigma = self.forward(batch)
         val_loss = self.loss_module(mu, batch.y, sigma)
         val_r2_score = r2_score(batch.y.cpu(), mu.cpu())
-        self.log('val_r2_score', val_r2_score, batch_size=batch.batch_size, prog_bar=True)
-        self.log('val_loss', val_loss, batch_size=batch.batch_size, prog_bar=True)
+        self.log('val_r2_score', val_r2_score, prog_bar=True)
+        self.log('val_loss', val_loss, prog_bar=True)
 
     def test_step(self, batch, _):
+        if type(batch)==list:
+            batch=batch[0]
         mu, sigma = self.forward(batch)
         test_loss = self.loss_module(mu, batch.y, sigma)
         test_r2_score = r2_score(batch.y.cpu(), mu.cpu())
-        self.log('test_r2_score', test_r2_score, batch_size=batch.batch_size, prog_bar=True)
-        self.log('test_loss', test_loss, batch_size=batch.batch_size, prog_bar=True)
+        self.log('test_r2_score', test_r2_score, prog_bar=True)
+        self.log('test_loss', test_loss, prog_bar=True)
