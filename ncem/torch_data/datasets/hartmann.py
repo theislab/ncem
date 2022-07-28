@@ -4,14 +4,9 @@ import torch
 import numpy as np
 from torch_geometric.data import Data, Dataset
 from torch_geometric.transforms import RandomLinkSplit
-import sys
-import os
 
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(os.path.dirname(SCRIPT_DIR))
 from ncem.interpretation.interpreter import InterpreterInteraction
 
-import ncem
 
 class Hartmann(Dataset):
     """ Wrapper class of mibitof to pytorch_geometric Dataset class.
@@ -80,10 +75,10 @@ class Hartmann(Dataset):
             h_1 = torch.from_numpy(h_1).to(torch.float32)
 
             #choose n=10 random nodes to evaluate per image 
-            mask=torch.zeros(h_0.X.shape[0])
-            mask[:10]=torch.ones(10)
-            idx = torch.randperm(mask.shape[0])
-            mask=mask[idx]
+            #mask=torch.zeros(h_0.shape[0])
+            #mask[:10]=torch.ones(10)
+            #idx = torch.randperm(mask.shape[0])
+            #mask=mask[idx]
 
 
             # x for pygeometric convention is node to features
