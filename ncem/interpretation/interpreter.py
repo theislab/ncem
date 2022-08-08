@@ -1938,7 +1938,7 @@ class InterpreterDeconvolution(estimators.EstimatorDeconvolution, InterpreterInt
         interaction_shape = np.int(self.n_features_0**2)
         interactions = np.asarray(dmatrix("target:proportions-1", data))
 
-        y = self.data.celldata.X[self.nodes_idx_all['1'],:]
+        y = self.data.celldata.X
 
         print('using ols parameters.')
         if params_type == 'ols':

@@ -21,7 +21,7 @@ from scipy import sparse, stats
 from tqdm import tqdm
 
 
-def get_data_custom(interpreter, n_eval_nodes_per_graph: int=10):
+def get_data_custom(interpreter, deconvolution: bool = False, n_eval_nodes_per_graph: int=10):
     interpreter.undefined_node_types = None
     interpreter.img_to_patient_dict = interpreter.data.celldata.uns["img_to_patient_dict"]
     interpreter.complete_img_keys = list(interpreter.data.img_celldata.keys())
@@ -64,8 +64,10 @@ def get_data_custom(interpreter, n_eval_nodes_per_graph: int=10):
     interpreter.split_data_node(0.1, 0.1)
     interpreter.n_eval_nodes_per_graph = n_eval_nodes_per_graph
     interpreter.cell_names = list(interpreter.data.celldata.uns['node_type_names'].values())
+    if deconvolution:
+        interpreter.proportions = {k: adata.obsm["proportions"] for k, adata in interpreter.data.img_celldata.items()}
     
-
+    
 class GraphTools:
     """GraphTools class."""
 
@@ -1877,6 +1879,109 @@ class customLoader(DataLoader):
                     img_to_patient_dict[i] = p
         else:
             img_to_patient_dict = {"image": "patient"}
+        celldata.uns["img_to_patient_dict"] = img_to_patient_dict
+        self.img_to_patient_dict = img_to_patient_dict
+
+        self.celldata = celldata
+        
+    def _register_img_celldata(self):
+        """Load dictionary of of image-wise celldata objects with {imgage key : anndata object of image}."""
+        img_celldata = {}
+        if self.library_id:
+            for k in np.unique(self.celldata.obs[self.library_id]):
+                img_celldata[str(k)] = self.celldata[self.celldata.obs[self.library_id] == k].copy()
+            self.img_celldata = img_celldata
+        else:
+            self.img_celldata = {"image": self.celldata}
+
+    def _register_graph_features(self, label_selection):
+        """Load graph level covariates.
+
+        Parameters
+        ----------
+        label_selection
+            Label selection.
+        """
+        # Save processed data to attributes.
+        for adata in self.img_celldata.values():
+            graph_covariates = {
+                "label_names": {},
+                "label_tensors": {},
+                "label_selection": [],
+                "continuous_mean": {},
+                "continuous_std": {},
+                "label_data_types": {},
+            }
+            adata.uns["graph_covariates"] = graph_covariates
+
+        graph_covariates = {
+            "label_names": {},
+            "label_selection": [],
+            "continuous_mean": {},
+            "continuous_std": {},
+            "label_data_types": {},
+        }
+        self.celldata.uns["graph_covariates"] = graph_covariates
+
+        
+class customLoaderDeconvolution(DataLoader):
+    
+    def __init__(
+        self,
+        adata, 
+        patient, 
+        library_id,
+        radius,
+        coord_type='generic',
+        n_rings=1,
+        n_top_genes=None,
+        label_selection=None
+    ):
+        self.adata = adata.copy()
+        self.patient = patient
+        self.library_id = library_id
+
+        print("Loading data from raw files")
+        self.register_celldata(n_top_genes=n_top_genes)
+        self.register_img_celldata()
+        self.register_graph_features(label_selection=label_selection)
+        self.compute_adjacency_matrices(radius=radius, coord_type=coord_type, n_rings=n_rings)
+        self.radius = radius
+
+        print(
+            "Loaded %i images with complete data from %i patients "
+            "over %i cells with %i cell features and %i distinct celltypes."
+            % (
+                len(self.img_celldata),
+                len(self.patients),
+                self.celldata.shape[0],
+                self.celldata.shape[1],
+                len(self.celldata.uns["node_type_names"]),
+            )
+        )
+    
+    def _register_celldata(self, n_top_genes):
+        
+        metadata = {
+            #"cluster_col_preprocessed": self.cluster,
+            "image_col": self.library_id
+        }
+        
+        celldata = self.adata.copy()
+        celldata.uns["metadata"] = metadata
+
+        if self.patient:
+            img_to_patient_dict = {}
+            for p in np.unique(celldata.obs[self.patient]):
+                for i in np.unique(celldata.obs[celldata.obs[self.patient] == p][self.library_id]):
+                    img_to_patient_dict[i] = p
+        else:
+            if self.library_id:
+                img_to_patient_dict = {}
+                for img in np.unique(celldata.obs[self.library_id]):
+                    img_to_patient_dict[str(img)] = "patient"
+            else:
+                img_to_patient_dict = {"image": "patient"}
         celldata.uns["img_to_patient_dict"] = img_to_patient_dict
         self.img_to_patient_dict = img_to_patient_dict
 
