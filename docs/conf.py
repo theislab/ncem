@@ -48,10 +48,10 @@ napoleon_custom_sections = [("Params", "Parameters")]
 intersphinx_mapping = dict(
     anndata=("https://anndata.readthedocs.io/en/latest/", None),
     scanpy=("https://scanpy.readthedocs.io/en/latest/", None),
-    numpy=("https://docs.scipy.org/doc/numpy/", None),
-    pandas=("http://pandas.pydata.org/pandas-docs/stable/", None),
-    python=("https://docs.python.org/3", None),
-    scipy=("https://docs.scipy.org/doc/scipy/reference/", None),
+    #numpy=("https://docs.scipy.org/doc/numpy/", None),
+    #pandas=("http://pandas.pydata.org/pandas-docs/stable/", None),
+    #python=("https://docs.python.org/3", None),
+    #scipy=("https://docs.scipy.org/doc/scipy/reference/", None),
 )
 
 # Add any paths that contain templates here, relative to this directory.
