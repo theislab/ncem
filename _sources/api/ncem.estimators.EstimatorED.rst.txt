@@ -56,6 +56,38 @@ ncem.estimators.EstimatorED
       ~ncem.estimators.EstimatorED.nodes_idx_train
       ~ncem.estimators.EstimatorED.patient_ids_bytarget
       ~ncem.estimators.EstimatorED.patient_ids_unique
+      ~ncem.estimators.EstimatorED.img_to_patient_dict
+      ~ncem.estimators.EstimatorED.complete_img_keys
+      ~ncem.estimators.EstimatorED.a
+      ~ncem.estimators.EstimatorED.h_0
+      ~ncem.estimators.EstimatorED.h_1
+      ~ncem.estimators.EstimatorED.size_factors
+      ~ncem.estimators.EstimatorED.graph_covar
+      ~ncem.estimators.EstimatorED.node_covar
+      ~ncem.estimators.EstimatorED.domains
+      ~ncem.estimators.EstimatorED.covar_selection
+      ~ncem.estimators.EstimatorED.node_types
+      ~ncem.estimators.EstimatorED.node_type_names
+      ~ncem.estimators.EstimatorED.graph_covar_names
+      ~ncem.estimators.EstimatorED.node_feature_names
+      ~ncem.estimators.EstimatorED.n_features_type
+      ~ncem.estimators.EstimatorED.n_features_standard
+      ~ncem.estimators.EstimatorED.n_features_0
+      ~ncem.estimators.EstimatorED.n_features_1
+      ~ncem.estimators.EstimatorED.n_graph_covariates
+      ~ncem.estimators.EstimatorED.n_node_covariates
+      ~ncem.estimators.EstimatorED.n_domains
+      ~ncem.estimators.EstimatorED.max_nodes
+      ~ncem.estimators.EstimatorED.n_eval_nodes_per_graph
+      ~ncem.estimators.EstimatorED.vi_model
+      ~ncem.estimators.EstimatorED.log_transform
+      ~ncem.estimators.EstimatorED.model_type
+      ~ncem.estimators.EstimatorED.adj_type
+      ~ncem.estimators.EstimatorED.cond_type
+      ~ncem.estimators.EstimatorED.cond_depth
+      ~ncem.estimators.EstimatorED.output_layer
+      ~ncem.estimators.EstimatorED.steps_per_epoch
+      ~ncem.estimators.EstimatorED.validation_steps
    
    
 

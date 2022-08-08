@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ncem.train.GridSearchContainer.plot_best_model_by_hyperparam &mdash; ncem 0.1.3 documentation</title>
+  <title>ncem.train.GridSearchContainer.plot_best_model_by_hyperparam &mdash; ncem 0.1.4 documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/custom.css" type="text/css" />
@@ -16,10 +16,13 @@
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
-    <link rel="search" title="Search" href="../search.html" /> 
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="ncem.train.GridSearchContainer.plot_target_cell_evaluation" href="ncem.train.GridSearchContainer.plot_target_cell_evaluation.html" />
+    <link rel="prev" title="ncem.train.GridSearchContainer.load_target_cell_evaluation" href="ncem.train.GridSearchContainer.load_target_cell_evaluation.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -30,7 +33,7 @@
             <a href="../index.html" class="icon icon-home"> ncem
           </a>
               <div class="version">
-                0.1.3
+                0.1.4
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
@@ -41,10 +44,22 @@
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
-<ul>
+<ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../readme.html">ncem</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../usage.html">API</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../usage.html">API</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../usage.html#module-ncem.estimators">Estimator classes: <cite>estimators</cite></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../usage.html#module-ncem.models">Model classes: <cite>models</cite></a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../usage.html#module-ncem.train">Train: <cite>train</cite></a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../usage.html#trainer-classes">Trainer classes</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../usage.html#grid-search-summaries">Grid search summaries</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="ncem.train.GridSearchContainer.html">ncem.train.GridSearchContainer</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="../tutorials.html">Tutorials</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../ecosystem.html">Ecosystem</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../reference.html">Reference</a></li>
@@ -67,6 +82,8 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../usage.html">API</a> &raquo;</li>
+          <li><a href="ncem.train.GridSearchContainer.html">ncem.train.GridSearchContainer</a> &raquo;</li>
       <li>ncem.train.GridSearchContainer.plot_best_model_by_hyperparam</li>
       <li class="wy-breadcrumbs-aside">
               <!-- User defined GitHub URL -->
@@ -79,13 +96,55 @@
            <div itemprop="articleBody">
              
   <section id="ncem-train-gridsearchcontainer-plot-best-model-by-hyperparam">
-<h1>ncem.train.GridSearchContainer.plot_best_model_by_hyperparam<a class="headerlink" href="#ncem-train-gridsearchcontainer-plot-best-model-by-hyperparam" title="Permalink to this headline"></a></h1>
+<h1>ncem.train.GridSearchContainer.plot_best_model_by_hyperparam<a class="headerlink" href="#ncem-train-gridsearchcontainer-plot-best-model-by-hyperparam" title="Permalink to this heading"></a></h1>
+<dl class="py method">
+<dt class="sig sig-object py" id="ncem.train.GridSearchContainer.plot_best_model_by_hyperparam">
+<span class="sig-prename descclassname"><span class="pre">GridSearchContainer.</span></span><span class="sig-name descname"><span class="pre">plot_best_model_by_hyperparam</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">graph_model_class</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">baseline_model_class</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">partition_show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'test'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metric_show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'r_squared_linreg'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">partition_select</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'val'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metric_select</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'r_squared_linreg'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">param_x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'um_radius'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">param_hue</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'model'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rename_levels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subset_hyperparameters</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cv_mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'mean'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">yaxis_limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xticks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rotate_xticks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">figsize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(3.5,</span> <span class="pre">4.0)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fontsize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">example_cellradius</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plot_mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'lineplot'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">palette</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{'NCEM':</span> <span class="pre">'C1',</span> <span class="pre">'baseline':</span> <span class="pre">'C0'}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">suffix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'best_by_hyperparam.pdf'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_axs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ncem/train/summaries.html#GridSearchContainer.plot_best_model_by_hyperparam"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ncem.train.GridSearchContainer.plot_best_model_by_hyperparam" title="Permalink to this definition"></a></dt>
+<dd><p>Plot best model by hyperparameter.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>graph_model_class</strong> (<em>str</em>) – Graph model class.</p></li>
+<li><p><strong>baseline_model_class</strong> (<em>str</em>) – Baseline model class.</p></li>
+<li><p><strong>partition_show</strong> (<em>str</em>) – Showing partition.</p></li>
+<li><p><strong>metric_show</strong> (<em>str</em>) – Showing metric.</p></li>
+<li><p><strong>partition_select</strong> (<em>str</em>) – Selected partition.</p></li>
+<li><p><strong>metric_select</strong> (<em>str</em>) – Selected metric.</p></li>
+<li><p><strong>param_x</strong> (<em>str</em>) – Parameter on x axis.</p></li>
+<li><p><strong>param_hue</strong> (<em>str</em>) – Parameter for hue.</p></li>
+<li><p><strong>rename_levels</strong> (<em>list</em><em>, </em><em>optional</em>) – Rename levels with stated logic.</p></li>
+<li><p><strong>subset_hyperparameters</strong> (<em>list</em><em>, </em><em>optional</em>) – Subset hyperparameters.</p></li>
+<li><p><strong>cv_mode</strong> (<em>str</em>) – Cross validation mode.</p></li>
+<li><p><strong>yaxis_limit</strong> (<em>tuple</em><em>, </em><em>optional</em>) – y axis limits.</p></li>
+<li><p><strong>xticks</strong> (<em>list</em><em>, </em><em>optional</em>) – List of x ticks.</p></li>
+<li><p><strong>rotate_xticks</strong> (<em>bool</em>) – Whether to rotate x ticks.</p></li>
+<li><p><strong>figsize</strong> (<em>tuple</em>) – Figure size.</p></li>
+<li><p><strong>fontsize</strong> (<em>int</em><em>, </em><em>optional</em>) – Font size.</p></li>
+<li><p><strong>plot_mode</strong> (<em>str</em>) – Plotting mode, can be <cite>boxplot</cite>, <cite>lineplot</cite> or <cite>mean_lineplot</cite>.</p></li>
+<li><p><strong>palette</strong> (<em>dict</em><em>, </em><em>optional</em>) – Palette.</p></li>
+<li><p><strong>color</strong> (<em>str</em><em>, </em><em>optional</em>) – Color.</p></li>
+<li><p><strong>save</strong> (<em>str</em><em>, </em><em>optional</em>) – Whether (if not None) and where (path as string given as save) to save plot.</p></li>
+<li><p><strong>suffix</strong> (<em>str</em>) – Suffix of file name to save to.</p></li>
+<li><p><strong>show</strong> (<em>bool</em>) – Whether to display plot.</p></li>
+<li><p><strong>return_axs</strong> (<em>bool</em>) – Whether to return axis objects.</p></li>
+<li><p><strong>example_cellradius</strong> (<em>Optional</em><em>[</em><em>int</em><em>]</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>axis if <cite>return_axs</cite> is True.</p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 
 
            </div>
           </div>
-          <footer>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="ncem.train.GridSearchContainer.load_target_cell_evaluation.html" class="btn btn-neutral float-left" title="ncem.train.GridSearchContainer.load_target_cell_evaluation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="ncem.train.GridSearchContainer.plot_target_cell_evaluation.html" class="btn btn-neutral float-right" title="ncem.train.GridSearchContainer.plot_target_cell_evaluation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
 
   <hr/>
 

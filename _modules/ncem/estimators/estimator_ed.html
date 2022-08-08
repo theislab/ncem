@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ncem.estimators.estimator_ed &mdash; ncem 0.1.4 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/custom_cookietemple.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> ncem
+          </a>
+              <div class="version">
+                0.1.4
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../readme.html">ncem</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../usage.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ecosystem.html">Ecosystem</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference.html">Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributing.html">Contributor Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../authors.html">Credits</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../code_of_conduct.html">Contributor Covenant Code of Conduct</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ncem</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+      <li>ncem.estimators.estimator_ed</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ncem.estimators.estimator_ed</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+
+<span class="kn">from</span> <span class="nn">ncem.estimators</span> <span class="kn">import</span> <span class="n">EstimatorNoGraph</span>
+<span class="kn">from</span> <span class="nn">ncem.models</span> <span class="kn">import</span> <span class="n">ModelED</span>
+
+
+<div class="viewcode-block" id="EstimatorED"><a class="viewcode-back" href="../../../api/ncem.estimators.EstimatorED.html#ncem.estimators.EstimatorED">[docs]</a><span class="k">class</span> <span class="nc">EstimatorED</span><span class="p">(</span><span class="n">EstimatorNoGraph</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Estimator class for encoder-decoder models. Subclass of EstimatorNoGraph.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">use_type_cond</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">log_transform</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initialize a EstimatorED object.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        use_type_cond : bool</span>
+<span class="sd">            whether to use the categorical cell type label in conditional.</span>
+<span class="sd">        log_transform : bool</span>
+<span class="sd">            Whether to log transform h_1.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">EstimatorED</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">adj_type</span> <span class="o">=</span> <span class="s2">&quot;none&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_type</span> <span class="o">=</span> <span class="s2">&quot;ed&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_type_cond</span> <span class="o">=</span> <span class="n">use_type_cond</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log_transform</span> <span class="o">=</span> <span class="n">log_transform</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;np&quot;</span><span class="p">:</span> <span class="p">[],</span> <span class="s2">&quot;tf&quot;</span><span class="p">:</span> <span class="p">[]}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_eval_nodes_per_graph</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="EstimatorED.init_model"><a class="viewcode-back" href="../../../api/ncem.estimators.EstimatorED.init_model.html#ncem.estimators.EstimatorED.init_model">[docs]</a>    <span class="k">def</span> <span class="nf">init_model</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">optimizer</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;adam&quot;</span><span class="p">,</span>
+        <span class="n">learning_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0001</span><span class="p">,</span>
+        <span class="n">latent_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+        <span class="n">dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
+        <span class="n">l2_coef</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">l1_coef</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">enc_intermediate_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">128</span><span class="p">,</span>
+        <span class="n">enc_depth</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="n">dec_intermediate_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">128</span><span class="p">,</span>
+        <span class="n">dec_depth</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="n">n_eval_nodes_per_graph</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">32</span><span class="p">,</span>
+        <span class="n">use_domain</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">scale_node_size</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">beta</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.01</span><span class="p">,</span>
+        <span class="n">max_beta</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">pre_warm_up</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">output_layer</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;gaussian&quot;</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initialize a ModelED object.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        optimizer : str</span>
+<span class="sd">            Optimizer.</span>
+<span class="sd">        learning_rate : float</span>
+<span class="sd">            Learning rate.</span>
+<span class="sd">        latent_dim : int</span>
+<span class="sd">            Latent dimension.</span>
+<span class="sd">        dropout_rate : float</span>
+<span class="sd">            Dropout rate.</span>
+<span class="sd">        l2_coef : float</span>
+<span class="sd">            l2 regularization coefficient.</span>
+<span class="sd">        l1_coef : float</span>
+<span class="sd">            l1 regularization coefficient.</span>
+<span class="sd">        enc_intermediate_dim : int</span>
+<span class="sd">            Encoder intermediate dimension.</span>
+<span class="sd">        enc_depth : int</span>
+<span class="sd">            Encoder depth.</span>
+<span class="sd">        dec_intermediate_dim : int</span>
+<span class="sd">            Decoder intermediate dimension.</span>
+<span class="sd">        dec_depth : int</span>
+<span class="sd">            Decoder depth.</span>
+<span class="sd">        n_eval_nodes_per_graph : int</span>
+<span class="sd">            Number of nodes per graph.</span>
+<span class="sd">        use_domain : bool</span>
+<span class="sd">            Whether to use domain information.</span>
+<span class="sd">        scale_node_size : bool</span>
+<span class="sd">            Whether to scale output layer by node sizes.</span>
+<span class="sd">        beta : float</span>
+<span class="sd">            Beta used in BetaScheduler.</span>
+<span class="sd">        max_beta : float</span>
+<span class="sd">            Maximal beta used in BetaScheduler.</span>
+<span class="sd">        pre_warm_up : int</span>
+<span class="sd">            Number of epochs in pre warm up.</span>
+<span class="sd">        output_layer : str</span>
+<span class="sd">            Output layer.</span>
+<span class="sd">        kwargs</span>
+<span class="sd">            Arbitrary keyword arguments.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_eval_nodes_per_graph</span> <span class="o">=</span> <span class="n">n_eval_nodes_per_graph</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">ModelED</span><span class="p">(</span>
+            <span class="n">input_shapes</span><span class="o">=</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">n_features_0</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">n_features_1</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">max_nodes</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">n_eval_nodes_per_graph</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">n_node_covariates</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">n_domains</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">latent_dim</span><span class="o">=</span><span class="n">latent_dim</span><span class="p">,</span>
+            <span class="n">dropout_rate</span><span class="o">=</span><span class="n">dropout_rate</span><span class="p">,</span>
+            <span class="n">l2_coef</span><span class="o">=</span><span class="n">l2_coef</span><span class="p">,</span>
+            <span class="n">l1_coef</span><span class="o">=</span><span class="n">l1_coef</span><span class="p">,</span>
+            <span class="n">enc_intermediate_dim</span><span class="o">=</span><span class="n">enc_intermediate_dim</span><span class="p">,</span>
+            <span class="n">enc_depth</span><span class="o">=</span><span class="n">enc_depth</span><span class="p">,</span>
+            <span class="n">dec_intermediate_dim</span><span class="o">=</span><span class="n">dec_intermediate_dim</span><span class="p">,</span>
+            <span class="n">dec_depth</span><span class="o">=</span><span class="n">dec_depth</span><span class="p">,</span>
+            <span class="n">use_domain</span><span class="o">=</span><span class="n">use_domain</span><span class="p">,</span>
+            <span class="n">use_type_cond</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">use_type_cond</span><span class="p">,</span>
+            <span class="n">scale_node_size</span><span class="o">=</span><span class="n">scale_node_size</span><span class="p">,</span>
+            <span class="n">output_layer</span><span class="o">=</span><span class="n">output_layer</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">optimizer</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">optimizer</span><span class="p">)</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">set_value</span><span class="p">(</span><span class="n">optimizer</span><span class="o">.</span><span class="n">lr</span><span class="p">,</span> <span class="n">learning_rate</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">beta</span> <span class="o">=</span> <span class="n">beta</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_beta</span> <span class="o">=</span> <span class="n">max_beta</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pre_warm_up</span> <span class="o">=</span> <span class="n">pre_warm_up</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_compile_model</span><span class="p">(</span><span class="n">optimizer</span><span class="o">=</span><span class="n">optimizer</span><span class="p">,</span> <span class="n">output_layer</span><span class="o">=</span><span class="n">output_layer</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, theislab.</p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

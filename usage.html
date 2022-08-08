@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>API &mdash; ncem 0.1.3 documentation</title>
+  <title>API &mdash; ncem 0.1.4 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/custom.css" type="text/css" />
@@ -16,11 +16,12 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Tutorials" href="tutorials.html" />
+    <link rel="next" title="ncem.estimators.Estimator" href="api/ncem.estimators.Estimator.html" />
     <link rel="prev" title="Installation" href="installation.html" /> 
 </head>
 
@@ -32,7 +33,7 @@
             <a href="index.html" class="icon icon-home"> ncem
           </a>
               <div class="version">
-                0.1.3
+                0.1.4
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -47,11 +48,41 @@
 <li class="toctree-l1"><a class="reference internal" href="readme.html">ncem</a></li>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">API</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#module-ncem.estimators">Estimator classes: <cite>estimators</cite></a></li>
-<li class="toctree-l2"><a class="reference internal" href="#module-ncem.models">Model classes: <cite>models</cite></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-ncem.estimators">Estimator classes: <cite>estimators</cite></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/ncem.estimators.Estimator.html">ncem.estimators.Estimator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/ncem.estimators.EstimatorGraph.html">ncem.estimators.EstimatorGraph</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/ncem.estimators.EstimatorNoGraph.html">ncem.estimators.EstimatorNoGraph</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/ncem.estimators.EstimatorCVAE.html">ncem.estimators.EstimatorCVAE</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/ncem.estimators.EstimatorCVAEncem.html">ncem.estimators.EstimatorCVAEncem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/ncem.estimators.EstimatorED.html">ncem.estimators.EstimatorED</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/ncem.estimators.EstimatorEDncem.html">ncem.estimators.EstimatorEDncem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/ncem.estimators.EstimatorInteractions.html">ncem.estimators.EstimatorInteractions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/ncem.estimators.EstimatorLinear.html">ncem.estimators.EstimatorLinear</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-ncem.models">Model classes: <cite>models</cite></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/ncem.models.ModelCVAE.html">ncem.models.ModelCVAE</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/ncem.models.ModelCVAEncem.html">ncem.models.ModelCVAEncem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/ncem.models.ModelED.html">ncem.models.ModelED</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/ncem.models.ModelEDncem.html">ncem.models.ModelEDncem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/ncem.models.ModelInteractions.html">ncem.models.ModelInteractions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/ncem.models.ModelLinear.html">ncem.models.ModelLinear</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="#module-ncem.train">Train: <cite>train</cite></a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#trainer-classes">Trainer classes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#grid-search-summaries">Grid search summaries</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#trainer-classes">Trainer classes</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/ncem.train.TrainModelCVAE.html">ncem.train.TrainModelCVAE</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/ncem.train.TrainModelCVAEncem.html">ncem.train.TrainModelCVAEncem</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/ncem.train.TrainModelED.html">ncem.train.TrainModelED</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/ncem.train.TrainModelEDncem.html">ncem.train.TrainModelEDncem</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/ncem.train.TrainModelInteractions.html">ncem.train.TrainModelInteractions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/ncem.train.TrainModelLinear.html">ncem.train.TrainModelLinear</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#grid-search-summaries">Grid search summaries</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/ncem.train.GridSearchContainer.html">ncem.train.GridSearchContainer</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -89,13 +120,13 @@
            <div itemprop="articleBody">
              
   <section id="api">
-<h1>API<a class="headerlink" href="#api" title="Permalink to this headline"></a></h1>
+<h1>API<a class="headerlink" href="#api" title="Permalink to this heading"></a></h1>
 <p>Import ncem as:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">ncem</span>
 </pre></div>
 </div>
 <section id="module-ncem.estimators">
-<span id="estimator-classes-estimators"></span><h2>Estimator classes: <cite>estimators</cite><a class="headerlink" href="#module-ncem.estimators" title="Permalink to this headline"></a></h2>
+<span id="estimator-classes-estimators"></span><h2>Estimator classes: <cite>estimators</cite><a class="headerlink" href="#module-ncem.estimators" title="Permalink to this heading"></a></h2>
 <p>Estimator classes from ncem for advanced use.</p>
 <table class="autosummary longtable docutils align-default">
 <colgroup>
@@ -103,11 +134,38 @@
 <col style="width: 90%" />
 </colgroup>
 <tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/ncem.estimators.Estimator.html#ncem.estimators.Estimator" title="ncem.estimators.Estimator"><code class="xref py py-obj docutils literal notranslate"><span class="pre">estimators.Estimator</span></code></a>()</p></td>
+<td><p>Estimator class for models.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api/ncem.estimators.EstimatorGraph.html#ncem.estimators.EstimatorGraph" title="ncem.estimators.EstimatorGraph"><code class="xref py py-obj docutils literal notranslate"><span class="pre">estimators.EstimatorGraph</span></code></a>()</p></td>
+<td><p>EstimatorGraph class for spatial models.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/ncem.estimators.EstimatorNoGraph.html#ncem.estimators.EstimatorNoGraph" title="ncem.estimators.EstimatorNoGraph"><code class="xref py py-obj docutils literal notranslate"><span class="pre">estimators.EstimatorNoGraph</span></code></a>()</p></td>
+<td><p>EstimatorNoGraph class for baseline models.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api/ncem.estimators.EstimatorCVAE.html#ncem.estimators.EstimatorCVAE" title="ncem.estimators.EstimatorCVAE"><code class="xref py py-obj docutils literal notranslate"><span class="pre">estimators.EstimatorCVAE</span></code></a>([use_type_cond, ...])</p></td>
+<td><p>Estimator class for conditional variational autoencoder models.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/ncem.estimators.EstimatorCVAEncem.html#ncem.estimators.EstimatorCVAEncem" title="ncem.estimators.EstimatorCVAEncem"><code class="xref py py-obj docutils literal notranslate"><span class="pre">estimators.EstimatorCVAEncem</span></code></a>([cond_type, ...])</p></td>
+<td><p>Estimator class for conditional variational autoencoder NCEM models.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api/ncem.estimators.EstimatorED.html#ncem.estimators.EstimatorED" title="ncem.estimators.EstimatorED"><code class="xref py py-obj docutils literal notranslate"><span class="pre">estimators.EstimatorED</span></code></a>([use_type_cond, ...])</p></td>
+<td><p>Estimator class for encoder-decoder models.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/ncem.estimators.EstimatorEDncem.html#ncem.estimators.EstimatorEDncem" title="ncem.estimators.EstimatorEDncem"><code class="xref py py-obj docutils literal notranslate"><span class="pre">estimators.EstimatorEDncem</span></code></a>([cond_type, ...])</p></td>
+<td><p>Estimator class for encoder-decoder NCEM models.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api/ncem.estimators.EstimatorInteractions.html#ncem.estimators.EstimatorInteractions" title="ncem.estimators.EstimatorInteractions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">estimators.EstimatorInteractions</span></code></a>([log_transform])</p></td>
+<td><p>Estimator class for interactions models.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/ncem.estimators.EstimatorLinear.html#ncem.estimators.EstimatorLinear" title="ncem.estimators.EstimatorLinear"><code class="xref py py-obj docutils literal notranslate"><span class="pre">estimators.EstimatorLinear</span></code></a>([log_transform])</p></td>
+<td><p>Estimator class for linear models.</p></td>
+</tr>
 </tbody>
 </table>
 </section>
 <section id="module-ncem.models">
-<span id="model-classes-models"></span><h2>Model classes: <cite>models</cite><a class="headerlink" href="#module-ncem.models" title="Permalink to this headline"></a></h2>
+<span id="model-classes-models"></span><h2>Model classes: <cite>models</cite><a class="headerlink" href="#module-ncem.models" title="Permalink to this heading"></a></h2>
 <p>Model classes from ncem for advanced use.</p>
 <p>Classes that wrap tensorflow models.</p>
 <table class="autosummary longtable docutils align-default">
@@ -116,14 +174,32 @@
 <col style="width: 90%" />
 </colgroup>
 <tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/ncem.models.ModelCVAE.html#ncem.models.ModelCVAE" title="ncem.models.ModelCVAE"><code class="xref py py-obj docutils literal notranslate"><span class="pre">models.ModelCVAE</span></code></a>(input_shapes[, latent_dim, ...])</p></td>
+<td><p>Model class for conditional variational autoencoder.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api/ncem.models.ModelCVAEncem.html#ncem.models.ModelCVAEncem" title="ncem.models.ModelCVAEncem"><code class="xref py py-obj docutils literal notranslate"><span class="pre">models.ModelCVAEncem</span></code></a>(input_shapes[, ...])</p></td>
+<td><p>Model class for NCEM conditional variational autoencoder with graph layer IND (MAX) or GCN.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/ncem.models.ModelED.html#ncem.models.ModelED" title="ncem.models.ModelED"><code class="xref py py-obj docutils literal notranslate"><span class="pre">models.ModelED</span></code></a>(input_shapes[, latent_dim, ...])</p></td>
+<td><p>Model class for non-spatial encoder-decoder.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api/ncem.models.ModelEDncem.html#ncem.models.ModelEDncem" title="ncem.models.ModelEDncem"><code class="xref py py-obj docutils literal notranslate"><span class="pre">models.ModelEDncem</span></code></a>(input_shapes[, ...])</p></td>
+<td><p>Model class for NCEM encoder-decoder with graph layer IND (MAX) or GCN.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/ncem.models.ModelInteractions.html#ncem.models.ModelInteractions" title="ncem.models.ModelInteractions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">models.ModelInteractions</span></code></a>(input_shapes[, ...])</p></td>
+<td><p>Model class for interaction model, baseline and spatial model.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api/ncem.models.ModelLinear.html#ncem.models.ModelLinear" title="ncem.models.ModelLinear"><code class="xref py py-obj docutils literal notranslate"><span class="pre">models.ModelLinear</span></code></a>(input_shapes[, l2_coef, ...])</p></td>
+<td><p>Model class for linear model, baseline and spatial model.</p></td>
+</tr>
 </tbody>
 </table>
 </section>
 <section id="module-ncem.train">
-<span id="train-train"></span><h2>Train: <cite>train</cite><a class="headerlink" href="#module-ncem.train" title="Permalink to this headline"></a></h2>
+<span id="train-train"></span><h2>Train: <cite>train</cite><a class="headerlink" href="#module-ncem.train" title="Permalink to this heading"></a></h2>
 <p>The interface for training ncem compatible models.</p>
 <section id="trainer-classes">
-<h3>Trainer classes<a class="headerlink" href="#trainer-classes" title="Permalink to this headline"></a></h3>
+<h3>Trainer classes<a class="headerlink" href="#trainer-classes" title="Permalink to this heading"></a></h3>
 <p>Classes that wrap estimator classes to use in grid search training.</p>
 <table class="autosummary longtable docutils align-default">
 <colgroup>
@@ -131,11 +207,29 @@
 <col style="width: 90%" />
 </colgroup>
 <tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/ncem.train.TrainModelCVAE.html#ncem.train.TrainModelCVAE" title="ncem.train.TrainModelCVAE"><code class="xref py py-obj docutils literal notranslate"><span class="pre">train.TrainModelCVAE</span></code></a>()</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api/ncem.train.TrainModelCVAEncem.html#ncem.train.TrainModelCVAEncem" title="ncem.train.TrainModelCVAEncem"><code class="xref py py-obj docutils literal notranslate"><span class="pre">train.TrainModelCVAEncem</span></code></a>()</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/ncem.train.TrainModelED.html#ncem.train.TrainModelED" title="ncem.train.TrainModelED"><code class="xref py py-obj docutils literal notranslate"><span class="pre">train.TrainModelED</span></code></a>()</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api/ncem.train.TrainModelEDncem.html#ncem.train.TrainModelEDncem" title="ncem.train.TrainModelEDncem"><code class="xref py py-obj docutils literal notranslate"><span class="pre">train.TrainModelEDncem</span></code></a>()</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/ncem.train.TrainModelInteractions.html#ncem.train.TrainModelInteractions" title="ncem.train.TrainModelInteractions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">train.TrainModelInteractions</span></code></a>()</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api/ncem.train.TrainModelLinear.html#ncem.train.TrainModelLinear" title="ncem.train.TrainModelLinear"><code class="xref py py-obj docutils literal notranslate"><span class="pre">train.TrainModelLinear</span></code></a>()</p></td>
+<td><p></p></td>
+</tr>
 </tbody>
 </table>
 </section>
 <section id="grid-search-summaries">
-<h3>Grid search summaries<a class="headerlink" href="#grid-search-summaries" title="Permalink to this headline"></a></h3>
+<h3>Grid search summaries<a class="headerlink" href="#grid-search-summaries" title="Permalink to this heading"></a></h3>
 <p>Classes to pool evaluation metrics across fits in a grid search.</p>
 <table class="autosummary longtable docutils align-default">
 <colgroup>
@@ -143,6 +237,9 @@
 <col style="width: 90%" />
 </colgroup>
 <tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/ncem.train.GridSearchContainer.html#ncem.train.GridSearchContainer" title="ncem.train.GridSearchContainer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">train.GridSearchContainer</span></code></a>(source_path, ...)</p></td>
+<td><p>GridSearchContainer class.</p></td>
+</tr>
 </tbody>
 </table>
 </section>
@@ -154,7 +251,7 @@
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="installation.html" class="btn btn-neutral float-left" title="Installation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="tutorials.html" class="btn btn-neutral float-right" title="Tutorials" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="api/ncem.estimators.Estimator.html" class="btn btn-neutral float-right" title="ncem.estimators.Estimator" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

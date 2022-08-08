@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ncem.train.train_model &mdash; ncem 0.1.4 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/custom_cookietemple.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> ncem
+          </a>
+              <div class="version">
+                0.1.4
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../readme.html">ncem</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../usage.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ecosystem.html">Ecosystem</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference.html">Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributing.html">Contributor Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../authors.html">Credits</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../code_of_conduct.html">Contributor Covenant Code of Conduct</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ncem</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+      <li>ncem.train.train_model</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ncem.train.train_model</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">pickle</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span>
+
+<span class="kn">from</span> <span class="nn">ncem.estimators</span> <span class="kn">import</span> <span class="p">(</span><span class="n">EstimatorCVAE</span><span class="p">,</span> <span class="n">EstimatorCVAEncem</span><span class="p">,</span> <span class="n">EstimatorED</span><span class="p">,</span>
+                             <span class="n">EstimatorEDncem</span><span class="p">,</span> <span class="n">EstimatorEdNcemNeighborhood</span><span class="p">,</span> <span class="n">EstimatorInteractions</span><span class="p">,</span>
+                             <span class="n">EstimatorLinear</span><span class="p">,</span> <span class="n">EstimatorDeconvolution</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">TrainModel</span><span class="p">:</span>
+    <span class="n">estimator</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span>
+        <span class="n">EstimatorLinear</span><span class="p">,</span> <span class="n">EstimatorInteractions</span><span class="p">,</span> <span class="n">EstimatorED</span><span class="p">,</span> <span class="n">EstimatorEDncem</span><span class="p">,</span> <span class="n">EstimatorCVAE</span><span class="p">,</span> <span class="n">EstimatorCVAEncem</span><span class="p">,</span>
+        <span class="n">EstimatorDeconvolution</span>
+    <span class="p">]</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_try_save</span><span class="p">(</span><span class="n">fn</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">obj</span><span class="o">=</span><span class="n">obj</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">f</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_save_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">save_weights</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">save_weights</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">training_model</span><span class="o">.</span><span class="n">save_weights</span><span class="p">(</span><span class="n">fn</span> <span class="o">+</span> <span class="s2">&quot;_model_weights.tf&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_try_save</span><span class="p">(</span><span class="n">fn</span> <span class="o">+</span> <span class="s2">&quot;_model_args.pickle&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">args</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_save_history</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_try_save</span><span class="p">(</span><span class="n">fn</span> <span class="o">+</span> <span class="s2">&quot;_history.pickle&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">history</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_save_hyperparam</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_try_save</span><span class="p">(</span><span class="n">fn</span> <span class="o">+</span> <span class="s2">&quot;_hyperparam.pickle&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">train_hyperparam</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_save_predictions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">prediction</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">predict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_try_save</span><span class="p">(</span><span class="n">fn</span> <span class="o">+</span> <span class="s2">&quot;_prediction.pickle&quot;</span><span class="p">,</span> <span class="n">prediction</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_save_evaluation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">evaluation_val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">evaluate_any</span><span class="p">(</span>
+            <span class="n">img_keys</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">img_keys_eval</span><span class="p">,</span> <span class="n">node_idx</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">nodes_idx_eval</span>
+        <span class="p">)</span>
+        <span class="n">evaluation_train</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">evaluate_any</span><span class="p">(</span>
+            <span class="n">img_keys</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">img_keys_train</span><span class="p">,</span> <span class="n">node_idx</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">nodes_idx_train</span>
+        <span class="p">)</span>
+        <span class="n">evaluation_all</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">evaluate_any</span><span class="p">(</span>
+            <span class="n">img_keys</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">img_keys_all</span><span class="p">,</span> <span class="n">node_idx</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">nodes_idx_all</span>
+        <span class="p">)</span>
+        <span class="n">evaluations</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;train&quot;</span><span class="p">:</span> <span class="n">evaluation_train</span><span class="p">,</span> <span class="s2">&quot;val&quot;</span><span class="p">:</span> <span class="n">evaluation_val</span><span class="p">,</span> <span class="s2">&quot;all&quot;</span><span class="p">:</span> <span class="n">evaluation_all</span><span class="p">}</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">img_keys_test</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">evaluation_test</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">evaluate_any</span><span class="p">(</span>
+                <span class="n">img_keys</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">img_keys_test</span><span class="p">,</span> <span class="n">node_idx</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">nodes_idx_test</span>
+            <span class="p">)</span>
+            <span class="n">evaluations</span><span class="p">[</span><span class="s2">&quot;test&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">evaluation_test</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_try_save</span><span class="p">(</span><span class="n">fn</span> <span class="o">+</span> <span class="s2">&quot;_evaluation.pickle&quot;</span><span class="p">,</span> <span class="n">evaluations</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_save_indices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">fn</span> <span class="o">+</span> <span class="s2">&quot;_indices.pickle&quot;</span><span class="p">):</span>
+            <span class="n">indices</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;all&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">complete_img_keys</span><span class="p">,</span>
+                <span class="s2">&quot;test&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">img_keys_test</span><span class="p">,</span>
+                <span class="s2">&quot;train&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">img_keys_train</span><span class="p">,</span>
+                <span class="s2">&quot;val&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">img_keys_eval</span><span class="p">,</span>
+                <span class="s2">&quot;test_nodes&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">nodes_idx_test</span><span class="p">,</span>
+                <span class="s2">&quot;train_nodes&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">nodes_idx_train</span><span class="p">,</span>
+                <span class="s2">&quot;val_nodes&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">nodes_idx_eval</span><span class="p">,</span>
+            <span class="p">}</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_try_save</span><span class="p">(</span><span class="n">fn</span> <span class="o">+</span> <span class="s2">&quot;_indices.pickle&quot;</span><span class="p">,</span> <span class="n">indices</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_save_data_input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">fn</span> <span class="o">+</span> <span class="s2">&quot;_datainput.pickle&quot;</span><span class="p">):</span>
+            <span class="n">info</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;img_to_patient_dict&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">img_to_patient_dict</span><span class="p">}</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_try_save</span><span class="p">(</span><span class="n">fn</span> <span class="o">+</span> <span class="s2">&quot;_datainput.pickle&quot;</span><span class="p">,</span> <span class="n">info</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">save_time</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">duration</span><span class="p">):</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fn</span> <span class="o">+</span> <span class="s2">&quot;_time.pickle&quot;</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">obj</span><span class="o">=</span><span class="n">duration</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">f</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_save_specific</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">):</span>
+        <span class="c1"># save some model specific interesting stuff (override in specific Train classes)</span>
+        <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="nf">_save_evaluation_per_node_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">split_per_node_type</span><span class="p">,</span> <span class="n">evaluation_per_node_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">evaluate_per_node_type</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_try_save</span><span class="p">(</span><span class="n">fn</span> <span class="o">+</span> <span class="s2">&quot;_ntindices.pickle&quot;</span><span class="p">,</span> <span class="n">split_per_node_type</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_try_save</span><span class="p">(</span><span class="n">fn</span> <span class="o">+</span> <span class="s2">&quot;_ntevaluation.pickle&quot;</span><span class="p">,</span> <span class="n">evaluation_per_node_type</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">save_weights</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Save weights and summary statistics.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimator</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;initialize estimator first&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_save_model</span><span class="p">(</span><span class="n">fn</span><span class="o">=</span><span class="n">fn</span><span class="p">,</span> <span class="n">save_weights</span><span class="o">=</span><span class="n">save_weights</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_save_history</span><span class="p">(</span><span class="n">fn</span><span class="o">=</span><span class="n">fn</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_save_hyperparam</span><span class="p">(</span><span class="n">fn</span><span class="o">=</span><span class="n">fn</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_save_specific</span><span class="p">(</span><span class="n">fn</span><span class="o">=</span><span class="n">fn</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_save_evaluation</span><span class="p">(</span><span class="n">fn</span><span class="o">=</span><span class="n">fn</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_save_indices</span><span class="p">(</span><span class="n">fn</span><span class="o">=</span><span class="n">fn</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_save_data_input</span><span class="p">(</span><span class="n">fn</span><span class="o">=</span><span class="n">fn</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="TrainModelLinear"><a class="viewcode-back" href="../../../api/ncem.train.TrainModelLinear.html#ncem.train.TrainModelLinear">[docs]</a><span class="k">class</span> <span class="nc">TrainModelLinear</span><span class="p">(</span><span class="n">TrainModel</span><span class="p">):</span>
+    <span class="n">estimator</span><span class="p">:</span> <span class="n">EstimatorLinear</span>
+
+<div class="viewcode-block" id="TrainModelLinear.init_estim"><a class="viewcode-back" href="../../../api/ncem.train.TrainModelLinear.init_estim.html#ncem.train.TrainModelLinear.init_estim">[docs]</a>    <span class="k">def</span> <span class="nf">init_estim</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">estimator</span> <span class="o">=</span> <span class="n">EstimatorLinear</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_save_specific</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_save_evaluation_per_node_type</span><span class="p">(</span><span class="n">fn</span><span class="o">=</span><span class="n">fn</span><span class="p">)</span></div>
+
+
+<span class="k">class</span> <span class="nc">TrainModelLinearDeconvolution</span><span class="p">(</span><span class="n">TrainModel</span><span class="p">):</span>
+    <span class="n">estimator</span><span class="p">:</span> <span class="n">EstimatorDeconvolution</span>
+
+    <span class="k">def</span> <span class="nf">init_estim</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">estimator</span> <span class="o">=</span> <span class="n">EstimatorDeconvolution</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_save_specific</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_save_evaluation_per_node_type</span><span class="p">(</span><span class="n">fn</span><span class="o">=</span><span class="n">fn</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="TrainModelInteractions"><a class="viewcode-back" href="../../../api/ncem.train.TrainModelInteractions.html#ncem.train.TrainModelInteractions">[docs]</a><span class="k">class</span> <span class="nc">TrainModelInteractions</span><span class="p">(</span><span class="n">TrainModel</span><span class="p">):</span>
+    <span class="n">estimator</span><span class="p">:</span> <span class="n">EstimatorInteractions</span>
+
+<div class="viewcode-block" id="TrainModelInteractions.init_estim"><a class="viewcode-back" href="../../../api/ncem.train.TrainModelInteractions.init_estim.html#ncem.train.TrainModelInteractions.init_estim">[docs]</a>    <span class="k">def</span> <span class="nf">init_estim</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">estimator</span> <span class="o">=</span> <span class="n">EstimatorInteractions</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_save_specific</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_save_evaluation_per_node_type</span><span class="p">(</span><span class="n">fn</span><span class="o">=</span><span class="n">fn</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="TrainModelED"><a class="viewcode-back" href="../../../api/ncem.train.TrainModelED.html#ncem.train.TrainModelED">[docs]</a><span class="k">class</span> <span class="nc">TrainModelED</span><span class="p">(</span><span class="n">TrainModel</span><span class="p">):</span>
+    <span class="n">estimator</span><span class="p">:</span> <span class="n">EstimatorED</span>
+
+<div class="viewcode-block" id="TrainModelED.init_estim"><a class="viewcode-back" href="../../../api/ncem.train.TrainModelED.init_estim.html#ncem.train.TrainModelED.init_estim">[docs]</a>    <span class="k">def</span> <span class="nf">init_estim</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">estimator</span> <span class="o">=</span> <span class="n">EstimatorED</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_save_specific</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_save_evaluation_per_node_type</span><span class="p">(</span><span class="n">fn</span><span class="o">=</span><span class="n">fn</span><span class="p">)</span></div>
+
+
+<span class="k">class</span> <span class="nc">TrainModelEDncemBase</span><span class="p">:</span>
+
+    <span class="n">estimator</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">EstimatorEDncem</span><span class="p">,</span> <span class="n">EstimatorEdNcemNeighborhood</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">_save_embedding</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">):</span>
+        <span class="n">splits</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;eval&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;img_keys&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">img_keys_eval</span><span class="p">,</span> <span class="s2">&quot;node_idx&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">nodes_idx_eval</span><span class="p">},</span>
+            <span class="s2">&quot;test&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;img_keys&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">img_keys_test</span><span class="p">,</span> <span class="s2">&quot;node_idx&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">nodes_idx_test</span><span class="p">},</span>
+            <span class="s2">&quot;train&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;img_keys&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">img_keys_train</span><span class="p">,</span> <span class="s2">&quot;node_idx&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">nodes_idx_train</span><span class="p">},</span>
+        <span class="p">}</span>
+        <span class="n">embeddings</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">splits</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">embeddings</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">predict_embedding_any</span><span class="p">(</span><span class="o">**</span><span class="n">v</span><span class="p">)</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fn</span> <span class="o">+</span> <span class="s2">&quot;_embeddings.pickle&quot;</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">obj</span><span class="o">=</span><span class="n">embeddings</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">f</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_save_output_weights</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">):</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">get_decoding_weights</span><span class="p">()</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fn</span> <span class="o">+</span> <span class="s2">&quot;_output_weights.pickle&quot;</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">obj</span><span class="o">=</span><span class="n">w</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">f</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="TrainModelEDncem"><a class="viewcode-back" href="../../../api/ncem.train.TrainModelEDncem.html#ncem.train.TrainModelEDncem">[docs]</a><span class="k">class</span> <span class="nc">TrainModelEDncem</span><span class="p">(</span><span class="n">TrainModel</span><span class="p">,</span> <span class="n">TrainModelEDncemBase</span><span class="p">):</span>
+    <span class="n">estimator</span><span class="p">:</span> <span class="n">EstimatorEDncem</span>
+
+<div class="viewcode-block" id="TrainModelEDncem.init_estim"><a class="viewcode-back" href="../../../api/ncem.train.TrainModelEDncem.init_estim.html#ncem.train.TrainModelEDncem.init_estim">[docs]</a>    <span class="k">def</span> <span class="nf">init_estim</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">estimator</span> <span class="o">=</span> <span class="n">EstimatorEDncem</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_save_specific</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_save_evaluation_per_node_type</span><span class="p">(</span><span class="n">fn</span><span class="o">=</span><span class="n">fn</span><span class="p">)</span></div>
+
+
+<span class="k">class</span> <span class="nc">TrainModelEdSingleNcem</span><span class="p">(</span><span class="n">TrainModel</span><span class="p">,</span> <span class="n">TrainModelEDncemBase</span><span class="p">):</span>
+    <span class="n">estimator</span><span class="p">:</span> <span class="n">EstimatorEdNcemNeighborhood</span>
+
+    <span class="k">def</span> <span class="nf">init_estim</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">estimator</span> <span class="o">=</span> <span class="n">EstimatorEdNcemNeighborhood</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_save_lr_feature_names</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">):</span>
+        <span class="n">feature_names</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;features&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">features</span><span class="p">,</span>
+            <span class="s2">&quot;target_feature_names&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">target_feature_names</span><span class="p">,</span>
+            <span class="s2">&quot;neighbor_feature_names&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">neighbor_feature_names</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_try_save</span><span class="p">(</span><span class="n">fn</span> <span class="o">+</span> <span class="s2">&quot;_lr_features.pickle&quot;</span><span class="p">,</span> <span class="n">feature_names</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_save_specific</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_save_evaluation_per_node_type</span><span class="p">(</span><span class="n">fn</span><span class="o">=</span><span class="n">fn</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_save_lr_feature_names</span><span class="p">(</span><span class="n">fn</span><span class="o">=</span><span class="n">fn</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_save_embedding</span><span class="p">(</span><span class="n">fn</span><span class="o">=</span><span class="n">fn</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_save_output_weights</span><span class="p">(</span><span class="n">fn</span><span class="o">=</span><span class="n">fn</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">TrainModelCVAEBase</span><span class="p">(</span><span class="n">TrainModel</span><span class="p">):</span>
+    <span class="n">estimator</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">EstimatorCVAE</span><span class="p">,</span> <span class="n">EstimatorCVAEncem</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">_save_evaluation_posterior_sampling</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="p">(</span>
+            <span class="n">evaluation_val</span><span class="p">,</span>
+            <span class="n">true_val</span><span class="p">,</span>
+            <span class="n">pred_val</span><span class="p">,</span>
+            <span class="n">z_val</span><span class="p">,</span>
+            <span class="n">z_mean_val</span><span class="p">,</span>
+            <span class="n">z_log_var_val</span><span class="p">,</span>
+        <span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">evaluate_any_posterior_sampling</span><span class="p">(</span>
+            <span class="n">img_keys</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">img_keys_eval</span><span class="p">,</span> <span class="n">node_idx</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">nodes_idx_eval</span>
+        <span class="p">)</span>
+        <span class="p">(</span>
+            <span class="n">evaluation_train</span><span class="p">,</span>
+            <span class="n">true_train</span><span class="p">,</span>
+            <span class="n">pred_train</span><span class="p">,</span>
+            <span class="n">z_train</span><span class="p">,</span>
+            <span class="n">z_mean_train</span><span class="p">,</span>
+            <span class="n">z_log_var_train</span><span class="p">,</span>
+        <span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">evaluate_any_posterior_sampling</span><span class="p">(</span>
+            <span class="n">img_keys</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">img_keys_train</span><span class="p">,</span> <span class="n">node_idx</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">nodes_idx_train</span>
+        <span class="p">)</span>
+        <span class="p">(</span>
+            <span class="n">evaluation_all</span><span class="p">,</span>
+            <span class="n">true_all</span><span class="p">,</span>
+            <span class="n">pred_all</span><span class="p">,</span>
+            <span class="n">z_all</span><span class="p">,</span>
+            <span class="n">z_mean_all</span><span class="p">,</span>
+            <span class="n">z_log_var_all</span><span class="p">,</span>
+        <span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">evaluate_any_posterior_sampling</span><span class="p">(</span>
+            <span class="n">img_keys</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">img_keys_all</span><span class="p">,</span> <span class="n">node_idx</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">nodes_idx_all</span>
+        <span class="p">)</span>
+        <span class="n">evaluations</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;train&quot;</span><span class="p">:</span> <span class="n">evaluation_train</span><span class="p">,</span> <span class="s2">&quot;val&quot;</span><span class="p">:</span> <span class="n">evaluation_val</span><span class="p">,</span> <span class="s2">&quot;all&quot;</span><span class="p">:</span> <span class="n">evaluation_all</span><span class="p">}</span>
+        <span class="n">predictions</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;train&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">true_train</span><span class="p">,</span> <span class="n">pred_train</span><span class="p">),</span>
+            <span class="s2">&quot;val&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">true_val</span><span class="p">,</span> <span class="n">pred_val</span><span class="p">),</span>
+            <span class="s2">&quot;all&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">true_all</span><span class="p">,</span> <span class="n">pred_all</span><span class="p">),</span>
+        <span class="p">}</span>
+        <span class="n">latent_space</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;train&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">z_train</span><span class="p">,</span> <span class="n">z_mean_train</span><span class="p">,</span> <span class="n">z_log_var_train</span><span class="p">),</span>
+            <span class="s2">&quot;val&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">z_val</span><span class="p">,</span> <span class="n">z_mean_val</span><span class="p">,</span> <span class="n">z_log_var_val</span><span class="p">),</span>
+            <span class="s2">&quot;all&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">z_all</span><span class="p">,</span> <span class="n">z_mean_all</span><span class="p">,</span> <span class="n">z_log_var_all</span><span class="p">),</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">img_keys_test</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="p">(</span>
+                <span class="n">evaluation_test</span><span class="p">,</span>
+                <span class="n">true_test</span><span class="p">,</span>
+                <span class="n">pred_test</span><span class="p">,</span>
+                <span class="n">z_test</span><span class="p">,</span>
+                <span class="n">z_mean_test</span><span class="p">,</span>
+                <span class="n">z_log_var_test</span><span class="p">,</span>
+            <span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">evaluate_any_posterior_sampling</span><span class="p">(</span>
+                <span class="n">img_keys</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">img_keys_test</span><span class="p">,</span> <span class="n">node_idx</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">nodes_idx_test</span>
+            <span class="p">)</span>
+            <span class="n">evaluations</span><span class="p">[</span><span class="s2">&quot;test&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">evaluation_test</span>
+            <span class="n">predictions</span><span class="p">[</span><span class="s2">&quot;test&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">true_test</span><span class="p">,</span> <span class="n">pred_test</span><span class="p">)</span>
+            <span class="n">latent_space</span><span class="p">[</span><span class="s2">&quot;test&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">z_test</span><span class="p">,</span> <span class="n">z_mean_test</span><span class="p">,</span> <span class="n">z_log_var_test</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_try_save</span><span class="p">(</span><span class="n">fn</span> <span class="o">+</span> <span class="s2">&quot;_evaluation_posterior_sampling.pickle&quot;</span><span class="p">,</span> <span class="n">evaluations</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_try_save</span><span class="p">(</span><span class="n">fn</span> <span class="o">+</span> <span class="s2">&quot;_prediction_posterior_sampling.pickle&quot;</span><span class="p">,</span> <span class="n">predictions</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_try_save</span><span class="p">(</span><span class="n">fn</span> <span class="o">+</span> <span class="s2">&quot;_latent_space_posterior_sampling.pickle&quot;</span><span class="p">,</span> <span class="n">latent_space</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="TrainModelCVAE"><a class="viewcode-back" href="../../../api/ncem.train.TrainModelCVAE.html#ncem.train.TrainModelCVAE">[docs]</a><span class="k">class</span> <span class="nc">TrainModelCVAE</span><span class="p">(</span><span class="n">TrainModelCVAEBase</span><span class="p">):</span>
+    <span class="n">estimator</span><span class="p">:</span> <span class="n">EstimatorCVAE</span>
+
+<div class="viewcode-block" id="TrainModelCVAE.init_estim"><a class="viewcode-back" href="../../../api/ncem.train.TrainModelCVAE.init_estim.html#ncem.train.TrainModelCVAE.init_estim">[docs]</a>    <span class="k">def</span> <span class="nf">init_estim</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">estimator</span> <span class="o">=</span> <span class="n">EstimatorCVAE</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_save_specific</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_save_evaluation_posterior_sampling</span><span class="p">(</span><span class="n">fn</span><span class="o">=</span><span class="n">fn</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_save_evaluation_per_node_type</span><span class="p">(</span><span class="n">fn</span><span class="o">=</span><span class="n">fn</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="TrainModelCVAEncem"><a class="viewcode-back" href="../../../api/ncem.train.TrainModelCVAEncem.html#ncem.train.TrainModelCVAEncem">[docs]</a><span class="k">class</span> <span class="nc">TrainModelCVAEncem</span><span class="p">(</span><span class="n">TrainModelCVAEBase</span><span class="p">):</span>
+    <span class="n">estimator</span><span class="p">:</span> <span class="n">EstimatorCVAEncem</span>
+
+<div class="viewcode-block" id="TrainModelCVAEncem.init_estim"><a class="viewcode-back" href="../../../api/ncem.train.TrainModelCVAEncem.init_estim.html#ncem.train.TrainModelCVAEncem.init_estim">[docs]</a>    <span class="k">def</span> <span class="nf">init_estim</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">estimator</span> <span class="o">=</span> <span class="n">EstimatorCVAEncem</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_save_specific</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_save_evaluation_posterior_sampling</span><span class="p">(</span><span class="n">fn</span><span class="o">=</span><span class="n">fn</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_save_evaluation_per_node_type</span><span class="p">(</span><span class="n">fn</span><span class="o">=</span><span class="n">fn</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_try_save</span><span class="p">(</span><span class="n">fn</span> <span class="o">+</span> <span class="s2">&quot;_pretrain_history.pickle&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">pretrain_history</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, theislab.</p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

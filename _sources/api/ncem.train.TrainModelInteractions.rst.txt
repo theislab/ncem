@@ -44,6 +44,13 @@ ncem.train.TrainModelInteractions
 
    
    
+   .. rubric:: Attributes
+
+   .. autosummary::
+      :toctree: .
+   
+      ~ncem.train.TrainModelInteractions.estimator
+   
    
 
    

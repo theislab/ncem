@@ -44,6 +44,13 @@ ncem.train.TrainModelCVAEncem
 
    
    
+   .. rubric:: Attributes
+
+   .. autosummary::
+      :toctree: .
+   
+      ~ncem.train.TrainModelCVAEncem.estimator
+   
    
 
    
