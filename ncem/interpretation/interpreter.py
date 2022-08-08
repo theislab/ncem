@@ -992,7 +992,7 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
         fontsize: Optional[int] = None,
         figsize: Tuple[float, float] = (9, 8),
         de_genes_threshold: float = 0,
-        magnitude_threshold: Optional[float] = None,
+        #magnitude_threshold: Optional[float] = None,
         save: Optional[str] = None,
         suffix: str = "_type_coupling_analysis_circular.pdf",
         show: bool = True,
@@ -1021,6 +1021,8 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
             (np.abs(x) - np.min(np.abs(network_df[0].values))) / 
             (np.max(np.abs(network_df[0].values)) - np.min(np.abs(network_df[0].values)))
             for x in network_df[0].values]
+        network_df["de_genes_abs"] = network_df[0]
+
         if undefined_types:
             network_df = network_df[network_df['receiver'] != undefined_types]
             network_df = network_df[network_df['sender'] != undefined_types]
@@ -1030,18 +1032,14 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
         plt.ioff()   
         fig, ax = plt.subplots(nrows=1, ncols=1, figsize=figsize)
         ax.axis('off')
-        if de_genes_threshold:
-            network_df = network_df[network_df[0]>de_genes_threshold]
-        if magnitude_threshold:
-            network_df = network_df[network_df['magnitude']>magnitude_threshold]
         G=nx.from_pandas_edgelist(
             network_df, source='sender', target='receiver', 
-            edge_attr=["magnitude", 'de_genes'], 
+            edge_attr=["magnitude", 'de_genes', 'de_genes_abs'], 
             create_using=nx.DiGraph()
         ) 
         nodes = np.unique(network_df['receiver'])
         pos=nx.circular_layout(G)
-        labels_width = nx.get_edge_attributes(G, edge_attr)
+        
         if len(nodes) <= 10:
             nx.set_node_attributes(G, dict([(x,vega_10_scanpy[i]) for i, x in enumerate(nodes)]), "color")
         elif len(nodes) <= 20:
@@ -1069,16 +1067,18 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
         for node, t in description.items():
             bb = t.get_window_extent(renderer=r)
             bbdata = bb.transformed(trans)
-            radius = text_space +bbdata.width/1.
+            radius = text_space +bbdata.width/2.
             position = (radius*np.cos(angle_dict[node]),radius* np.sin(angle_dict[node]))
             t.set_position(position)
             t.set_rotation(angle_dict[node]*360.0/(2.0*np.pi))
             t.set_clip_on(False)
-
+            
+        selected_edges = [(u,v) for u,v,e in G.edges(data=True) if e['de_genes_abs'] > de_genes_threshold]
+        width = [e[edge_attr] * edge_width_scale for u,v,e in G.edges(data=True) if e['de_genes_abs'] > de_genes_threshold]
+        
         nx.draw_networkx(
-            G, pos, with_labels=False, node_size=500,
-            width=[x * edge_width_scale for x in list(labels_width.values())], 
-            edge_vmin=0., edge_vmax=1., edge_cmap=plt.cm.seismic, arrowstyle='-|>',
+            G, pos, with_labels=False, node_size=500, edgelist=selected_edges,
+            width=width, edge_vmin=0., edge_vmax=1., edge_cmap=plt.cm.seismic, arrowstyle='-|>', 
             vmin=0., vmax=1., cmap=plt.cm.binary, node_color=list(node_color.values()),
             ax=ax, connectionstyle='arc3, rad = 0.1'
         )
@@ -1089,6 +1089,7 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
             plt.show()
         plt.close(fig)
         plt.ion()
+        return network_df
         
     def sender_receiver_values(
         self,
@@ -1112,6 +1113,7 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
             np.array([means, pvals, qvals, fold_change]).T,
             index=self.data.celldata.var_names, columns=['mean expression', 'pvalue', 'qvalue', 'fold change']
         )
+        df['-log 10 qvalue'] = -np.log10(df['qvalue'])
         
         return df
     
@@ -1170,11 +1172,11 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
             sc.set_figure_params(scanpy=True, fontsize=fontsize)
             plt.rcParams['axes.grid'] = False
         fig, ax = plt.subplots(1,1, figsize=figsize)
-
+        ax.grid(False)
         # only significant ones 
         qval_filter = np.where(self.qvalues[receiver_idx,sender_idx,:]>=significance_threshold)
         vmax = np.max(np.abs(self.fold_change[receiver_idx,sender_idx,:]))
-        print(vmax)
+        #print(vmax)
         
         # overlaying significant ones with orange
         sns.scatterplot(
@@ -1208,9 +1210,9 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
             color='red', edgecolor = 'black', s=100, ax=ax)
 
         ax.set_xlim((-vmax*1.1, vmax*1.1))
-        ax.set_ylim((-0.5, 15))
-        ax.set_xlabel('')
-        ax.set_ylabel('')
+        #ax.set_ylim((-0.5, np.min([y[fc_filter], 15])))
+        ax.set_xlabel('$\log$ fold change')
+        ax.set_ylabel('$-\log_{10}$ FDR-corrected pvalues')
         plt.axvline(-fold_change_threshold, color='black', linestyle='--', )
         plt.axvline(fold_change_threshold, color='black', linestyle='--', )
         plt.axhline(-np.log10(significance_threshold), linestyle='--', color='black')
@@ -1275,7 +1277,7 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
             sc.set_figure_params(scanpy=True, fontsize=fontsize)
         
         if plot_mode == 'qvals':
-            arr = np.log(self.qvalues[receiver_idx, :, :])
+            arr = np.log(self.qvalues[receiver_idx, :, :].copy())
             arr[arr < cut_pvals] = cut_pvals
             df = pd.DataFrame(
                 arr, 
@@ -1293,7 +1295,7 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
                 cmap='Greys_r', vmin=-5, vmax=0.
             )
         elif plot_mode == 'fold_change':
-            arr = self.fold_change[receiver_idx, :, :]
+            arr = self.fold_change[receiver_idx, :, :].copy()
             arr[np.where(self.qvalues[receiver_idx, :, :] > significance_threshold)] = 0
             df = pd.DataFrame(
                 arr, 
@@ -1308,7 +1310,7 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
             fig, ax = plt.subplots(nrows=1, ncols=1, figsize=figsize)
             sns.heatmap(
                 df.T,
-                cbar_kws={'label': "fold change", 
+                cbar_kws={'label': "$\log$ fold change", 
                            "location": "top"},
                 cmap="seismic", vmin=-vmax, vmax=vmax, 
             )
@@ -1340,7 +1342,7 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
             sc.set_figure_params(scanpy=True, fontsize=fontsize)
         
         if plot_mode == 'qvals':
-            arr = np.log(self.qvalues[:, sender_idx, :])
+            arr = np.log(self.qvalues[sender_idx, :, :].copy())
             arr[arr < cut_pvals] = cut_pvals
             df = pd.DataFrame(
                 arr, 
@@ -1358,7 +1360,7 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
                 cmap='Greys_r', vmin=-5, vmax=0.
             )
         elif plot_mode == 'fold_change':
-            arr = self.fold_change[:, sender_idx, :]
+            arr = self.fold_change[sender_idx, :, :].copy()
             arr[np.where(self.qvalues[:, sender_idx, :] > significance_threshold)] = 0
             df = pd.DataFrame(
                 arr, 
@@ -1373,7 +1375,7 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
             fig, ax = plt.subplots(nrows=1, ncols=1, figsize=figsize)
             sns.heatmap(
                 df.T,
-                cbar_kws={'label': "fold change", 
+                cbar_kws={'label': "$\log$ fold change", 
                            "location": "top"},
                 cmap="seismic", vmin=-vmax, vmax=vmax, 
             )
@@ -1933,10 +1935,10 @@ class InterpreterDeconvolution(estimators.EstimatorDeconvolution, InterpreterInt
             "proportions": self.data.celldata.obsm['proportions']
         }
         target = np.asarray(dmatrix("target-1", data))
-        interaction_shape = self.model.training_model.inputs[1].shape
+        interaction_shape = np.int(self.n_features_0**2)
         interactions = np.asarray(dmatrix("target:proportions-1", data))
 
-        y = self.data.celldata.X[self.nodes_idx_all['1'],:]
+        y = self.data.celldata.X
 
         print('using ols parameters.')
         if params_type == 'ols':
@@ -1957,11 +1959,11 @@ class InterpreterDeconvolution(estimators.EstimatorDeconvolution, InterpreterInt
         is_sign, pvalues, qvalues = wald_test(
             params=params, fisher_inv=fim_inv, significance_threshold=significance_threshold
         )
-        interaction_shape = self.model.training_model.inputs[1].shape
+        interaction_shape = np.int(self.n_features_0**2)
         # subset to interaction terms
-        is_sign = is_sign[self.n_features_0 : interaction_shape[-1] + self.n_features_0, :]
-        pvalues = pvalues[self.n_features_0 : interaction_shape[-1] + self.n_features_0, :]
-        qvalues = qvalues[self.n_features_0 : interaction_shape[-1] + self.n_features_0, :]
+        is_sign = is_sign[self.n_features_0 : interaction_shape + self.n_features_0, :]
+        pvalues = pvalues[self.n_features_0 : interaction_shape + self.n_features_0, :]
+        qvalues = qvalues[self.n_features_0 : interaction_shape + self.n_features_0, :]
 
         self.pvalues = np.concatenate(
             np.expand_dims(np.split(pvalues, indices_or_sections=np.sqrt(pvalues.shape[0]), axis=0), axis=0),
@@ -1976,7 +1978,7 @@ class InterpreterDeconvolution(estimators.EstimatorDeconvolution, InterpreterInt
             axis=0,
         )
 
-        interaction_params = params[:, self.n_features_0 : interaction_shape[-1] + self.n_features_0]
+        interaction_params = params[:, self.n_features_0 : interaction_shape + self.n_features_0]
         self.fold_change = np.concatenate(
             np.expand_dims(np.split(interaction_params.T, indices_or_sections=np.sqrt(interaction_params.T.shape[0]), axis=0), axis=0),
             axis=0,
