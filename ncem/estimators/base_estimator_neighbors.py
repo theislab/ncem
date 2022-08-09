@@ -2,9 +2,35 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import tensorflow as tf
+from numba import njit
 
 from ncem.estimators.base_estimator import Estimator
 
+@njit
+def pad_neighbors(
+    data,
+	indptr,
+    max_indices: int
+):
+    out = np.zeros((len(indptr) - 1, max_indices), dtype=data.dtype)
+    for i, vals in enumerate(np.split(data, indptr[1:-1])):
+        out[i, :len(vals)] = vals
+    return out
+
+
+@njit
+def pad_tensors(
+    indices,
+    indptr,
+    features,
+    max_indices: int,
+):
+    out = np.zeros(
+        (len(indptr) - 1, max_indices, features.shape[1]), dtype=features.dtype
+    )
+    for i, inds in enumerate(np.split(indices, indptr[1:-1])):
+        out[i, :len(inds), :] = features[inds, :]
+    return out
 
 class EstimatorNeighborhood(Estimator):
     """EstimatorGraph class for spatial models of the nieghborhood only (not full graph)."""
@@ -186,23 +212,11 @@ class EstimatorNeighborhood(Estimator):
                         h_targets = self.h_0[key][idx_nodes[indices], :]
                     else:
                         h_targets = self.h_1[key][idx_nodes[indices], :][:, self.idx_target_features]
-                    h_neighbors = []
-                    a_neighborhood = np.zeros((self.n_eval_nodes_per_graph, self.n_neighbors_padded), "float32")
-                    for i, j in enumerate(idx_nodes[indices]):
-                        a_j = np.asarray(self.a[key][j, :].todense()).flatten()
-                        idx_neighbors = np.where(a_j > 0.)[0]
-                        if self.h0_in:
-                            h_neighbors_j = self.h_0[key][idx_neighbors, :]
-                        else:
-                            h_neighbors_j = self.h_1[key][idx_neighbors, :][:, self.idx_neighbor_features]
-                        h_neighbors_j = np.expand_dims(h_neighbors_j, axis=0)
-                        # Pad neighborhoods:
-                        diff = self.n_neighbors_padded - h_neighbors_j.shape[1]
-                        zeros = np.zeros((1, diff, h_neighbors_j.shape[2]), dtype="float32")
-                        h_neighbors_j = np.concatenate([h_neighbors_j, zeros], axis=1)
-                        h_neighbors.append(h_neighbors_j)
-                        a_neighborhood[i, :len(idx_neighbors)] = a_j[idx_neighbors]
-                    h_neighbors = np.concatenate(h_neighbors, axis=0)
+                    sub_graph = self.a[key][indices, :]
+
+                    a_neighborhood = pad_neighbors(sub_graph.data, sub_graph.indptr, self.n_neighbors_padded)
+                    h_neighbors = pad_tensors(sub_graph.indices, sub_graph.indptr, h_targets, self.n_neighbors_padded)
+
                     if self.log_transform:
                         h_targets = np.log(h_targets + 1.0)
                         h_neighbors = np.log(h_neighbors + 1.0)
