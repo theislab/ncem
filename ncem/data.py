@@ -133,7 +133,7 @@ class GraphTools:
         degs = {}
         degrees = {}
         for i, adata in self.img_celldata.items():
-            pm = np.array(adata.obsm["spatial"])
+            pm = np.array(adata.obsm["spatial"], dtype=np.float64)
             dist_matrix = self._compute_distance_matrix(pm)
             degs[i] = {dist: np.sum(dist_matrix < dist * dist, axis=0) for dist in max_distances}
         for dist in max_distances:
@@ -303,6 +303,8 @@ class GraphTools:
         suffix: str = "_degree_vs_dist.pdf",
         show: bool = True,
         return_axs: bool = False,
+        panel_width=4,
+        panel_height=3,
     ):
         """Plot degree versus distances.
 
@@ -339,7 +341,7 @@ class GraphTools:
                 degree_matrices = self._get_degrees(max_distances)
 
         plt.ioff()
-        fig = plt.figure(figsize=(4, 3))
+        fig = plt.figure(figsize=(panel_width, panel_height))
 
         mean_degree = []
         distances = []
@@ -358,7 +360,7 @@ class GraphTools:
         )
         ax = fig.add_subplot(111)
         sns.boxplot(data=sns_data, x="dist", color="steelblue", y="mean_degree", ax=ax)
-        ax.set_yscale("log", basey=10)
+        ax.set_yscale("log", base=10)
         ax.grid(False)
         plt.ylabel("")
         plt.xlabel("")
@@ -1817,8 +1819,18 @@ class DataLoader(GraphTools, PlottingTools):
         self.cell_type_coarseness = cell_type_coarseness
 
 
+        fn = f"{buffered_data_path}/buffered_data_{str(radius)}_{cell_type_coarseness}.pickle"
+        if os.path.isfile(fn) and not write_buffer:
+            print('Loading data from buffer')
+            with open(fn, 'rb') as f:
+                stored_data = pickle.load(f)
+        
+            self.celldata = stored_data["celldata"]
+            self.img_celldata = stored_data["img_celldata"]
+            # self.compute_adjacency_matrices(radius=radius, coord_type=coord_type, n_rings=n_rings)
+            self.radius = radius
         # adding reading from buffered data
-        if self.buffered_data_path is None:
+        else:            
             print("Loading data from raw files")
             self.register_celldata(n_top_genes=n_top_genes)
             self.register_img_celldata()
@@ -1827,27 +1839,14 @@ class DataLoader(GraphTools, PlottingTools):
             self.radius = radius
             
             if write_buffer: 
-                fn = f"{buffered_data_path}/buffered_data_{str(radius)}_{cell_type_coarseness}.pickle"
                 print('Buffering preprocessed input data')
                 data_to_store = {
-                    "celldata" = self.celldata,
-                    "img_celldata" = self.img_celldata,
+                    "celldata":self.celldata,
+                    "img_celldata": self.img_celldata,
                 }
                 with open(fn, 'wb') as f:
                     pickle.dump(obj=data_to_store, file=f)
-
-
-        else:
-            fn = f"{buffered_data_path}/buffered_data_{str(radius)}_{cell_type_coarseness}.pickle"
-            if os.path.isfile(fn):
-                print('Loading data from buffer')
-                with open(fn, 'rb') as f:
-                    stored_data = pickle.load(f)
             
-                self.celldata = stored_data["celldata"]
-                self.img_celldata = stored_data["img_celldata"]
-                # self.compute_adjacency_matrices(radius=radius, coord_type=coord_type, n_rings=n_rings)
-                self.radius = radius
 
         print(
             "Loaded %i images with complete data from %i patients "
@@ -3857,7 +3856,31 @@ class DataLoaderMetabric(DataLoader):
             'Myofibroblasts': 'Myofibroblasts',
             'T cells': 'T cells',
             'Vascular SMA+': 'Vascular SMA+'
-        }
+        },
+        'binary': {
+            'B cells': 'immune cells',
+            'Basal CKlow': 'other',
+            'Endothelial': 'other',
+            'Fibroblasts': 'other',
+            'Fibroblasts CD68+': 'other',
+            'HER2+': 'other',
+            'HR+ CK7-': 'other',
+            'HR+ CK7- Ki67+': 'other',
+            'HR+ CK7- Slug+': 'other',
+            'HR- CK7+': 'other',
+            'HR- CK7-': 'other',
+            'HR- CKlow CK5+': 'other',
+            'HR- Ki67+': 'other',
+            'HRlow CKlow': 'other',
+            'Hypoxia': 'other',
+            'Macrophages Vim+ CD45low': 'immune cells',
+            'Macrophages Vim+ Slug+': 'immune cells',
+            'Macrophages Vim+ Slug-': 'immune cells',
+            'Myoepithelial': 'other',
+            'Myofibroblasts': 'other',
+            'T cells': 'immune cells',
+            'Vascular SMA+': 'other'
+        },
     }
 
     def _register_celldata(self, n_top_genes: Optional[int] = None):
@@ -4189,7 +4212,36 @@ class DataLoaderBaselZurichZenodo(DataLoader):
             "25": "tumor cells", #"CK+ HR low tumor cell",
             "26": "tumor cells", #"CK low HR hi p53+ tumor cell",
             "27": "tumor cells", #"myoepithelial tumor cell"
-        }
+        },
+        'binary': {
+            "1": "immune cells",
+            "2": "immune cells",
+            "3": "immune cells",
+            "4": "immune cells",
+            "5": "immune cells",
+            "6": "immune cells",
+            "7": "other",
+            "8": "other", # "vimentin hi stromal cell",
+            "9": "other", # "small circular stromal cell",
+            "10": "other", # "small elongated stromal cell",
+            "11": "other", # "fibronectin hi stromal cell",
+            "12": "other", # "large elongated stromal cell",
+            "13": "other", # "SMA hi vimentin hi stromal cell",
+            "14": "other", #"hypoxic tumor cell",
+            "15": "other", #"apoptotic tumor cell",
+            "16": "other", #"proliferative tumor cell",
+            "17": "other", #"p53+ EGFR+ tumor cell",
+            "18": "other", #"basal CK tumor cell",
+            "19": "other", #"CK7+ CK hi cadherin hi tumor cell",
+            "20": "other", #"CK7+ CK+ tumor cell",
+            "21": "other", #"epithelial low tumor cell",
+            "22": "other", #"CK low HR low tumor cell",
+            "23": "other", #"CK+ HR hi tumor cell",
+            "24": "other", #"CK+ HR+ tumor cell",
+            "25": "other", #"CK+ HR low tumor cell",
+            "26": "other", #"CK low HR hi p53+ tumor cell",
+            "27": "other", #"myoepithelial tumor cell"
+        },
     }
 
     def _register_images(self):
