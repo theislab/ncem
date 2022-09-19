@@ -4,6 +4,8 @@ import ncem.estimators
 import ncem.interpretation
 import ncem.models
 import ncem.train
+import ncem.pl
+import ncem.tl
 
 __maintainer__ = ", ".join(["Anna C. Schaar", "David S. Fischer"])
 __author__ = ", ".join(["Anna C. Schaar", "David S. Fischer"])
