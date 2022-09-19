@@ -3,7 +3,7 @@ import numpy as np
 from ncem.tools.fit.constants import VARM_KEY_PARAMS, VARM_KEY_PVALs, VARM_KEY_FDR_PVALs
 from ncem.tools.fit.glm import differential_ncem, differential_ncem_deconvoluted, linear_ncem, linear_ncem_deconvoluted
 
-from ncem.unit_test.data_for_tests import get_adata, KEY_BATCH, KEY_COND, KEY_DECONV, KEY_TYPE
+from ncem.unit_test.data_for_tests import get_adata, KEY_ADJACENCY, KEY_BATCH, KEY_COND, KEY_DECONV, KEY_TYPE
 
 
 def _slot_asserts(adata):
@@ -21,7 +21,8 @@ def _slot_domain(adata):
 
 def test_differential_ncem():
     adata = get_adata(report_deconvolution=False)
-    adata = differential_ncem(adata=adata, formula=f"~0+{KEY_BATCH}", key_type="type", key_differential=KEY_COND)
+    adata = differential_ncem(adata=adata, formula=f"~0+{KEY_BATCH}", key_graph=KEY_ADJACENCY, key_type="type",
+                              key_differential=KEY_COND)
     _slot_asserts(adata=adata)
     _slot_domain(adata=adata)
 
@@ -36,7 +37,7 @@ def test_differential_ncem_deconvoluted():
 
 def test_linear_ncem():
     adata = get_adata(report_deconvolution=False)
-    adata = linear_ncem(adata=adata, formula=f"~0+{KEY_BATCH}", key_type=KEY_TYPE)
+    adata = linear_ncem(adata=adata, formula=f"~0+{KEY_BATCH}", key_graph=KEY_ADJACENCY, key_type=KEY_TYPE)
     _slot_asserts(adata=adata)
     _slot_domain(adata=adata)
 

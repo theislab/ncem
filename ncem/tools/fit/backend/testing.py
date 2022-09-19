@@ -1,9 +1,8 @@
 from typing import List
 
 import anndata
-from diffxpy.testing.correction import correct
 
-from ncem.tools.fit.constants import VARM_KEY_PARAMS, VARM_KEY_PVALs, VARM_KEY_FDR_PVALs
+from ncem.tools.fit.constants import OBSM_KEY_DMAT, VARM_KEY_PARAMS, VARM_KEY_PVALs, VARM_KEY_FDR_PVALs
 from ncem.utils.wald_test import get_fim_inv, wald_test
 
 
@@ -20,9 +19,12 @@ def _test_base(adata: anndata.AnnData, coef_to_test: List[str]) -> anndata.AnnDa
         per gene and type x type pair.
 
     """
-    pvals = None
+    dmat = adata.obsm[OBSM_KEY_DMAT]
+    params = adata.varm[VARM_KEY_PARAMS]
+    fisher_inv = get_fim_inv(x=dmat, y=adata.X)
+    # TODO add in coeff to test here.
+    _, pvals, fdr_pvals = wald_test(params=params, fisher_inv=fisher_inv)
     adata.varm[VARM_KEY_PVALs] = pvals
-    fdr_pvals = correct(pvals=pvals, method="bh")
     adata.varm[VARM_KEY_FDR_PVALs] = fdr_pvals
     return adata
 
