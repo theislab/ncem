@@ -11,7 +11,7 @@ from ncem.tools.fit.constants import VARM_KEY_PARAMS
 from ncem.utils.ols_fit import ols_fit
 
 
-def differential_ncem(adata: anndata.AnnData, formula: str, key_type: str, key_differential):
+def differential_ncem(adata: anndata.AnnData, formula: str, key_type: str, key_differential: str):
     """
     Fit a differential NCEM based on an adata instance and save fits in instance.
 
@@ -36,7 +36,7 @@ def differential_ncem(adata: anndata.AnnData, formula: str, key_type: str, key_d
     return adata
 
 
-def differential_ncem_deconvoluted(adata: anndata.AnnData, formula: str, key_deconvolution: str):
+def differential_ncem_deconvoluted(adata: anndata.AnnData, formula: str, key_differential: str, key_deconvolution: str):
     """
     Fit a differential NCEM based on deconvoluted data in an adata instance and save fits in instance.
 
