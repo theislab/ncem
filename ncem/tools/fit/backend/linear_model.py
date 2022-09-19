@@ -7,11 +7,14 @@ Global ToDos:
 import anndata
 import pandas as pd
 
+from ncem.tools.fit.backend.testing import test_linear_ncem, test_differential_ncem
+
 
 def differential_ncem(adata: anndata.AnnData, formula: str, key_type: str, key_differential):
     """
     Fit a differential NCEM based on an adata instance and save fits in instance.
 
+    Saves fits and Wald test output into instance.
     TODO requires spatial graph to have been built or coordinates to be in fixed slots?
 
     Args:
@@ -25,12 +28,18 @@ def differential_ncem(adata: anndata.AnnData, formula: str, key_type: str, key_d
 
     """
     # TODO
+    adata = None
+    term_condition = None
+    term_type = None
+    adata = test_differential_ncem(adata=adata, term_condition=term_condition, term_type=term_type)
+    return adata
 
 
 def differential_ncem_deconvoluted(adata: anndata.AnnData, formula: str, key_deconvolution: str):
     """
     Fit a differential NCEM based on deconvoluted data in an adata instance and save fits in instance.
 
+    Saves fits and Wald test output into instance.
     TODO requires spatial graph to have been built or coordinates to be in fixed slots?
 
     Args:
@@ -44,12 +53,18 @@ def differential_ncem_deconvoluted(adata: anndata.AnnData, formula: str, key_dec
 
     """
     # TODO
+    adata = None
+    term_condition = None
+    term_type = None
+    adata = test_differential_ncem(adata=adata, term_condition=term_condition, term_type=term_type)
+    return adata
 
 
 def linear_ncem(adata: anndata.AnnData, formula: str, key_type: str):
     """
     Fit a linear NCEM based on an adata instance and save fits in instance.
 
+    Saves fits and Wald test output into instance.
     TODO requires spatial graph to have been built or coordinates to be in fixed slots?
 
     Args:
@@ -62,12 +77,17 @@ def linear_ncem(adata: anndata.AnnData, formula: str, key_type: str):
 
     """
     # TODO
+    adata = None
+    term_type = None
+    adata = test_linear_ncem(adata=adata, term_type=term_type)
+    return adata
 
 
 def linear_ncem_deconvoluted(adata: anndata.AnnData, formula: str, key_deconvolution: str):
     """
     Fit a linear NCEM based on deconvoluted data in an adata instance and save fits in instance.
 
+    Saves fits and Wald test output into instance.
     TODO requires spatial graph to have been built or coordinates to be in fixed slots?
 
     Args:
@@ -80,3 +100,7 @@ def linear_ncem_deconvoluted(adata: anndata.AnnData, formula: str, key_deconvolu
 
     """
     # TODO
+    adata = None
+    term_type = None
+    adata = test_linear_ncem(adata=adata, term_type=term_type)
+    return adata
