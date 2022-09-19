@@ -1,5 +1,5 @@
 import pandas as pd
-import patsy
+from patsy import dmatrix
 
 
 def get_dmat_from_obs(obs: pd.DataFrame, formula: str) -> pd.DataFrame:
@@ -29,6 +29,7 @@ def get_dmat_from_deconvoluted(obs: pd.DataFrame, obsm: pd.DataFrame, formula: s
     """
     # TODO
     # 1. Create spot x cell-type-wise design matrix.
+    # Flatten.
     obs_full = None
     # 2. Get design matrix
     dmat = get_dmat_from_obs(obs=obs_full, formula=formula)

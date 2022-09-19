@@ -5,9 +5,10 @@ Global ToDos:
 """
 
 import anndata
-import pandas as pd
 
 from ncem.tools.fit.backend.testing import test_linear_ncem, test_differential_ncem
+from ncem.tools.fit.constants import VARM_KEY_PARAMS
+from ncem.utils.ols_fit import ols_fit
 
 
 def differential_ncem(adata: anndata.AnnData, formula: str, key_type: str, key_differential):
@@ -76,10 +77,11 @@ def linear_ncem(adata: anndata.AnnData, formula: str, key_type: str):
     Returns:
 
     """
-    # TODO
-    adata = None
-    term_type = None
-    adata = test_linear_ncem(adata=adata, term_type=term_type)
+    dmat = None
+    ols = ols_fit(x_=dmat, y_=y)
+    params = ols.squeeze()
+    adata.varm[VARM_KEY_PARAMS] = params
+    adata = test_linear_ncem(adata=adata, term_type=key_type)
     return adata
 
 
@@ -99,8 +101,9 @@ def linear_ncem_deconvoluted(adata: anndata.AnnData, formula: str, key_deconvolu
     Returns:
 
     """
-    # TODO
-    adata = None
-    term_type = None
+    dmat = None
+    ols = ols_fit(x_=dmat, y_=y)
+    params = ols.squeeze()
+    adata.varm[VARM_KEY_PARAMS] = params
     adata = test_linear_ncem(adata=adata, term_type=term_type)
     return adata

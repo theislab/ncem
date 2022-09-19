@@ -1,8 +1,10 @@
 from typing import List
 
 import anndata
-import pandas as pd
-# TODO import wald from diffxpy
+from diffxpy.testing.correction import correct
+
+from ncem.tools.fit.constants import VARM_KEY_PARAMS, VARM_KEY_PVALs, VARM_KEY_FDR_PVALs
+from ncem.utils.wald_test import get_fim_inv, wald_test
 
 
 def _test_base(adata: anndata.AnnData, coef_to_test: List[str]) -> anndata.AnnData:
@@ -18,7 +20,11 @@ def _test_base(adata: anndata.AnnData, coef_to_test: List[str]) -> anndata.AnnDa
         per gene and type x type pair.
 
     """
-    pass
+    pvals = None
+    adata.varm[VARM_KEY_PVALs] = pvals
+    fdr_pvals = correct(pvals=pvals, method="bh")
+    adata.varm[VARM_KEY_FDR_PVALs] = fdr_pvals
+    return adata
 
 
 def test_linear_ncem(adata: anndata.AnnData, term_type: str) -> anndata.AnnData:
