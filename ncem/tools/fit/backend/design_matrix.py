@@ -14,23 +14,42 @@ def _make_type_categorical(obs, key_type):
     return obs
 
 
-def extend_formula_ncem(formula: str, groups: List[str]):
+def extend_formula_ncem(formula: str, groups: List[str], per_index_cell: bool = False):
     """
     Adds linear NCEM terms into formula.
 
     Example for cell types A, B, C:
         "~0+batch" -> "~0+batch+TYPE-A+...+TYPE-C+"
                       "index_TYPE-A:neighbor_TYPE-A+...+index_TYPE-C:neighbor_TYPE-C"
+
+    Args:
+        formula: Base formula, may describe confounding for example.
+        groups: Cell type labels.
+        per_index_cell: Whether to yield formula per index cell type, ie if one separate linear model is fit for each
+            index cell type.
+
+    Returns: Full NCEM formula, or dictionary over index cell-wise formulas
     """
-    # Add type-wise intercept:
-    formula = formula + "+" + "+".join([f"{PREFIX_INDEX}{x}" for x in groups])
-    # Add couplings (type-type interactions):
-    coef_couplings = [f"{PREFIX_INDEX}{x}:{PREFIX_NEIGHBOR}{y}" for y in groups for x in groups]
-    formula = formula + "+" + "+".join(coef_couplings)
-    return formula
+    if per_index_cell:
+        formula_out = {}
+        coef_couplings = []
+        for x in groups:
+            # Add type-wise intercept:
+            formula_x = formula + "+" + f"{PREFIX_INDEX}{x}"
+            # Add couplings (type-type interactions):
+            coef_couplings_x = [f"{PREFIX_INDEX}{x}:{PREFIX_NEIGHBOR}{y}" for y in groups]
+            formula_out[x] = formula_x + "+" + "+".join(coef_couplings_x)
+            coef_couplings.extend(coef_couplings_x)
+    else:
+        # Add type-wise intercept:
+        formula = formula + "+" + "+".join([f"{PREFIX_INDEX}{x}" for x in groups])
+        # Add couplings (type-type interactions):
+        coef_couplings = [f"{PREFIX_INDEX}{x}:{PREFIX_NEIGHBOR}{y}" for y in groups for x in groups]
+        formula_out = formula + "+" + "+".join(coef_couplings)
+    return formula_out, coef_couplings
 
 
-def extend_formula_differential_ncem(formula: str, key_cond: str, groups: List[str]):
+def extend_formula_differential_ncem(formula: str, key_cond: str, groups: List[str], per_index_cell: bool = False):
     """
     Adds linear NCEM terms into formula.
 
@@ -39,18 +58,42 @@ def extend_formula_differential_ncem(formula: str, key_cond: str, groups: List[s
                       "index_TYPE-A:neighbor_TYPE-A+...+index_TYPE-C:neighbor_TYPE-C+"
                       "condition+condition:TYPE-A+...+condition:TYPE-C+"
                       "condition:index_TYPE-A:neighbor_TYPE-A+...+condition:index_TYPE-C:neighbor_TYPE-C"
+
+    Args:
+        formula: Base formula, may describe confounding for example.
+        groups: Cell type labels.
+        per_index_cell: Whether to yield formula per index cell type, ie if one separate linear model is fit for each
+            index cell type.
+
+    Returns: Full NCEM formula, or dictionary over index cell-wise formulas
     """
-    # Add type-wise intercept:
-    formula = formula + "+" + "+".join([f"{PREFIX_INDEX}{x}" for x in groups])
-    # Add couplings (type-type interactions):
-    coef_couplings = [f"{PREFIX_INDEX}{x}:{PREFIX_NEIGHBOR}{y}" for y in groups for x in groups]
-    formula = formula + "+" + "+".join(coef_couplings)
-    # Add condition interaction to type-wise intercept:
-    formula = formula + "+" + "+".join([f"{key_cond}:{PREFIX_INDEX}{x}" for x in groups])
-    # Add differential couplings (differential type-type interactions):
-    coef_diff_couplings = [f"{key_cond}:{PREFIX_INDEX}{x}:{PREFIX_NEIGHBOR}{y}" for y in groups for x in groups]
-    formula = formula + "+" + "+".join(coef_diff_couplings)
-    return formula
+    if per_index_cell:
+        formula_out = {}
+        coef_diff_couplings = []
+        for x in groups:
+            # Add type-wise intercept:
+            formula_x = formula + "+" + f"{PREFIX_INDEX}{x}"
+            # Add couplings (type-type interactions):
+            coef_couplings_x = [f"{PREFIX_INDEX}{x}:{PREFIX_NEIGHBOR}{y}" for y in groups]
+            formula_x = formula_x + "+" + "+".join(coef_couplings_x)
+            # Add condition interaction to type-wise intercept:
+            formula_x = formula_x + "+" + f"{PREFIX_INDEX}{x}:{key_cond}"
+            # Add differential couplings (differential type-type interactions):
+            coef_diff_couplings_x = [f"{PREFIX_INDEX}{x}:{PREFIX_NEIGHBOR}{y}:{key_cond}" for y in groups]
+            formula_out[x] = formula_x + "+" + "+".join(coef_diff_couplings_x)
+            coef_diff_couplings.extend(coef_diff_couplings_x)
+    else:
+        # Add type-wise intercept:
+        formula = formula + "+" + "+".join([f"{PREFIX_INDEX}{x}" for x in groups])
+        # Add couplings (type-type interactions):
+        coef_couplings = [f"{PREFIX_INDEX}{x}:{PREFIX_NEIGHBOR}{y}" for y in groups for x in groups]
+        formula = formula + "+" + "+".join(coef_couplings)
+        # Add condition interaction to type-wise intercept:
+        formula = formula + "+" + "+".join([f"{PREFIX_INDEX}{x}:{key_cond}" for x in groups])
+        # Add differential couplings (differential type-type interactions):
+        coef_diff_couplings = [f"{PREFIX_INDEX}{x}:{PREFIX_NEIGHBOR}{y}:{key_cond}" for y in groups for x in groups]
+        formula_out = formula + "+" + "+".join(coef_diff_couplings)
+    return formula_out, coef_diff_couplings
 
 
 def get_obs_niche_from_graph(adata: anndata.AnnData, obs_key_type, obsp_key_graph: str,
@@ -123,7 +166,8 @@ def get_dmat_from_obs(obs: pd.DataFrame, obs_niche: pd.DataFrame, formula: str, 
     return dmat
 
 
-def get_dmats_from_deconvoluted(obs: pd.DataFrame, deconv: pd.DataFrame, formula: str) -> Dict[str, pd.DataFrame]:
+def get_dmats_from_deconvoluted(obs: pd.DataFrame, deconv: pd.DataFrame, formulas: List[str]) -> \
+    Dict[str, pd.DataFrame]:
     """
     Create a design matrix per index cell from a sample description table and deconvolution results according to a
     patsy style formula.
@@ -132,6 +176,55 @@ def get_dmats_from_deconvoluted(obs: pd.DataFrame, deconv: pd.DataFrame, formula
     Example for cell types A, B, C:
         columns([batch]) + deconv -> columns([batch, type, index_A, index_B, index_C, neighbor_A, neighbor_B,
                                               neighbor_C])
+
+    See also get_dmat_global_from_deconvoluted(), coefficient names match between both functions.
+
+    Args:
+        obs: Observation-indexed table. Note: does not need spot annotation as obsm carries deconvolution table.
+        deconv: Deconvolution result table. Indexed by spots and cell types. E.g. a value from adata.obsm.
+        formulass: Model formula per index cell.
+
+    Returns: Design matrix.
+    """
+    assert obs.shape[0] == deconv.shape[0]
+    assert np.all(obs.index == deconv.index)
+    # 1. Create spot x cell-type-wise design matrix.
+    type_index_key = "type"
+    cell_types = deconv.columns
+    # Abundance of cell types in spot (niche):
+    obs_niche = pd.DataFrame(deconv.values, columns=[PREFIX_NEIGHBOR + x for x in deconv.columns], index=obs.index)
+    # 2. Get design matrices
+    # One hot encode index cells:
+    dummy_type_annotation = pd.DataFrame({type_index_key: deconv.columns})
+    dummy_type_annotation = _make_type_categorical(obs=dummy_type_annotation, key_type=type_index_key)
+    obs_index_type = pd.get_dummies(dummy_type_annotation, prefix=PREFIX_INDEX, prefix_sep='',
+                                    columns=[type_index_key], drop_first=False)
+    dmats = {}
+    for i, x in enumerate(cell_types):
+        # Create index cell annotation:
+        obs_index_type_x = pd.concat([obs_index_type.iloc[[i], [i]] for _ in range(obs.shape[0])], axis=0)
+        obs_index_type_x.index = obs.index
+        # Merge sample annotation:
+        obs_full = pd.concat([obs, obs_index_type_x, obs_niche], axis=1)
+        dmats[x] = patsy.dmatrix(formulas[x], obs_full)
+        dmats[x] = pd.DataFrame(np.asarray(dmats[x]), index=obs.index, columns=dmats[x].design_info.column_names)
+    return dmats
+
+
+def get_dmat_global_from_deconvoluted(obs: pd.DataFrame, deconv: pd.DataFrame, formula: str) -> pd.DataFrame:
+    """
+    Create a global design matrix from a sample description table and deconvolution results according to a
+    patsy style formula.
+
+
+    Example for cell types A, B, C:
+        columns([batch]) + deconv -> columns([batch, type, index_A, index_B, index_C, neighbor_A, neighbor_B,
+                                              neighbor_C])
+        and (cells, columns) -> (cells * types, columns), ie the design matrix treats each cell type per spot as an
+        observation. This broadcasting works as:
+            ([all spots for first index cell, ..., all spots for last index cell], columns)
+
+    See also get_dmats_from_deconvoluted(), coefficient names match between both functions.
 
     Args:
         obs: Observation-indexed table. Note: does not need spot annotation as obsm carries deconvolution table.
@@ -146,27 +239,23 @@ def get_dmats_from_deconvoluted(obs: pd.DataFrame, deconv: pd.DataFrame, formula
     type_index_key = "type"
     cell_types = deconv.columns
     # Abundance of cell types in spot (niche):
-    obs_niche = {
-        x: pd.DataFrame(deconv.values, columns=[PREFIX_NEIGHBOR + x for x in deconv.columns])
-        for x in cell_types
-    }
-    # One-hot encode index cell:
+    obs_niche = pd.DataFrame(deconv.values, columns=[PREFIX_NEIGHBOR + x for x in deconv.columns], index=obs.index)
+    # 2. Get design matrices
+    # One hot encode index cells:
     dummy_type_annotation = pd.DataFrame({type_index_key: deconv.columns})
     dummy_type_annotation = _make_type_categorical(obs=dummy_type_annotation, key_type=type_index_key)
     obs_index_type = pd.get_dummies(dummy_type_annotation, prefix=PREFIX_INDEX, prefix_sep='',
                                     columns=[type_index_key], drop_first=False)
-    obs_index_type = {x: pd.concat([obs_index_type.iloc[[i], :] for _ in range(obs.shape[0])], axis=0)
-                      for i, x in enumerate(cell_types)}
-    # Remaining spot annotation:
-    obs_unsqueezed = {x: obs for x in cell_types}
-    # 2. Get design matrix
-    dmats = {}
-    for x in cell_types:
-        # Merge sample annotation:
-        obs_unsqueezed[x].index = obs.index
+    dmats = []
+    for i, x in enumerate(cell_types):
+        # Create index cell annotation:
+        # Note that in contrast to get_dmats_from_deconvoluted(), we keep the full column space of the onehot encoding
+        # of index cells here as all index cells will be fit in one linear model.
+        obs_index_type_x = pd.concat([obs_index_type.iloc[[i], :] for _ in range(obs.shape[0])], axis=0)
         obs_index_type[x].index = obs.index
-        obs_niche[x].index = obs.index
-        obs_full = pd.concat([obs_unsqueezed[x], obs_index_type[x], obs_niche[x]], axis=1)
-        dmats[x] = patsy.dmatrix(formula, obs_full)
-        dmats[x] = pd.DataFrame(np.asarray(dmats[x]), index=obs.index, columns=dmats[x].design_info.column_names)
-    return dmats
+        # Merge sample annotation:
+        obs_full = pd.concat([obs, obs_index_type_x, obs_niche], axis=1)
+        dmat_x = patsy.dmatrix(formula, obs_full)
+        dmats.append(pd.DataFrame(np.asarray(dmat_x), index=obs.index, columns=dmat_x.design_info.column_names))
+    dmat = pd.concat(dmats, axis=0)
+    return dmat

@@ -8,7 +8,7 @@ def ols_fit(x_, y_):
         np.linalg.pinv(np.matmul(x_.T, x_)),
         x_.T
     )
-    # Denseify only per gene in loop over gene fits:
+    # Densify only per gene in loop over gene fits:
     if isinstance(y_, scipy.sparse.spmatrix):
         return np.array([
             np.matmul(

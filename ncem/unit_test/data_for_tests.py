@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import squidpy as sq
 
-KEY_ADJACENCY = "adjacency"
+KEY_ADJACENCY = "spatial_connectivities"
 KEY_BATCH = "batch"
 KEY_COND = "condition"
 KEY_DECONV = "deconv"
@@ -47,5 +47,5 @@ def get_adata(simulate_deconvoluted: bool = False, n_conds: int = 2) -> anndata.
             key_x: np.random.uniform(low=0., high=1., size=(n_obs,)),
             key_y: np.random.uniform(low=0., high=1., size=(n_obs,))
         }, index=adata.obs_names)
-        sq.gr.spatial_neighbors(adata, spatial_key=spatial_key, radius=0.1)
+        sq.gr.spatial_neighbors(adata, spatial_key=spatial_key, coord_type="generic", radius=0.1)
     return adata

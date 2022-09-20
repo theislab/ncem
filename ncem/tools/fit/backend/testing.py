@@ -1,71 +1,90 @@
-from typing import List
+from typing import Dict, List, Union
 
 import anndata
+import numpy as np
+from diffxpy.stats.stats import wald_test, wald_test_chisq
+from diffxpy.testing.correction import correct
 
 from ncem.tools.fit.constants import OBSM_KEY_DMAT, VARM_KEY_PARAMS, VARM_KEY_PVALs, VARM_KEY_FDR_PVALs
-from ncem.utils.wald_test import get_fim_inv, wald_test
+from ncem.utils.wald_test import get_fim_inv
 
 
-def _test_base(adata: anndata.AnnData, coef_to_test: List[str]) -> anndata.AnnData:
+def test_ncem(adata: anndata.AnnData, coef_to_test: Union[Dict[str, List[str]], List[str]]) -> anndata.AnnData:
     """
-    Base test function independent of NCEM variant that interfaces Wald test.
+    Test for NCEM with individual spatially localised entities, e.g. cell-resolution.
 
     Args:
         adata: AnnData instance with fits saved.
-        coef_to_test:
-
-    Returns:
-        Anndata instance with test output saved. Test output is one p-value, FDR-corrected p-value and log-fold change
-        per gene and type x type pair.
-
-    """
-    dmat = adata.obsm[OBSM_KEY_DMAT]
-    params = adata.varm[VARM_KEY_PARAMS]
-    fisher_inv = get_fim_inv(x=dmat, y=adata.X)
-    # TODO add in coeff to test here.
-    _, pvals, fdr_pvals = wald_test(params=params, fisher_inv=fisher_inv)
-    adata.varm[VARM_KEY_PVALs] = pvals
-    adata.varm[VARM_KEY_FDR_PVALs] = fdr_pvals
-    return adata
-
-
-def test_linear_ncem(adata: anndata.AnnData, term_type: str) -> anndata.AnnData:
-    """
-    Test for linear NCEM.
-
-    Args:
-        adata: AnnData instance with fits saved.
-        term_type: Name of cell type term used in formula, this is used to extract type coefficients that will
-            be used to define couplings.
+        coef_to_test: Names of coefficients to test, or named groups of coefficients for multi-parameter tests (dict).
 
     Returns:
         Anndata instance with test output saved. Test output is one p-value, FDR-corrected p-value and log-fold change
         per gene and type x type pair. The test signifies the coupling between any two cell types.
 
     """
-    # TODO
-    coef_to_test = None
-    adata = _test_base(adata=adata, coef_to_test=coef_to_test)
+    dmat = adata.obsm[OBSM_KEY_DMAT]
+    params = adata.varm[VARM_KEY_PARAMS]
+    fisher_inv = get_fim_inv(x=dmat, y=adata.X)
+    # Run multi-parameter Wald test:
+    parameter_names = params.columns.tolist()
+    pvals = {}
+    multi_parameter_tests = isinstance(coef_to_test, dict)
+    for x in coef_to_test:
+        if multi_parameter_tests:
+            idx = parameter_names.index(x)
+            theta_mle = params[:, idx]
+            theta_sd = fisher_inv[:, idx, idx]
+            theta_sd = np.nextafter(0, np.inf, out=theta_sd, where=theta_sd < np.nextafter(0, np.inf))
+            theta_sd = np.sqrt(theta_sd)
+            pvals_x = wald_test(theta_mle=theta_mle, theta_sd=theta_sd)
+        else:
+            idx = np.array([parameter_names.index(y) for y in x])
+            theta_mle = params[:, idx]
+            fisher_inv_subset = fisher_inv[:, idx, idx]
+            pvals_x = wald_test_chisq(theta_mle=theta_mle.T, theta_covar=fisher_inv_subset)
+        pvals[x] = pvals_x
+    # Run FDR correction:
+    qvals = correct(pvals)
+    # Write results to object:
+    adata.varm[VARM_KEY_PVALs] = pvals
+    adata.varm[VARM_KEY_FDR_PVALs] = qvals
     return adata
 
 
-def test_differential_ncem(adata: anndata.AnnData, term_condition: str, term_type: str) -> anndata.AnnData:
+def test_ncem_deconvoluted(adata: anndata.AnnData, coef_to_test: Union[Dict[str, List[str]], List[str]],
+                           cell_types: List[str]) -> anndata.AnnData:
     """
-    Test for differential NCEM.
+    Test for NCEM for deconvoluted spots.
 
     Args:
         adata: AnnData instance with fits saved.
-        term_condition: Name of condition term used in formula, this is used to extract condition coefficients that will
-            be tested.
-        term_type: Name of cell type term used in formula, this is used to extract type coefficients that will
-            be used to define couplings.
+        coef_to_test: Names of coefficients to test, or named groups of coefficients for multi-parameter tests (dict).
+        cell_types: Cell types that were deconvoluted to.
 
     Returns:
         Anndata instance with test output saved. Test output is one p-value, FDR-corrected p-value and log-fold change
-        per gene and type x type pair. The test signifies the differential coupling between any two cell types.
+        per gene and type x type pair. The test signifies the coupling between any two cell types.
 
     """
-    # TODO
-    coef_to_test = None
-    adata = _test_base(adata=adata, coef_to_test=coef_to_test)
+    # Run multi-parameter Wald test for each individually fit model (note that one linear model was fit for each index
+    # cell):
+    pvals = {}
+    for x in cell_types:
+        dmat_key = f"{OBSM_KEY_DMAT}_{x}"
+        dmat = adata.obsm[dmat_key]
+        # Subset parameter matrix to parameters of sub-model at hand (dmat).
+        params = adata.varm[VARM_KEY_PARAMS].loc[:, dmat.columns]
+        parameter_names = params.columns.tolist()
+        idx_coef_to_test = np.sort([parameter_names.index(x) for x in coef_to_test if x in parameter_names])
+        fisher_inv = get_fim_inv(x=dmat, y=adata.layers[x])
+        params_subset = params.values[:, idx_coef_to_test]
+        fisher_inv_subset = fisher_inv[:, idx_coef_to_test, :][:, :, idx_coef_to_test]
+        pvals[x] = wald_test_chisq(theta_mle=params_subset.T, theta_covar=fisher_inv_subset)
+    # Run FDR correction across all models:
+    pvals_flat = np.hstack(list(pvals.values()))
+    qvals_flat = correct(pvals_flat)
+    qvals = qvals_flat.reshape((len(cell_types), -1))
+    # Write results to object:
+    adata.varm[VARM_KEY_PVALs] = pvals
+    adata.varm[VARM_KEY_FDR_PVALs] = qvals
     return adata
