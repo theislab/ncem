@@ -20,7 +20,7 @@ def _slot_domain(adata):
 
 
 def test_differential_ncem():
-    adata = get_adata(report_deconvolution=False)
+    adata = get_adata(simulate_deconvoluted=False)
     adata = differential_ncem(adata=adata, formula=f"~0+{KEY_BATCH}", key_graph=KEY_ADJACENCY, key_type="type",
                               key_differential=KEY_COND)
     _slot_asserts(adata=adata)
@@ -28,7 +28,7 @@ def test_differential_ncem():
 
 
 def test_differential_ncem_deconvoluted():
-    adata = get_adata(report_deconvolution=True)
+    adata = get_adata(simulate_deconvoluted=True)
     adata = differential_ncem_deconvoluted(adata=adata, formula=f"~0+{KEY_BATCH}", key_differential=KEY_COND,
                                            key_deconvolution=KEY_DECONV)
     _slot_asserts(adata=adata)
@@ -36,14 +36,14 @@ def test_differential_ncem_deconvoluted():
 
 
 def test_linear_ncem():
-    adata = get_adata(report_deconvolution=False)
+    adata = get_adata(simulate_deconvoluted=False)
     adata = linear_ncem(adata=adata, formula=f"~0+{KEY_BATCH}", key_graph=KEY_ADJACENCY, key_type=KEY_TYPE)
     _slot_asserts(adata=adata)
     _slot_domain(adata=adata)
 
 
 def test_linear_ncem_deconvoluted():
-    adata = get_adata(report_deconvolution=True)
+    adata = get_adata(simulate_deconvoluted=True)
     adata = linear_ncem_deconvoluted(adata=adata, formula=f"~0+{KEY_BATCH}", key_deconvolution=KEY_DECONV)
     _slot_asserts(adata=adata)
     _slot_domain(adata=adata)

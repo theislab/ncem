@@ -1,6 +1,7 @@
 import anndata
 import numpy as np
 import pandas as pd
+import squidpy as sq
 
 KEY_ADJACENCY = "adjacency"
 KEY_BATCH = "batch"
@@ -9,12 +10,15 @@ KEY_DECONV = "deconv"
 KEY_TYPE = "type"
 
 
-def get_adata(report_deconvolution: bool = False, n_conds: int = 2) -> anndata.AnnData:
+def get_adata(simulate_deconvoluted: bool = False, n_conds: int = 2) -> anndata.AnnData:
     # TODO enables conditions > 2 to be used for more complex differential NCEM testing later on.
     n_obs = 200
     n_var = 10
     n_batches = 2
     n_types = 5
+    type_prefix = "type_"
+    cell_types = [f"{type_prefix}{i}" for i in range(n_types)]
+
     x = np.random.randint(low=0, high=10, size=(n_obs, n_var))
     a = np.random.randint(low=0, high=1, size=(n_obs, n_obs))
     a[np.arange(0, a.shape[0]), np.arange(0, a.shape[1])] = 1
@@ -25,11 +29,23 @@ def get_adata(report_deconvolution: bool = False, n_conds: int = 2) -> anndata.A
     obsp = {KEY_ADJACENCY: a}
     var = pd.DataFrame({}, index=[f"gene_{i}" for i in range(n_var)])
     adata = anndata.AnnData(X=x, obs=obs, obsp=obsp, var=var)
-    if report_deconvolution:
-        # Deconvolution is not normalized, this is not necessary.
+    if simulate_deconvoluted:
+        # Deconvoluted abundances are not normalized, this is not necessary.
         deconv = np.random.uniform(low=0.01, high=1., size=(n_obs, n_types))
-        adata.obsm[KEY_DECONV] = pd.DataFrame(deconv, columns=[f"type_{i}" for i in range(n_types)],
-                                              index=adata.obs_names)
+        adata.obsm[KEY_DECONV] = pd.DataFrame(deconv, columns=cell_types, index=adata.obs_names)
+        # Spot- and type-specific gene expression vectors:
+        for x in cell_types:
+            adata.layers[x] = np.random.randint(low=0, high=10, size=(n_obs, n_var))
     else:
-        adata.obs[KEY_TYPE] = [f"type_{i % n_types}" for i in range(n_obs)]
+        adata.obs[KEY_TYPE] = [cell_types[i % n_types] for i in range(n_obs)]
+        # Add spatial coordinates of individual cells:
+        spatial_key = "spatial"
+        key_x = "x"
+        key_y = "y"
+        # Segment locations:
+        adata.obsm[spatial_key] = pd.DataFrame({
+            key_x: np.random.uniform(low=0., high=1., size=(n_obs,)),
+            key_y: np.random.uniform(low=0., high=1., size=(n_obs,))
+        }, index=adata.obs_names)
+        sq.gr.spatial_neighbors(adata, spatial_key=spatial_key, radius=0.1)
     return adata

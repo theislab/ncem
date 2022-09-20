@@ -1,4 +1,4 @@
-from typing import List
+from typing import Dict, List
 
 import anndata
 import numpy as np
@@ -83,12 +83,12 @@ def get_obs_niche_from_graph(adata: anndata.AnnData, obs_key_type, obsp_key_grap
     # Cell type counts in each neighborhood:
     counts = g.dot(onehot_type.values)
     if marginalisation == "binary":
-        print(counts)
         obs_niche = np.asarray(np.asarray(counts > 0, dtype="int32"), dtype="float32")
     elif marginalisation == "sum":
         obs_niche = counts
     else:
         raise ValueError(marginalisation)
+    obs_niche = pd.DataFrame(obs_niche, index=adata.obs_names, columns=obs[obs_key_type].values.categories)
     return obs_niche
 
 
@@ -110,20 +110,23 @@ def get_dmat_from_obs(obs: pd.DataFrame, obs_niche: pd.DataFrame, formula: str, 
     """
     obs = _make_type_categorical(obs=obs, key_type=key_type)
     assert np.all(obs.index == obs_niche.index)
-    assert np.all([x in obs[key_type].categories for x in obs_niche.columns])
+    assert np.all([x in obs[key_type].values.categories for x in obs_niche.columns])
     # One-hot encode index cell:
-    obs_index_type = pd.get_dummies(obs, prefix=PREFIX_INDEX, prefix_sep='', columns=key_type, drop_first=False)
+    obs_index_type = pd.get_dummies(obs[[key_type]], prefix=PREFIX_INDEX, prefix_sep='', columns=[key_type],
+                                    drop_first=False)
     # Process niche table:
     obs_niche.columns = [PREFIX_NEIGHBOR + x for x in obs_niche.columns]
     # Merge sample annotation:
     obs_full = pd.concat([obs, obs_index_type, obs_niche], axis=1)
     dmat = patsy.dmatrix(formula, obs_full)
+    dmat = pd.DataFrame(np.asarray(dmat), index=obs.index, columns=dmat.design_info.column_names)
     return dmat
 
 
-def get_dmat_from_deconvoluted(obs: pd.DataFrame, deconv: pd.DataFrame, formula: str) -> pd.DataFrame:
+def get_dmats_from_deconvoluted(obs: pd.DataFrame, deconv: pd.DataFrame, formula: str) -> Dict[str, pd.DataFrame]:
     """
-    Create a design matrix from a sample description table and deconvolution results according to a patsy style formula.
+    Create a design matrix per index cell from a sample description table and deconvolution results according to a
+    patsy style formula.
 
 
     Example for cell types A, B, C:
@@ -137,24 +140,33 @@ def get_dmat_from_deconvoluted(obs: pd.DataFrame, deconv: pd.DataFrame, formula:
 
     Returns: Design matrix.
     """
+    assert obs.shape[0] == deconv.shape[0]
+    assert np.all(obs.index == deconv.index)
     # 1. Create spot x cell-type-wise design matrix.
     type_index_key = "type"
-    obs_niche = pd.concat([
-        pd.concat([pd.DataFrame(deconv.iloc[[i], :].values, columns=[PREFIX_NEIGHBOR + x for x in deconv.columns])
-                   for _ in range(deconv.shape[0])], axis=0)
-        for i in range(deconv.shape[0])], axis=0)
+    cell_types = deconv.columns
+    # Abundance of cell types in spot (niche):
+    obs_niche = {
+        x: pd.DataFrame(deconv.values, columns=[PREFIX_NEIGHBOR + x for x in deconv.columns])
+        for x in cell_types
+    }
     # One-hot encode index cell:
     dummy_type_annotation = pd.DataFrame({type_index_key: deconv.columns})
     dummy_type_annotation = _make_type_categorical(obs=dummy_type_annotation, key_type=type_index_key)
-    obs_index_type = pd.concat([
-        pd.concat([pd.get_dummies(dummy_type_annotation.iloc[[i], :], prefix=PREFIX_INDEX, prefix_sep='',
-                                  columns=[type_index_key], drop_first=False)
-                   for _ in range(deconv.shape[1])], axis=0)
-        for i in range(dummy_type_annotation.shape[0])], axis=0)
-    obs_unsqueezed = pd.concat([pd.concat([obs.iloc[i, :] for _ in range(deconv.shape[1])], axis=0)
-                                for i in range(obs.shape[0])], axis=0)
-    # Merge sample annotation:
-    obs_full = pd.concat([obs_unsqueezed, obs_index_type, obs_niche], axis=1)
+    obs_index_type = pd.get_dummies(dummy_type_annotation, prefix=PREFIX_INDEX, prefix_sep='',
+                                    columns=[type_index_key], drop_first=False)
+    obs_index_type = {x: pd.concat([obs_index_type.iloc[[i], :] for _ in range(obs.shape[0])], axis=0)
+                      for i, x in enumerate(cell_types)}
+    # Remaining spot annotation:
+    obs_unsqueezed = {x: obs for x in cell_types}
     # 2. Get design matrix
-    dmat = patsy.dmatrix(formula, obs_full)
-    return dmat
+    dmats = {}
+    for x in cell_types:
+        # Merge sample annotation:
+        obs_unsqueezed[x].index = obs.index
+        obs_index_type[x].index = obs.index
+        obs_niche[x].index = obs.index
+        obs_full = pd.concat([obs_unsqueezed[x], obs_index_type[x], obs_niche[x]], axis=1)
+        dmats[x] = patsy.dmatrix(formula, obs_full)
+        dmats[x] = pd.DataFrame(np.asarray(dmats[x]), index=obs.index, columns=dmats[x].design_info.column_names)
+    return dmats

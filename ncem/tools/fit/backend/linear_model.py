@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 
 from ncem.tools.fit.backend.design_matrix import extend_formula_ncem, extend_formula_differential_ncem, \
-    get_obs_niche_from_graph, get_dmat_from_deconvoluted, get_dmat_from_obs
+    get_obs_niche_from_graph, get_dmats_from_deconvoluted, get_dmat_from_obs
 from ncem.tools.fit.backend.ols_fit import ols_fit
 from ncem.tools.fit.backend.testing import test_linear_ncem, test_differential_ncem
 from ncem.tools.fit.constants import VARM_KEY_PARAMS, OBSM_KEY_NICHE
@@ -46,8 +46,8 @@ def differential_ncem(adata: anndata.AnnData, formula: str, key_differential: st
     adata.obsm[OBSM_KEY_NICHE] = get_obs_niche_from_graph(adata=adata, obs_key_type=key_type,
                                                           obsp_key_graph=key_graph, marginalisation="binary")
     dmat = get_dmat_from_obs(formula=formula, key_type=key_type, obs=adata.obs, obs_niche=adata.obsm[OBSM_KEY_NICHE])
-    ols = ols_fit(x_=dmat, y_=adata.X)
-    params = ols.squeeze()
+    params = ols_fit(x_=dmat.values, y_=adata.X)
+    params = pd.DataFrame(params.squeeze(), index=adata.var_names, columns=dmat.columns)
     adata.varm[VARM_KEY_PARAMS] = params
     term_condition = None
     term_type = None
@@ -63,7 +63,10 @@ def differential_ncem_deconvoluted(adata: anndata.AnnData, formula: str, key_dif
     TODO requires spatial graph to have been built or coordinates to be in fixed slots?
 
     Args:
-        adata: AnnData instance with data and annotation.
+        adata: AnnData instance with data and annotation. Note on placement of deconvolution output:
+
+                - type abundances must in be in .obsm[key_deconvolution] with cell type names as columns
+                - spot- and type-specific gene expression results must be layers named after types
         formula: Description of batch covariates as linear model. Do not include intercept, cell type, niche, or the
             differential term as this is automatically added.
         key_deconvolution: Key of type deconvolution in .obsm.
@@ -75,10 +78,14 @@ def differential_ncem_deconvoluted(adata: anndata.AnnData, formula: str, key_dif
     _validate_formula(formula=formula, auto_keys=[key_differential, key_deconvolution])
     groups = np.sort(adata.obsm[key_deconvolution].columns).tolist()
     formula = extend_formula_differential_ncem(formula=formula, groups=groups, key_cond=key_differential)
-    dmat = get_dmat_from_deconvoluted(deconv=adata.obsm[key_deconvolution], formula=formula, obs=adata.obs)
-    ols = ols_fit(x_=dmat, y_=adata.X)
-    params = ols.squeeze()
-    adata.varm[VARM_KEY_PARAMS] = params
+    dmats = get_dmats_from_deconvoluted(deconv=adata.obsm[key_deconvolution], formula=formula, obs=adata.obs)
+    for k, v in dmats.items():
+        params = ols_fit(x_=v.values, y_=adata.layers[k])
+        params = pd.DataFrame(params.squeeze(), index=adata.var_names, columns=v.columns)
+        if VARM_KEY_PARAMS in adata.varm.keys():
+            adata.varm[VARM_KEY_PARAMS] = pd.concat([adata.varm[VARM_KEY_PARAMS], params], axis=1)
+        else:
+            adata.varm[VARM_KEY_PARAMS] = params
     term_condition = None
     term_type = None
     adata = test_differential_ncem(adata=adata, term_condition=term_condition, term_type=term_type)
@@ -109,8 +116,8 @@ def linear_ncem(adata: anndata.AnnData, formula: str, key_type: str, key_graph: 
     adata.obsm[OBSM_KEY_NICHE] = get_obs_niche_from_graph(adata=adata, obs_key_type=key_type,
                                                           obsp_key_graph=key_graph, marginalisation="binary")
     dmat = get_dmat_from_obs(formula=formula, key_type=key_type, obs=adata.obs, obs_niche=adata.obsm[OBSM_KEY_NICHE])
-    ols = ols_fit(x_=dmat, y_=adata.X)
-    params = ols.squeeze()
+    params = ols_fit(x_=dmat.values, y_=adata.X)
+    params = pd.DataFrame(params.squeeze(), index=adata.var_names, columns=dmat.columns)
     adata.varm[VARM_KEY_PARAMS] = params
     adata = test_linear_ncem(adata=adata, term_type=key_type)
     return adata
@@ -124,7 +131,10 @@ def linear_ncem_deconvoluted(adata: anndata.AnnData, formula: str, key_deconvolu
     TODO requires spatial graph to have been built or coordinates to be in fixed slots?
 
     Args:
-        adata: AnnData instance with data and annotation.
+        adata: AnnData instance with data and annotation. Note on placement of deconvolution output:
+
+                - type abundances must in be in .obsm[key_deconvolution] with cell type names as columns
+                - spot- and type-specific gene expression results must be layers named after types
         formula: Description of batch covariates as linear model. Do not include intercept, cell type, or niche as
             this is automatically added.
         key_deconvolution: Key of type deconvolution in .obsm.
@@ -134,10 +144,15 @@ def linear_ncem_deconvoluted(adata: anndata.AnnData, formula: str, key_deconvolu
     """
     _validate_formula(formula=formula, auto_keys=[key_deconvolution])
     groups = np.sort(adata.obsm[key_deconvolution].columns).tolist()
+    assert np.all([x in adata.layers.keys() for x in groups])
     formula = extend_formula_ncem(formula=formula, groups=groups)
-    dmat = get_dmat_from_deconvoluted(deconv=adata.obsm[key_deconvolution], formula=formula, obs=adata.obs)
-    ols = ols_fit(x_=dmat, y_=adata.X)
-    params = ols.squeeze()
-    adata.varm[VARM_KEY_PARAMS] = params
+    dmats = get_dmats_from_deconvoluted(deconv=adata.obsm[key_deconvolution], formula=formula, obs=adata.obs)
+    for k, v in dmats.items():
+        params = ols_fit(x_=v.values, y_=adata.layers[k])
+        params = pd.DataFrame(params.squeeze(), index=adata.var_names, columns=v.columns)
+        if VARM_KEY_PARAMS in adata.varm.keys():
+            adata.varm[VARM_KEY_PARAMS] = pd.concat([adata.varm[VARM_KEY_PARAMS], params], axis=1)
+        else:
+            adata.varm[VARM_KEY_PARAMS] = params
     adata = test_linear_ncem(adata=adata, term_type=term_type)
     return adata
