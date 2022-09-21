@@ -6,18 +6,21 @@ import pandas as pd
 from diffxpy.stats.stats import wald_test, wald_test_chisq
 from diffxpy.testing.correction import correct
 
-from ncem.tools.fit.constants import OBSM_KEY_DMAT, VARM_KEY_FDR_PVALs, VARM_KEY_PARAMS, VARM_KEY_PVALs, \
-    VARM_KEY_TESTED_PARAMS
+from ncem.tools.fit.constants import OBSM_KEY_DMAT, VARM_KEY_PARAMS
 from ncem.utils.wald_test import get_fim_inv
 
 
-def test_ncem(adata: anndata.AnnData, coef_to_test: Union[Dict[str, List[str]], List[str]]) -> anndata.AnnData:
+def test_standard(adata: anndata.AnnData, coef_to_test: Union[Dict[str, List[str]], List[str]], key_coef: str,
+                  key_pval: str, key_fdr_pval: str) -> anndata.AnnData:
     """
-    Test for NCEM with individual spatially localised entities, e.g. cell-resolution.
+        Test for model with individual spatially localised entities, e.g. cell-resolution.
 
     Args:
         adata: AnnData instance with fits saved.
         coef_to_test: Names of coefficients to test, or named groups of coefficients for multi-parameter tests (dict).
+        key_coef: .varm key to write tested coefficient fits into.
+        key_pval: .varm key to write p-values into.
+        key_fdr_pval: .varm key to write FDR-corrected p-values into.
 
     Returns:
         Anndata instance with test output saved. Test output is one p-value, FDR-corrected p-value and log-fold change
@@ -58,21 +61,25 @@ def test_ncem(adata: anndata.AnnData, coef_to_test: Union[Dict[str, List[str]], 
     qvals_flat = correct(pvals_flat)
     qvals = qvals_flat.reshape((-1, len(test_keys)))
     # Write results to object:
-    adata.varm[VARM_KEY_TESTED_PARAMS] = pd.DataFrame(tested_coefficients, index=adata.var_names)
-    adata.varm[VARM_KEY_PVALs] = pd.DataFrame(pvals, index=adata.var_names)
-    adata.varm[VARM_KEY_FDR_PVALs] = pd.DataFrame(qvals, index=adata.var_names, columns=test_keys)
+    if key_coef is not None:
+        adata.varm[key_coef] = pd.DataFrame(tested_coefficients, index=adata.var_names)
+    adata.varm[key_pval] = pd.DataFrame(pvals, index=adata.var_names)
+    adata.varm[key_fdr_pval] = pd.DataFrame(qvals, index=adata.var_names, columns=test_keys)
     return adata
 
 
-def test_ncem_deconvoluted(adata: anndata.AnnData, coef_to_test: Union[Dict[str, List[str]], List[str]],
-                           cell_types: List[str]) -> anndata.AnnData:
+def test_deconvoluted(adata: anndata.AnnData, coef_to_test: Union[Dict[str, List[str]], List[str]],
+                      cell_types: List[str], key_coef: str, key_pval: str, key_fdr_pval: str) -> anndata.AnnData:
     """
-    Test for NCEM for deconvoluted spots.
+    Test for model of deconvoluted spots.
 
     Args:
         adata: AnnData instance with fits saved.
         coef_to_test: Names of coefficients to test, or named groups of coefficients for multi-parameter tests (dict).
         cell_types: Cell types that were deconvoluted to.
+        key_coef: .varm key to write tested coefficient fits into.
+        key_pval: .varm key to write p-values into.
+        key_fdr_pval: .varm key to write FDR-corrected p-values into.
 
     Returns:
         Anndata instance with test output saved. Test output is one p-value, FDR-corrected p-value and log-fold change
@@ -125,7 +132,8 @@ def test_ncem_deconvoluted(adata: anndata.AnnData, coef_to_test: Union[Dict[str,
     qvals_flat = correct(pvals_flat)
     qvals = qvals_flat.reshape((-1, len(test_keys)))
     # Write results to object:
-    adata.varm[VARM_KEY_TESTED_PARAMS] = pd.DataFrame(tested_coefficients, index=adata.var_names)
-    adata.varm[VARM_KEY_PVALs] = pd.DataFrame(pvals, index=adata.var_names)
-    adata.varm[VARM_KEY_FDR_PVALs] = pd.DataFrame(qvals, index=adata.var_names, columns=test_keys)
+    if key_coef is not None:
+        adata.varm[key_coef] = pd.DataFrame(tested_coefficients, index=adata.var_names)
+    adata.varm[key_pval] = pd.DataFrame(pvals, index=adata.var_names)
+    adata.varm[key_fdr_pval] = pd.DataFrame(qvals, index=adata.var_names, columns=test_keys)
     return adata

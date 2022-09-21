@@ -13,7 +13,7 @@ def _make_type_categorical(obs, key_type):
     return obs
 
 
-def extend_formula_ncem(formula: str, cell_types: List[str], per_index_cell: bool = False,
+def extend_formula_ncem(formula: str, cell_types: List[str], per_index_type: bool = False,
                         type_specific_confounders: List[str] = []) -> Tuple[str, List[str]]:
     """
     Adds linear NCEM terms into formula.
@@ -25,7 +25,7 @@ def extend_formula_ncem(formula: str, cell_types: List[str], per_index_cell: boo
     Args:
         formula: Base formula, may describe confounding for example.
         cell_types: Cell type labels.
-        per_index_cell: Whether to yield formula per index cell type, ie if one separate linear model is fit for each
+        per_index_type: Whether to yield formula per index cell type, ie if one separate linear model is fit for each
             index cell type.
         type_specific_confounders: List of confounding terms in obs to be added with an interaction term to cell
             types, ie confounders that act on the cell type level. Global confounders can be added in the formula.
@@ -35,7 +35,7 @@ def extend_formula_ncem(formula: str, cell_types: List[str], per_index_cell: boo
         - Full NCEM formula, or dictionary over index cell-wise formulas
         - List of coefficient names to test.
     """
-    if per_index_cell:
+    if per_index_type:
         formula_out = {}
         coef_couplings = []
         for x in cell_types:
@@ -63,7 +63,7 @@ def extend_formula_ncem(formula: str, cell_types: List[str], per_index_cell: boo
 
 
 def extend_formula_differential_ncem(formula: str, conditions: List[str], cell_types: List[str],
-                                     per_index_cell: bool = False, type_specific_confounders: List[str] = []) -> \
+                                     per_index_type: bool = False, type_specific_confounders: List[str] = []) -> \
     Tuple[str, Dict[str, List[str]]]:
     """
     Adds linear NCEM terms into formula.
@@ -78,7 +78,7 @@ def extend_formula_differential_ncem(formula: str, conditions: List[str], cell_t
         formula: Base formula, may describe confounding for example.
         cell_types: Cell type labels.
         conditions: List of condition names with first one dropped (ie the one that is absorbed into intercept).
-        per_index_cell: Whether to yield formula per index cell type, ie if one separate linear model is fit for each
+        per_index_type: Whether to yield formula per index cell type, ie if one separate linear model is fit for each
             index cell type.
         type_specific_confounders: List of confounding terms in obs to be added with an interaction term to cell
             types, ie confounders that act on the cell type level. Global confounders can be added in the formula.
@@ -89,7 +89,7 @@ def extend_formula_differential_ncem(formula: str, conditions: List[str], cell_t
         - Dictionary over coefficient names to test grouped by index-target cell type pair. Each value represents all
             interaction coefficients of that pair to all modelled conditions.
     """
-    if per_index_cell:
+    if per_index_type:
         formula_out = {}
         coef_diff_couplings_grouped = {}
         for x in cell_types:

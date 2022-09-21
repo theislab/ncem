@@ -7,8 +7,10 @@ import pandas as pd
 from ncem.tools.fit.backend.design_matrix import extend_formula_ncem, extend_formula_differential_ncem, \
     get_binary_sample_annotation_conditions, get_dmats_from_deconvoluted, get_dmat_from_obs, get_obs_niche_from_graph
 from ncem.tools.fit.backend.ols_fit import ols_fit
-from ncem.tools.fit.backend.testing import test_ncem, test_ncem_deconvoluted
-from ncem.tools.fit.constants import VARM_KEY_PARAMS, OBSM_KEY_DMAT, OBSM_KEY_NICHE
+from ncem.tools.fit.backend.testing import test_standard, test_deconvoluted
+from ncem.tools.fit.backend.utils import write_uns
+from ncem.tools.fit.constants import VARM_KEY_PARAMS, OBSM_KEY_DMAT, OBSM_KEY_DMAT_NICHE, VARM_KEY_FDR_PVALS, \
+    VARM_KEY_PVALS, VARM_KEY_TESTED_PARAMS, UNS_KEY_CELL_TYPES, UNS_KEY_CONDITIONS, UNS_KEY_PER_INDEX
 
 
 def _validate_formula(formula: str, auto_keys: List[str] = []):
@@ -44,17 +46,22 @@ def differential_ncem(adata: anndata.AnnData, key_differential: str, key_graph: 
     # Add one-hot encoded condition assignments into sample description so that they are available as terms for
     # formula.
     obs = pd.concat([adata.obs, obs_condition], axis=1)
+    per_index_type = False
     formula, coef_to_test = extend_formula_differential_ncem(formula=formula, cell_types=cell_types,
-                                                             conditions=conditions, per_index_cell=False,
+                                                             conditions=conditions, per_index_type=per_index_type,
                                                              type_specific_confounders=type_specific_confounders)
-    adata.obsm[OBSM_KEY_NICHE] = get_obs_niche_from_graph(adata=adata, obs_key_type=key_type,
-                                                          obsp_key_graph=key_graph, marginalisation="binary")
+    adata.obsm[OBSM_KEY_DMAT_NICHE] = get_obs_niche_from_graph(adata=adata, obs_key_type=key_type,
+                                                               obsp_key_graph=key_graph, marginalisation="binary")
     adata.obsm[OBSM_KEY_DMAT] = get_dmat_from_obs(formula=formula, key_type=key_type, obs=obs,
-                                                  obs_niche=adata.obsm[OBSM_KEY_NICHE])
+                                                  obs_niche=adata.obsm[OBSM_KEY_DMAT_NICHE])
     params = ols_fit(x_=adata.obsm[OBSM_KEY_DMAT].values, y_=adata.X)
     params = pd.DataFrame(params.squeeze(), index=adata.var_names, columns=adata.obsm[OBSM_KEY_DMAT].columns)
     adata.varm[VARM_KEY_PARAMS] = params
-    adata = test_ncem(adata=adata, coef_to_test=coef_to_test)
+    adata = test_standard(adata=adata, coef_to_test=coef_to_test, key_coef=VARM_KEY_TESTED_PARAMS,
+                          key_pval=VARM_KEY_PVALS, key_fdr_pval=VARM_KEY_FDR_PVALS)
+    write_uns(adata, k=UNS_KEY_CELL_TYPES, v=cell_types)
+    write_uns(adata, k=UNS_KEY_CONDITIONS, v=conditions)
+    write_uns(adata, k=UNS_KEY_PER_INDEX, v=per_index_type)
     return adata
 
 
@@ -89,8 +96,9 @@ def differential_ncem_deconvoluted(adata: anndata.AnnData, key_differential: str
     # Add one-hot encoded condition assignments into sample description so that they are available as terms for
     # formula.
     obs = pd.concat([adata.obs, obs_condition], axis=1)
+    per_index_type = True
     formulas, coef_to_test = extend_formula_differential_ncem(formula=formula, cell_types=cell_types,
-                                                              conditions=conditions, per_index_cell=True,
+                                                              conditions=conditions, per_index_type=per_index_type,
                                                               type_specific_confounders=type_specific_confounders)
     dmats = get_dmats_from_deconvoluted(deconv=adata.obsm[key_deconvolution], formulas=formulas, obs=obs)
     for k, v in dmats.items():
@@ -102,7 +110,11 @@ def differential_ncem_deconvoluted(adata: anndata.AnnData, key_differential: str
             adata.varm[VARM_KEY_PARAMS] = pd.concat([adata.varm[VARM_KEY_PARAMS], params], axis=1)
         else:
             adata.varm[VARM_KEY_PARAMS] = params
-    adata = test_ncem_deconvoluted(adata=adata, coef_to_test=coef_to_test, cell_types=cell_types)
+    adata = test_deconvoluted(adata=adata, coef_to_test=coef_to_test, cell_types=cell_types,
+                              key_coef=VARM_KEY_TESTED_PARAMS, key_pval=VARM_KEY_PVALS, key_fdr_pval=VARM_KEY_FDR_PVALS)
+    write_uns(adata, k=UNS_KEY_CELL_TYPES, v=cell_types)
+    write_uns(adata, k=UNS_KEY_CONDITIONS, v=conditions)
+    write_uns(adata, k=UNS_KEY_PER_INDEX, v=per_index_type)
     return adata
 
 
@@ -127,16 +139,20 @@ def linear_ncem(adata: anndata.AnnData, key_type: str, key_graph: str, formula: 
     """
     _validate_formula(formula=formula, auto_keys=[])
     cell_types = np.sort(np.unique(adata.obs[key_type].values)).tolist()
-    formula, coef_to_test = extend_formula_ncem(formula=formula, cell_types=cell_types, per_index_cell=False,
+    per_index_type = False
+    formula, coef_to_test = extend_formula_ncem(formula=formula, cell_types=cell_types, per_index_type=per_index_type,
                                                 type_specific_confounders=type_specific_confounders)
-    adata.obsm[OBSM_KEY_NICHE] = get_obs_niche_from_graph(adata=adata, obs_key_type=key_type,
-                                                          obsp_key_graph=key_graph, marginalisation="binary")
+    adata.obsm[OBSM_KEY_DMAT_NICHE] = get_obs_niche_from_graph(adata=adata, obs_key_type=key_type,
+                                                               obsp_key_graph=key_graph, marginalisation="binary")
     adata.obsm[OBSM_KEY_DMAT] = get_dmat_from_obs(formula=formula, key_type=key_type, obs=adata.obs,
-                                                  obs_niche=adata.obsm[OBSM_KEY_NICHE])
+                                                  obs_niche=adata.obsm[OBSM_KEY_DMAT_NICHE])
     params = ols_fit(x_=adata.obsm[OBSM_KEY_DMAT].values, y_=adata.X)
     params = pd.DataFrame(params.squeeze(), index=adata.var_names, columns=adata.obsm[OBSM_KEY_DMAT].columns)
     adata.varm[VARM_KEY_PARAMS] = params
-    adata = test_ncem(adata=adata, coef_to_test=coef_to_test)
+    adata = test_standard(adata=adata, coef_to_test=coef_to_test, key_coef=VARM_KEY_TESTED_PARAMS,
+                          key_pval=VARM_KEY_PVALS, key_fdr_pval=VARM_KEY_FDR_PVALS)
+    write_uns(adata, k=UNS_KEY_CELL_TYPES, v=cell_types)
+    write_uns(adata, k=UNS_KEY_PER_INDEX, v=per_index_type)
     return adata
 
 
@@ -165,7 +181,8 @@ def linear_ncem_deconvoluted(adata: anndata.AnnData,key_deconvolution: str, form
     _validate_formula(formula=formula, auto_keys=[key_deconvolution])
     cell_types = np.sort(adata.obsm[key_deconvolution].columns).tolist()
     assert np.all([x in adata.layers.keys() for x in cell_types])
-    formulas, coef_to_test = extend_formula_ncem(formula=formula, cell_types=cell_types, per_index_cell=True,
+    per_index_type = True
+    formulas, coef_to_test = extend_formula_ncem(formula=formula, cell_types=cell_types, per_index_type=per_index_type,
                                                  type_specific_confounders=type_specific_confounders)
     dmats = get_dmats_from_deconvoluted(deconv=adata.obsm[key_deconvolution], formulas=formulas, obs=adata.obs)
     for k, v in dmats.items():
@@ -177,5 +194,8 @@ def linear_ncem_deconvoluted(adata: anndata.AnnData,key_deconvolution: str, form
             adata.varm[VARM_KEY_PARAMS] = pd.concat([adata.varm[VARM_KEY_PARAMS], params], axis=1)
         else:
             adata.varm[VARM_KEY_PARAMS] = params
-    adata = test_ncem_deconvoluted(adata=adata, coef_to_test=coef_to_test, cell_types=cell_types)
+    adata = test_deconvoluted(adata=adata, coef_to_test=coef_to_test, cell_types=cell_types,
+                              key_coef=VARM_KEY_TESTED_PARAMS, key_pval=VARM_KEY_PVALS, key_fdr_pval=VARM_KEY_FDR_PVALS)
+    write_uns(adata, k=UNS_KEY_CELL_TYPES, v=cell_types)
+    write_uns(adata, k=UNS_KEY_PER_INDEX, v=per_index_type)
     return adata
