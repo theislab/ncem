@@ -2,6 +2,7 @@ from typing import Dict, List, Union
 
 import anndata
 import numpy as np
+import pandas as pd
 from diffxpy.stats.stats import wald_test, wald_test_chisq
 from diffxpy.testing.correction import correct
 
@@ -38,7 +39,7 @@ def test_ncem(adata: anndata.AnnData, coef_to_test: Union[Dict[str, List[str]], 
             theta_sd = np.sqrt(theta_sd)
             pvals_x = wald_test(theta_mle=theta_mle, theta_sd=theta_sd)
         else:
-            idx = np.array([parameter_names.index(y) for y in x])
+            idx = [parameter_names.index(x)]
             theta_mle = params[:, idx]
             fisher_inv_subset = fisher_inv[:, idx, idx]
             pvals_x = wald_test_chisq(theta_mle=theta_mle.T, theta_covar=fisher_inv_subset)
@@ -46,8 +47,8 @@ def test_ncem(adata: anndata.AnnData, coef_to_test: Union[Dict[str, List[str]], 
     # Run FDR correction:
     qvals = correct(pvals)
     # Write results to object:
-    adata.varm[VARM_KEY_PVALs] = pvals
-    adata.varm[VARM_KEY_FDR_PVALs] = qvals
+    adata.varm[VARM_KEY_PVALs] = pd.DataFrame(pvals, index=adata.var_names)
+    adata.varm[VARM_KEY_FDR_PVALs] = pd.DataFrame(qvals, index=adata.var_names, columns=coef_to_test)
     return adata
 
 
@@ -83,8 +84,8 @@ def test_ncem_deconvoluted(adata: anndata.AnnData, coef_to_test: Union[Dict[str,
     # Run FDR correction across all models:
     pvals_flat = np.hstack(list(pvals.values()))
     qvals_flat = correct(pvals_flat)
-    qvals = qvals_flat.reshape((len(cell_types), -1))
+    qvals = qvals_flat.reshape((-1, len(cell_types)))
     # Write results to object:
-    adata.varm[VARM_KEY_PVALs] = pvals
-    adata.varm[VARM_KEY_FDR_PVALs] = qvals
+    adata.varm[VARM_KEY_PVALs] = pd.DataFrame(pvals, index=adata.var_names)
+    adata.varm[VARM_KEY_FDR_PVALs] = pd.DataFrame(qvals, index=adata.var_names, columns=cell_types)
     return adata
