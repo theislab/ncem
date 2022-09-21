@@ -32,20 +32,22 @@ def test_ncem(adata: anndata.AnnData, coef_to_test: Union[Dict[str, List[str]], 
     multi_parameter_tests = isinstance(coef_to_test, dict)
     for x in coef_to_test:
         if multi_parameter_tests:
+            idx = [parameter_names.index(x)]
+            theta_mle = params.values[:, idx]
+            theta_covar = fisher_inv[:, idx, idx]
+            pvals_x = wald_test_chisq(theta_mle=theta_mle.T, theta_covar=theta_covar)
+        else:
             idx = parameter_names.index(x)
-            theta_mle = params[:, idx]
+            theta_mle = params.values[:, idx]
             theta_sd = fisher_inv[:, idx, idx]
             theta_sd = np.nextafter(0, np.inf, out=theta_sd, where=theta_sd < np.nextafter(0, np.inf))
             theta_sd = np.sqrt(theta_sd)
             pvals_x = wald_test(theta_mle=theta_mle, theta_sd=theta_sd)
-        else:
-            idx = [parameter_names.index(x)]
-            theta_mle = params[:, idx]
-            fisher_inv_subset = fisher_inv[:, idx, idx]
-            pvals_x = wald_test_chisq(theta_mle=theta_mle.T, theta_covar=fisher_inv_subset)
         pvals[x] = pvals_x
     # Run FDR correction:
-    qvals = correct(pvals)
+    pvals_flat = np.hstack(list(pvals.values()))
+    qvals_flat = correct(pvals_flat)
+    qvals = qvals_flat.reshape((-1, len(coef_to_test)))
     # Write results to object:
     adata.varm[VARM_KEY_PVALs] = pd.DataFrame(pvals, index=adata.var_names)
     adata.varm[VARM_KEY_FDR_PVALs] = pd.DataFrame(qvals, index=adata.var_names, columns=coef_to_test)
@@ -78,9 +80,9 @@ def test_ncem_deconvoluted(adata: anndata.AnnData, coef_to_test: Union[Dict[str,
         parameter_names = params.columns.tolist()
         idx_coef_to_test = np.sort([parameter_names.index(x) for x in coef_to_test if x in parameter_names])
         fisher_inv = get_fim_inv(x=dmat, y=adata.layers[x])
-        params_subset = params.values[:, idx_coef_to_test]
+        theta_mle = params.values[:, idx_coef_to_test]
         fisher_inv_subset = fisher_inv[:, idx_coef_to_test, :][:, :, idx_coef_to_test]
-        pvals[x] = wald_test_chisq(theta_mle=params_subset.T, theta_covar=fisher_inv_subset)
+        pvals[x] = wald_test_chisq(theta_mle=theta_mle.T, theta_covar=fisher_inv_subset)
     # Run FDR correction across all models:
     pvals_flat = np.hstack(list(pvals.values()))
     qvals_flat = correct(pvals_flat)

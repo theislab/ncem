@@ -3,7 +3,7 @@ import numpy as np
 from ncem.tools.fit.constants import VARM_KEY_PARAMS, VARM_KEY_PVALs, VARM_KEY_FDR_PVALs
 from ncem.tools.fit.glm import differential_ncem, differential_ncem_deconvoluted, linear_ncem, linear_ncem_deconvoluted
 
-from ncem.unit_test.data_for_tests import get_adata, KEY_ADJACENCY, KEY_BATCH, KEY_COND, KEY_DECONV, KEY_TYPE
+from ncem.unit_test.data_for_tests import get_adata, KEY_ADJACENCY, KEY_COND, KEY_DECONV, KEY_TYPE
 
 
 def _slot_asserts(adata):

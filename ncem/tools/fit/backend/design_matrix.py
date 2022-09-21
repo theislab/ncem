@@ -14,7 +14,7 @@ def _make_type_categorical(obs, key_type):
     return obs
 
 
-def extend_formula_ncem(formula: str, groups: List[str], per_index_cell: bool = False):
+def extend_formula_ncem(formula: str, cell_types: List[str], per_index_cell: bool = False):
     """
     Adds linear NCEM terms into formula.
 
@@ -24,7 +24,7 @@ def extend_formula_ncem(formula: str, groups: List[str], per_index_cell: bool = 
 
     Args:
         formula: Base formula, may describe confounding for example.
-        groups: Cell type labels.
+        cell_types: Cell type labels.
         per_index_cell: Whether to yield formula per index cell type, ie if one separate linear model is fit for each
             index cell type.
 
@@ -33,35 +33,37 @@ def extend_formula_ncem(formula: str, groups: List[str], per_index_cell: bool = 
     if per_index_cell:
         formula_out = {}
         coef_couplings = []
-        for x in groups:
+        for x in cell_types:
             # Add type-wise intercept:
             formula_x = formula + "+" + f"{PREFIX_INDEX}{x}"
             # Add couplings (type-type interactions):
-            coef_couplings_x = [f"{PREFIX_INDEX}{x}:{PREFIX_NEIGHBOR}{y}" for y in groups]
+            coef_couplings_x = [f"{PREFIX_INDEX}{x}:{PREFIX_NEIGHBOR}{y}" for y in cell_types]
             formula_out[x] = formula_x + "+" + "+".join(coef_couplings_x)
             coef_couplings.extend(coef_couplings_x)
     else:
         # Add type-wise intercept:
-        formula = formula + "+" + "+".join([f"{PREFIX_INDEX}{x}" for x in groups])
+        formula = formula + "+" + "+".join([f"{PREFIX_INDEX}{x}" for x in cell_types])
         # Add couplings (type-type interactions):
-        coef_couplings = [f"{PREFIX_INDEX}{x}:{PREFIX_NEIGHBOR}{y}" for y in groups for x in groups]
+        coef_couplings = [f"{PREFIX_INDEX}{x}:{PREFIX_NEIGHBOR}{y}" for y in cell_types for x in cell_types]
         formula_out = formula + "+" + "+".join(coef_couplings)
     return formula_out, coef_couplings
 
 
-def extend_formula_differential_ncem(formula: str, key_cond: str, groups: List[str], per_index_cell: bool = False):
+def extend_formula_differential_ncem(formula: str, conditions: List[str], cell_types: List[str],
+                                     per_index_cell: bool = False):
     """
     Adds linear NCEM terms into formula.
 
     Example for cell types A, B, C:
         "~0+batch" -> "~0+batch+TYPE-A+...+TYPE-C+"
                       "index_TYPE-A:neighbor_TYPE-A+...+index_TYPE-C:neighbor_TYPE-C+"
-                      "condition+condition:TYPE-A+...+condition:TYPE-C+"
-                      "condition:index_TYPE-A:neighbor_TYPE-A+...+condition:index_TYPE-C:neighbor_TYPE-C"
+                      "condition_1+TYPE-A:condition_1+...+TYPE-C:condition_1+"
+                      "index_TYPE-A:neighbor_TYPE-A:condition_1+...+index_TYPE-C:neighbor_TYPE-C:condition_1"
 
     Args:
         formula: Base formula, may describe confounding for example.
-        groups: Cell type labels.
+        cell_types: Cell type labels.
+        conditions: List of condition names with first one dropped (ie the one that is absorbed into intercept).
         per_index_cell: Whether to yield formula per index cell type, ie if one separate linear model is fit for each
             index cell type.
 
@@ -70,29 +72,32 @@ def extend_formula_differential_ncem(formula: str, key_cond: str, groups: List[s
     if per_index_cell:
         formula_out = {}
         coef_diff_couplings = []
-        for x in groups:
+        for x in cell_types:
             # Add type-wise intercept:
             formula_x = formula + "+" + f"{PREFIX_INDEX}{x}"
             # Add couplings (type-type interactions):
-            coef_couplings_x = [f"{PREFIX_INDEX}{x}:{PREFIX_NEIGHBOR}{y}" for y in groups]
+            coef_couplings_x = [f"{PREFIX_INDEX}{x}:{PREFIX_NEIGHBOR}{y}" for y in cell_types]
             formula_x = formula_x + "+" + "+".join(coef_couplings_x)
-            # Add condition interaction to type-wise intercept:
-            formula_x = formula_x + "+" + f"{PREFIX_INDEX}{x}:{key_cond}"
-            # Add differential couplings (differential type-type interactions):
-            coef_diff_couplings_x = [f"{PREFIX_INDEX}{x}:{PREFIX_NEIGHBOR}{y}:{key_cond}" for y in groups]
-            formula_out[x] = formula_x + "+" + "+".join(coef_diff_couplings_x)
-            coef_diff_couplings.extend(coef_diff_couplings_x)
+            for c in conditions:
+                # Add condition interaction to type-wise intercept:
+                formula_x = formula_x + "+" + f"{PREFIX_INDEX}{x}:{c}"
+                # Add differential couplings (differential type-type interactions):
+                coef_diff_couplings_x = [f"{PREFIX_INDEX}{x}:{PREFIX_NEIGHBOR}{y}:{c}" for y in cell_types]
+                formula_out[x] = formula_x + "+" + "+".join(coef_diff_couplings_x)
+                coef_diff_couplings.extend(coef_diff_couplings_x)
     else:
         # Add type-wise intercept:
-        formula = formula + "+" + "+".join([f"{PREFIX_INDEX}{x}" for x in groups])
+        formula = formula + "+" + "+".join([f"{PREFIX_INDEX}{x}" for x in cell_types])
         # Add couplings (type-type interactions):
-        coef_couplings = [f"{PREFIX_INDEX}{x}:{PREFIX_NEIGHBOR}{y}" for y in groups for x in groups]
+        coef_couplings = [f"{PREFIX_INDEX}{x}:{PREFIX_NEIGHBOR}{y}" for y in cell_types for x in cell_types]
         formula = formula + "+" + "+".join(coef_couplings)
-        # Add condition interaction to type-wise intercept:
-        formula = formula + "+" + "+".join([f"{PREFIX_INDEX}{x}:{key_cond}" for x in groups])
-        # Add differential couplings (differential type-type interactions):
-        coef_diff_couplings = [f"{PREFIX_INDEX}{x}:{PREFIX_NEIGHBOR}{y}:{key_cond}" for y in groups for x in groups]
-        formula_out = formula + "+" + "+".join(coef_diff_couplings)
+        for c in conditions:
+            # Add condition interaction to type-wise intercept:
+            formula = formula + "+" + "+".join([f"{PREFIX_INDEX}{x}:{c}" for x in cell_types])
+            # Add differential couplings (differential type-type interactions):
+            coef_diff_couplings = [f"{PREFIX_INDEX}{x}:{PREFIX_NEIGHBOR}{y}:{c}"
+                                   for y in cell_types for x in cell_types]
+            formula_out = formula + "+" + "+".join(coef_diff_couplings)
     return formula_out, coef_diff_couplings
 
 
@@ -133,6 +138,27 @@ def get_obs_niche_from_graph(adata: anndata.AnnData, obs_key_type, obsp_key_grap
         raise ValueError(marginalisation)
     obs_niche = pd.DataFrame(obs_niche, index=adata.obs_names, columns=obs[obs_key_type].values.categories)
     return obs_niche
+
+
+def get_binary_sample_annotation_conditions(obs: pd.DataFrame, formula: str) -> pd.DataFrame:
+    """
+    Create a design matrix from a sample description table according to a patsy style formula.
+
+
+    Note that we are switching from addressing "condition" as a multi-factor categorical to multiple binary
+    terms here so that coefficient names are easier to control in formula assembly and testing.
+
+    Args:
+        obs: Observation-indexed table.
+        formula: Model formula.
+
+    Returns: Design matrix.
+    """
+    dmat = patsy.dmatrix(formula, obs)
+    # Simplify condition names, this is necessary for patsy to accept these as terms later.
+    conditions = [x.split("[T.")[-1].replace("]", "") for x in dmat.design_info.column_names]
+    dmat = pd.DataFrame(np.asarray(dmat), index=obs.index, columns=conditions)
+    return dmat
 
 
 def get_dmat_from_obs(obs: pd.DataFrame, obs_niche: pd.DataFrame, formula: str, key_type: str) -> pd.DataFrame:
@@ -182,7 +208,7 @@ def get_dmats_from_deconvoluted(obs: pd.DataFrame, deconv: pd.DataFrame, formula
     Args:
         obs: Observation-indexed table. Note: does not need spot annotation as obsm carries deconvolution table.
         deconv: Deconvolution result table. Indexed by spots and cell types. E.g. a value from adata.obsm.
-        formulass: Model formula per index cell.
+        formulas: Model formula per index cell.
 
     Returns: Design matrix.
     """
