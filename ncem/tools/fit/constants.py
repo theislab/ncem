@@ -4,16 +4,22 @@ OBSM_KEY_DMAT = "ncem_dmat"
 OBSM_KEY_DMAT_NICHE = "ncem_niche"
 # All fitted parameters:
 VARM_KEY_PARAMS = "ncem_params"
-# Coefficient values of tested parameters:
+# Coefficient values of tested parameters of NCEM:
 VARM_KEY_TESTED_PARAMS = "ncem_tested_params"
-# P-values of pair-wise type interactions (intercept or condition effect in linear and differential NCEM respectively):
+# P-values of pair-wise type interactions (intercept):
 VARM_KEY_PVALS = "ncem_pvals"
 # FDR correction of VARM_KEY_PVALS:
 VARM_KEY_FDR_PVALS = "ncem_fdr_pvals"
+# Coefficient values of tested parameters of differential NCEM:
+VARM_KEY_TESTED_PARAMS_DIFFERENTIAL = "differential_ncem_tested_params"
+# P-values of pair-wise type interactions (interaction of condition to type pair interactions):
+VARM_KEY_PVALS_DIFFERENTIAL = "differential_ncem_pvals"
+# FDR correction of VARM_KEY_PVALS_DIFFERENTIAL:
+VARM_KEY_FDR_PVALS_DIFFERENTIAL = "differential_ncem_fdr_pvals"
 # P-values of spline coefficients which indicate if spline fit is non-constant:
-VARM_KEY_PVALS_SPLINE = "ncem_pvals_spline"
+VARM_KEY_PVALS_SPLINE = "ncem_spline_pvals"
 # FDR correction of VARM_KEY_PVALS_SPLINE:
-VARM_KEY_FDR_PVALS_SPLINE = "ncem_fdr_pvals_spline"
+VARM_KEY_FDR_PVALS_SPLINE = "ncem_spline_fdr_pvals"
 # .uns key under which list of modelled cell types is saved:
 UNS_KEY_CELL_TYPES = "cell_types"
 # .uns key under which list of modelled conditions is saved (used for differential mode):

@@ -1,3 +1,4 @@
+import anndata
 import numpy as np
 import pandas as pd
 import pytest
@@ -13,25 +14,25 @@ from ncem.unit_test.tools.fit.test_glm import _assert_slot_keys, _assert_slot_do
 HYPERPARAMS_SPLINE = {"df": 3, "spline_family": "cr", "key_1d_coord": KEY_1D}
 
 
-def _assert_slot_keys_spline(adata):
+def _assert_slot_keys_spline(adata: anndata.AnnData, differential: bool):
     """Asserts that all relevant slots in adata were set in NCEM method."""
-    _assert_slot_keys(adata)
+    _assert_slot_keys(adata, differential=differential)
     # Spline-specific:
     assert VARM_KEY_PVALS_SPLINE in adata.varm.keys()
     assert VARM_KEY_FDR_PVALS_SPLINE in adata.varm.keys()
 
 
-def _assert_slot_domain_spline(adata):
+def _assert_slot_domain_spline(adata: anndata.AnnData, differential: bool):
     """Asserts numerical domain of slot entries, e.g. positive."""
-    _assert_slot_domain(adata)
+    _assert_slot_domain(adata, differential=differential)
     # Spline-specific:
     assert np.all(adata.varm[VARM_KEY_PVALS_SPLINE] >= 0.) and np.all(adata.varm[VARM_KEY_PVALS_SPLINE] <= 1.)
     assert np.all(adata.varm[VARM_KEY_FDR_PVALS_SPLINE] >= 0.) and np.all(adata.varm[VARM_KEY_FDR_PVALS_SPLINE] <= 1.)
 
 
-def _assert_slot_dimension_spline(adata):
+def _assert_slot_dimension_spline(adata: anndata.AnnData, differential: bool):
     """Asserts that slots have correct dimensions and dimension names."""
-    _assert_slot_dimension(adata)
+    _assert_slot_dimension(adata, differential=differential)
 
 
 def _test_spline_extrapolation(adata):
@@ -53,9 +54,9 @@ def test_spline_differential_ncem(n_conds, confounders):
     adata = spline_differential_ncem(adata=adata, formula=f"~0", key_graph=KEY_ADJACENCY, key_type="type",
                                      key_differential=KEY_COND, type_specific_confounders=confounders,
                                      **HYPERPARAMS_SPLINE)
-    _assert_slot_keys(adata=adata)
-    _assert_slot_domain(adata=adata)
-    _assert_slot_dimension(adata=adata)
+    _assert_slot_keys_spline(adata=adata, differential=True)
+    _assert_slot_domain_spline(adata=adata, differential=True)
+    _assert_slot_dimension_spline(adata=adata, differential=True)
     _test_spline_extrapolation(adata=adata)
 
 
@@ -66,9 +67,9 @@ def test_spline_differential_ncem_deconvoluted(n_conds, confounders):
     adata = spline_differential_ncem_deconvoluted(adata=adata, formula=f"~0", key_differential=KEY_COND,
                                                   key_deconvolution=KEY_DECONV, type_specific_confounders=confounders,
                                                   **HYPERPARAMS_SPLINE)
-    _assert_slot_keys(adata=adata)
-    _assert_slot_domain(adata=adata)
-    _assert_slot_dimension(adata=adata)
+    _assert_slot_keys_spline(adata=adata, differential=True)
+    _assert_slot_domain_spline(adata=adata, differential=True)
+    _assert_slot_dimension_spline(adata=adata, differential=True)
     _test_spline_extrapolation(adata=adata)
 
 
@@ -77,9 +78,9 @@ def test_spline_linear_ncem(confounders):
     adata = get_adata_1d(simulate_deconvoluted=False)
     adata = spline_linear_ncem(adata=adata, formula=f"~0", key_graph=KEY_ADJACENCY, key_type=KEY_TYPE,
                                type_specific_confounders=confounders, **HYPERPARAMS_SPLINE)
-    _assert_slot_keys(adata=adata)
-    _assert_slot_domain(adata=adata)
-    _assert_slot_dimension(adata=adata)
+    _assert_slot_keys_spline(adata=adata, differential=False)
+    _assert_slot_domain_spline(adata=adata, differential=False)
+    _assert_slot_dimension_spline(adata=adata, differential=False)
     _test_spline_extrapolation(adata=adata)
 
 
@@ -88,7 +89,7 @@ def test_spline_linear_ncem_deconvoluted(confounders):
     adata = get_adata_1d(simulate_deconvoluted=True)
     adata = spline_linear_ncem_deconvoluted(adata=adata, formula=f"~0", key_deconvolution=KEY_DECONV,
                                             type_specific_confounders=confounders, **HYPERPARAMS_SPLINE)
-    _assert_slot_keys(adata=adata)
-    _assert_slot_domain(adata=adata)
-    _assert_slot_dimension(adata=adata)
+    _assert_slot_keys_spline(adata=adata, differential=False)
+    _assert_slot_domain_spline(adata=adata, differential=False)
+    _assert_slot_dimension_spline(adata=adata, differential=False)
     _test_spline_extrapolation(adata=adata)

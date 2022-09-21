@@ -64,7 +64,7 @@ def extend_formula_ncem(formula: str, cell_types: List[str], per_index_type: boo
 
 def extend_formula_differential_ncem(formula: str, conditions: List[str], cell_types: List[str],
                                      per_index_type: bool = False, type_specific_confounders: List[str] = []) -> \
-    Tuple[str, Dict[str, List[str]]]:
+    Tuple[str, List[str], Dict[str, List[str]]]:
     """
     Adds linear NCEM terms into formula.
 
@@ -86,12 +86,14 @@ def extend_formula_differential_ncem(formula: str, conditions: List[str], cell_t
     Returns:
 
         - Full NCEM formula, or dictionary over index cell-wise formulas
-        - Dictionary over coefficient names to test grouped by index-target cell type pair. Each value represents all
-            interaction coefficients of that pair to all modelled conditions.
+        - Coefficients to test for NCEM: List of coefficient names to test.
+        - Coefficients to test for differential NCEM: Dictionary over coefficient names to test grouped by index-target
+            cell type pair. Each value represents all interaction coefficients of that pair to all modelled conditions.
     """
+    coef_diff_couplings_grouped = {}
     if per_index_type:
+        coef_couplings = []
         formula_out = {}
-        coef_diff_couplings_grouped = {}
         for x in cell_types:
             formula_x = formula
             # Add type-specific confounders:
@@ -101,6 +103,7 @@ def extend_formula_differential_ncem(formula: str, conditions: List[str], cell_t
             formula_x = formula_x + "+" + f"{PREFIX_INDEX}{x}"
             # Add couplings (type-type interactions):
             coef_couplings_x = [f"{PREFIX_INDEX}{x}:{PREFIX_NEIGHBOR}{y}" for y in cell_types]
+            coef_couplings.extend(coef_couplings_x)
             formula_x = formula_x + "+" + "+".join(coef_couplings_x)
             for c in conditions:
                 # Add condition interaction to type-wise intercept:
@@ -116,7 +119,6 @@ def extend_formula_differential_ncem(formula: str, conditions: List[str], cell_t
                     coef_diff_couplings_grouped[pair_name].append(f"{PREFIX_INDEX}{x}:{PREFIX_NEIGHBOR}{y}:{c}")
                 formula_out[x] = formula_x
     else:
-        coef_diff_couplings_grouped = {}
         # Add type-specific confounders:
         if len(type_specific_confounders) > 0:
             formula = formula + "+" + "+".join([f"{PREFIX_INDEX}{x}:{y}" for y in type_specific_confounders
@@ -141,7 +143,7 @@ def extend_formula_differential_ncem(formula: str, conditions: List[str], cell_t
                         coef_diff_couplings_grouped[pair_name] = []
                     coef_diff_couplings_grouped[pair_name].append(f"{PREFIX_INDEX}{x}:{PREFIX_NEIGHBOR}{y}:{c}")
         formula_out = formula
-    return formula_out, coef_diff_couplings_grouped
+    return formula_out, coef_couplings, coef_diff_couplings_grouped
 
 
 def get_obs_niche_from_graph(adata: anndata.AnnData, obs_key_type, obsp_key_graph: str,

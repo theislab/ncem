@@ -121,8 +121,9 @@ def spline_differential_ncem(adata: anndata.AnnData, df: int, key_1d_coord: str,
     return adata
 
 
-def spline_differential_ncem_deconvoluted(adata: anndata.AnnData, df: int, key_1d_coord: str, key_differential: str, key_deconvolution: str,
-                                   formula: str = "~0", spline_family: str = "cr", type_specific_confounders: List[str] = []):
+def spline_differential_ncem_deconvoluted(adata: anndata.AnnData, df: int, key_1d_coord: str, key_differential: str,
+                                          key_deconvolution: str, formula: str = "~0", spline_family: str = "cr",
+                                          type_specific_confounders: List[str] = []):
     """
     Fit a differential NCEM based on deconvoluted data in an adata instance and save fits in instance.
 

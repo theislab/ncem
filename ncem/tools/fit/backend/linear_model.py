@@ -10,7 +10,8 @@ from ncem.tools.fit.backend.ols_fit import ols_fit
 from ncem.tools.fit.backend.testing import test_standard, test_deconvoluted
 from ncem.tools.fit.backend.utils import write_uns
 from ncem.tools.fit.constants import VARM_KEY_PARAMS, OBSM_KEY_DMAT, OBSM_KEY_DMAT_NICHE, VARM_KEY_FDR_PVALS, \
-    VARM_KEY_PVALS, VARM_KEY_TESTED_PARAMS, UNS_KEY_CELL_TYPES, UNS_KEY_CONDITIONS, UNS_KEY_PER_INDEX
+    VARM_KEY_FDR_PVALS_DIFFERENTIAL,  VARM_KEY_PVALS, VARM_KEY_PVALS_DIFFERENTIAL, VARM_KEY_TESTED_PARAMS, \
+    VARM_KEY_TESTED_PARAMS_DIFFERENTIAL, UNS_KEY_CELL_TYPES, UNS_KEY_CONDITIONS, UNS_KEY_PER_INDEX
 
 
 def _validate_formula(formula: str, auto_keys: List[str] = []):
@@ -47,9 +48,9 @@ def differential_ncem(adata: anndata.AnnData, key_differential: str, key_graph: 
     # formula.
     obs = pd.concat([adata.obs, obs_condition], axis=1)
     per_index_type = False
-    formula, coef_to_test = extend_formula_differential_ncem(formula=formula, cell_types=cell_types,
-                                                             conditions=conditions, per_index_type=per_index_type,
-                                                             type_specific_confounders=type_specific_confounders)
+    formula, coef_to_test, coef_to_test_differential = extend_formula_differential_ncem(
+        formula=formula, cell_types=cell_types, conditions=conditions, per_index_type=per_index_type,
+        type_specific_confounders=type_specific_confounders)
     adata.obsm[OBSM_KEY_DMAT_NICHE] = get_obs_niche_from_graph(adata=adata, obs_key_type=key_type,
                                                                obsp_key_graph=key_graph, marginalisation="binary")
     adata.obsm[OBSM_KEY_DMAT] = get_dmat_from_obs(formula=formula, key_type=key_type, obs=obs,
@@ -59,6 +60,9 @@ def differential_ncem(adata: anndata.AnnData, key_differential: str, key_graph: 
     adata.varm[VARM_KEY_PARAMS] = params
     adata = test_standard(adata=adata, coef_to_test=coef_to_test, key_coef=VARM_KEY_TESTED_PARAMS,
                           key_pval=VARM_KEY_PVALS, key_fdr_pval=VARM_KEY_FDR_PVALS)
+    adata = test_standard(adata=adata, coef_to_test=coef_to_test_differential,
+                          key_coef=VARM_KEY_TESTED_PARAMS_DIFFERENTIAL, key_pval=VARM_KEY_PVALS_DIFFERENTIAL,
+                          key_fdr_pval=VARM_KEY_FDR_PVALS_DIFFERENTIAL)
     write_uns(adata, k=UNS_KEY_CELL_TYPES, v=cell_types)
     write_uns(adata, k=UNS_KEY_CONDITIONS, v=conditions)
     write_uns(adata, k=UNS_KEY_PER_INDEX, v=per_index_type)
@@ -97,9 +101,9 @@ def differential_ncem_deconvoluted(adata: anndata.AnnData, key_differential: str
     # formula.
     obs = pd.concat([adata.obs, obs_condition], axis=1)
     per_index_type = True
-    formulas, coef_to_test = extend_formula_differential_ncem(formula=formula, cell_types=cell_types,
-                                                              conditions=conditions, per_index_type=per_index_type,
-                                                              type_specific_confounders=type_specific_confounders)
+    formulas, coef_to_test, coef_to_test_differential = extend_formula_differential_ncem(
+        formula=formula, cell_types=cell_types, conditions=conditions, per_index_type=per_index_type,
+        type_specific_confounders=type_specific_confounders)
     dmats = get_dmats_from_deconvoluted(deconv=adata.obsm[key_deconvolution], formulas=formulas, obs=obs)
     for k, v in dmats.items():
         dmat_key = f"{OBSM_KEY_DMAT}_{k}"
@@ -112,6 +116,9 @@ def differential_ncem_deconvoluted(adata: anndata.AnnData, key_differential: str
             adata.varm[VARM_KEY_PARAMS] = params
     adata = test_deconvoluted(adata=adata, coef_to_test=coef_to_test, cell_types=cell_types,
                               key_coef=VARM_KEY_TESTED_PARAMS, key_pval=VARM_KEY_PVALS, key_fdr_pval=VARM_KEY_FDR_PVALS)
+    adata = test_deconvoluted(adata=adata, coef_to_test=coef_to_test_differential, cell_types=cell_types,
+                              key_coef=VARM_KEY_TESTED_PARAMS_DIFFERENTIAL, key_pval=VARM_KEY_PVALS_DIFFERENTIAL,
+                              key_fdr_pval=VARM_KEY_FDR_PVALS_DIFFERENTIAL)
     write_uns(adata, k=UNS_KEY_CELL_TYPES, v=cell_types)
     write_uns(adata, k=UNS_KEY_CONDITIONS, v=conditions)
     write_uns(adata, k=UNS_KEY_PER_INDEX, v=per_index_type)
