@@ -30,27 +30,29 @@ def test_ncem(adata: anndata.AnnData, coef_to_test: Union[Dict[str, List[str]], 
     parameter_names = params.columns.tolist()
     pvals = {}
     multi_parameter_tests = isinstance(coef_to_test, dict)
-    for x in coef_to_test:
-        if multi_parameter_tests:
+    if multi_parameter_tests:
+        test_keys = list(coef_to_test.keys())
+        for k, x in coef_to_test.items():
             idx = [parameter_names.index(x)]
             theta_mle = params.values[:, idx]
             theta_covar = fisher_inv[:, idx, idx]
-            pvals_x = wald_test_chisq(theta_mle=theta_mle.T, theta_covar=theta_covar)
-        else:
+            pvals[k] = wald_test_chisq(theta_mle=theta_mle.T, theta_covar=theta_covar)
+    else:
+        test_keys = coef_to_test
+        for x in coef_to_test:
             idx = parameter_names.index(x)
             theta_mle = params.values[:, idx]
             theta_sd = fisher_inv[:, idx, idx]
             theta_sd = np.nextafter(0, np.inf, out=theta_sd, where=theta_sd < np.nextafter(0, np.inf))
             theta_sd = np.sqrt(theta_sd)
-            pvals_x = wald_test(theta_mle=theta_mle, theta_sd=theta_sd)
-        pvals[x] = pvals_x
+            pvals[x] = wald_test(theta_mle=theta_mle, theta_sd=theta_sd)
     # Run FDR correction:
     pvals_flat = np.hstack(list(pvals.values()))
     qvals_flat = correct(pvals_flat)
-    qvals = qvals_flat.reshape((-1, len(coef_to_test)))
+    qvals = qvals_flat.reshape((-1, len(test_keys)))
     # Write results to object:
     adata.varm[VARM_KEY_PVALs] = pd.DataFrame(pvals, index=adata.var_names)
-    adata.varm[VARM_KEY_FDR_PVALs] = pd.DataFrame(qvals, index=adata.var_names, columns=coef_to_test)
+    adata.varm[VARM_KEY_FDR_PVALs] = pd.DataFrame(qvals, index=adata.var_names, columns=test_keys)
     return adata
 
 
@@ -72,22 +74,43 @@ def test_ncem_deconvoluted(adata: anndata.AnnData, coef_to_test: Union[Dict[str,
     # Run multi-parameter Wald test for each individually fit model (note that one linear model was fit for each index
     # cell):
     pvals = {}
+    multi_parameter_tests = isinstance(coef_to_test, dict)
+    if multi_parameter_tests:
+        test_keys = list(coef_to_test.keys())
+    else:
+        test_keys = coef_to_test
+    # Loop over models (cell types) and coefficients, each coefficient will appear in only one model.
+    # This is checked by an assert statement in the inner loop.
     for x in cell_types:
         dmat_key = f"{OBSM_KEY_DMAT}_{x}"
         dmat = adata.obsm[dmat_key]
         # Subset parameter matrix to parameters of sub-model at hand (dmat).
         params = adata.varm[VARM_KEY_PARAMS].loc[:, dmat.columns]
         parameter_names = params.columns.tolist()
-        idx_coef_to_test = np.sort([parameter_names.index(x) for x in coef_to_test if x in parameter_names])
         fisher_inv = get_fim_inv(x=dmat, y=adata.layers[x])
-        theta_mle = params.values[:, idx_coef_to_test]
-        fisher_inv_subset = fisher_inv[:, idx_coef_to_test, :][:, :, idx_coef_to_test]
-        pvals[x] = wald_test_chisq(theta_mle=theta_mle.T, theta_covar=fisher_inv_subset)
+        if multi_parameter_tests:
+            for k, y in coef_to_test.items():
+                if np.all([z in parameter_names for z in y]):
+                    idx = np.sort([parameter_names.index(z) for z in y])
+                    theta_mle = params.values[:, idx]
+                    fisher_inv_subset = fisher_inv[:, idx, :][:, :, idx]
+                    assert k not in pvals.keys()
+                    pvals[k] = wald_test_chisq(theta_mle=theta_mle.T, theta_covar=fisher_inv_subset)
+        else:
+            for y in coef_to_test:
+                if y in parameter_names:
+                    idx = parameter_names.index(y)
+                    theta_mle = params.values[:, idx]
+                    theta_sd = fisher_inv[:, idx, idx]
+                    theta_sd = np.nextafter(0, np.inf, out=theta_sd, where=theta_sd < np.nextafter(0, np.inf))
+                    theta_sd = np.sqrt(theta_sd)
+                    assert y not in pvals.keys()
+                    pvals[y] = wald_test(theta_mle=theta_mle, theta_sd=theta_sd)
     # Run FDR correction across all models:
     pvals_flat = np.hstack(list(pvals.values()))
     qvals_flat = correct(pvals_flat)
-    qvals = qvals_flat.reshape((-1, len(cell_types)))
+    qvals = qvals_flat.reshape((-1, len(test_keys)))
     # Write results to object:
     adata.varm[VARM_KEY_PVALs] = pd.DataFrame(pvals, index=adata.var_names)
-    adata.varm[VARM_KEY_FDR_PVALs] = pd.DataFrame(qvals, index=adata.var_names, columns=cell_types)
+    adata.varm[VARM_KEY_FDR_PVALs] = pd.DataFrame(qvals, index=adata.var_names, columns=test_keys)
     return adata

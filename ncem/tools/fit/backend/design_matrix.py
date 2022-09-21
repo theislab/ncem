@@ -156,8 +156,9 @@ def get_binary_sample_annotation_conditions(obs: pd.DataFrame, formula: str) -> 
     """
     dmat = patsy.dmatrix(formula, obs)
     # Simplify condition names, this is necessary for patsy to accept these as terms later.
-    conditions = [x.split("[T.")[-1].replace("]", "") for x in dmat.design_info.column_names]
-    dmat = pd.DataFrame(np.asarray(dmat), index=obs.index, columns=conditions)
+    # Leave out intercept:
+    conditions = [x.split("[T.")[-1].replace("]", "") for x in dmat.design_info.column_names[1:]]
+    dmat = pd.DataFrame(np.asarray(dmat)[:, 1:], index=obs.index, columns=conditions)
     return dmat
 
 
