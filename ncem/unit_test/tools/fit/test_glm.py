@@ -5,7 +5,7 @@ from ncem.tools.fit.constants import PREFIX_INDEX, PREFIX_NEIGHBOR, VARM_KEY_FDR
     VARM_KEY_PVALs, VARM_KEY_TESTED_PARAMS
 from ncem.tools.fit.glm import differential_ncem, differential_ncem_deconvoluted, linear_ncem, linear_ncem_deconvoluted
 
-from ncem.unit_test.data_for_tests import get_adata, KEY_ADJACENCY, KEY_COND, KEY_DECONV, KEY_TYPE
+from ncem.unit_test.data_for_tests import get_adata, KEY_ADJACENCY, KEY_BATCH, KEY_COND, KEY_DECONV, KEY_TYPE
 
 
 def _assert_slot_keys(adata):
@@ -38,36 +38,42 @@ def _assert_slot_dimension(adata):
 
 
 @pytest.mark.parametrize("n_conds", [2, 4])
-def test_differential_ncem(n_conds):
+@pytest.mark.parametrize("confounders", [[], [KEY_BATCH]])
+def test_differential_ncem(n_conds, confounders):
     adata = get_adata(simulate_deconvoluted=False, n_conds=n_conds)
     adata = differential_ncem(adata=adata, formula=f"~0", key_graph=KEY_ADJACENCY, key_type="type",
-                              key_differential=KEY_COND)
+                              key_differential=KEY_COND, type_specific_confounders=confounders)
     _assert_slot_keys(adata=adata)
     _assert_slot_domain(adata=adata)
     _assert_slot_dimension(adata=adata)
 
 
 @pytest.mark.parametrize("n_conds", [2, 4])
-def test_differential_ncem_deconvoluted(n_conds):
+@pytest.mark.parametrize("confounders", [[], [KEY_BATCH]])
+def test_differential_ncem_deconvoluted(n_conds, confounders):
     adata = get_adata(simulate_deconvoluted=True, n_conds=n_conds)
-    adata = differential_ncem_deconvoluted(adata=adata, formulas=f"~0", key_differential=KEY_COND,
-                                           key_deconvolution=KEY_DECONV)
+    adata = differential_ncem_deconvoluted(adata=adata, formula=f"~0", key_differential=KEY_COND,
+                                           key_deconvolution=KEY_DECONV, type_specific_confounders=confounders)
     _assert_slot_keys(adata=adata)
     _assert_slot_domain(adata=adata)
     _assert_slot_dimension(adata=adata)
 
 
-def test_linear_ncem():
+@pytest.mark.parametrize("confounders", [[], [KEY_BATCH]])
+def test_linear_ncem(confounders):
     adata = get_adata(simulate_deconvoluted=False)
-    adata = linear_ncem(adata=adata, formula=f"~0", key_graph=KEY_ADJACENCY, key_type=KEY_TYPE)
+    adata = linear_ncem(adata=adata, formula=f"~0", key_graph=KEY_ADJACENCY, key_type=KEY_TYPE,
+                        type_specific_confounders=confounders)
     _assert_slot_keys(adata=adata)
     _assert_slot_domain(adata=adata)
     _assert_slot_dimension(adata=adata)
 
 
-def test_linear_ncem_deconvoluted():
+@pytest.mark.parametrize("confounders", [[], [KEY_BATCH]])
+def test_linear_ncem_deconvoluted(confounders):
     adata = get_adata(simulate_deconvoluted=True)
-    adata = linear_ncem_deconvoluted(adata=adata, formulas=f"~0", key_deconvolution=KEY_DECONV)
+    adata = linear_ncem_deconvoluted(adata=adata, formula=f"~0", key_deconvolution=KEY_DECONV,
+                                     type_specific_confounders=confounders)
     _assert_slot_keys(adata=adata)
     _assert_slot_domain(adata=adata)
     _assert_slot_dimension(adata=adata)

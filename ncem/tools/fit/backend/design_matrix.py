@@ -13,7 +13,8 @@ def _make_type_categorical(obs, key_type):
     return obs
 
 
-def extend_formula_ncem(formula: str, cell_types: List[str], per_index_cell: bool = False) -> Tuple[str, List[str]]:
+def extend_formula_ncem(formula: str, cell_types: List[str], per_index_cell: bool = False,
+                        type_specific_confounders: List[str] = []) -> Tuple[str, List[str]]:
     """
     Adds linear NCEM terms into formula.
 
@@ -26,6 +27,8 @@ def extend_formula_ncem(formula: str, cell_types: List[str], per_index_cell: boo
         cell_types: Cell type labels.
         per_index_cell: Whether to yield formula per index cell type, ie if one separate linear model is fit for each
             index cell type.
+        type_specific_confounders: List of confounding terms in obs to be added with an interaction term to cell
+            types, ie confounders that act on the cell type level. Global confounders can be added in the formula.
 
     Returns:
 
@@ -36,13 +39,21 @@ def extend_formula_ncem(formula: str, cell_types: List[str], per_index_cell: boo
         formula_out = {}
         coef_couplings = []
         for x in cell_types:
+            formula_x = formula
+            # Add type-specific confounders:
+            if len(type_specific_confounders) > 0:
+                formula_x = formula_x + "+" + "+".join([f"{PREFIX_INDEX}{x}:{y}" for y in type_specific_confounders])
             # Add type-wise intercept:
-            formula_x = formula + "+" + f"{PREFIX_INDEX}{x}"
+            formula_x = formula_x + "+" + f"{PREFIX_INDEX}{x}"
             # Add couplings (type-type interactions):
             coef_couplings_x = [f"{PREFIX_INDEX}{x}:{PREFIX_NEIGHBOR}{y}" for y in cell_types]
             formula_out[x] = formula_x + "+" + "+".join(coef_couplings_x)
             coef_couplings.extend(coef_couplings_x)
     else:
+        # Add type-specific confounders:
+        if len(type_specific_confounders) > 0:
+            formula = formula + "+" + "+".join([f"{PREFIX_INDEX}{x}:{y}" for y in type_specific_confounders
+                                                for x in cell_types])
         # Add type-wise intercept:
         formula = formula + "+" + "+".join([f"{PREFIX_INDEX}{x}" for x in cell_types])
         # Add couplings (type-type interactions):
@@ -52,7 +63,8 @@ def extend_formula_ncem(formula: str, cell_types: List[str], per_index_cell: boo
 
 
 def extend_formula_differential_ncem(formula: str, conditions: List[str], cell_types: List[str],
-                                     per_index_cell: bool = False) -> Tuple[str, Dict[str, List[str]]]:
+                                     per_index_cell: bool = False, type_specific_confounders: List[str] = []) -> \
+    Tuple[str, Dict[str, List[str]]]:
     """
     Adds linear NCEM terms into formula.
 
@@ -68,6 +80,8 @@ def extend_formula_differential_ncem(formula: str, conditions: List[str], cell_t
         conditions: List of condition names with first one dropped (ie the one that is absorbed into intercept).
         per_index_cell: Whether to yield formula per index cell type, ie if one separate linear model is fit for each
             index cell type.
+        type_specific_confounders: List of confounding terms in obs to be added with an interaction term to cell
+            types, ie confounders that act on the cell type level. Global confounders can be added in the formula.
 
     Returns:
 
@@ -79,8 +93,12 @@ def extend_formula_differential_ncem(formula: str, conditions: List[str], cell_t
         formula_out = {}
         coef_diff_couplings_grouped = {}
         for x in cell_types:
+            formula_x = formula
+            # Add type-specific confounders:
+            if len(type_specific_confounders) > 0:
+                formula_x = formula_x + "+" + "+".join([f"{PREFIX_INDEX}{x}:{y}" for y in type_specific_confounders])
             # Add type-wise intercept:
-            formula_x = formula + "+" + f"{PREFIX_INDEX}{x}"
+            formula_x = formula_x + "+" + f"{PREFIX_INDEX}{x}"
             # Add couplings (type-type interactions):
             coef_couplings_x = [f"{PREFIX_INDEX}{x}:{PREFIX_NEIGHBOR}{y}" for y in cell_types]
             formula_x = formula_x + "+" + "+".join(coef_couplings_x)
@@ -99,6 +117,10 @@ def extend_formula_differential_ncem(formula: str, conditions: List[str], cell_t
                 formula_out[x] = formula_x
     else:
         coef_diff_couplings_grouped = {}
+        # Add type-specific confounders:
+        if len(type_specific_confounders) > 0:
+            formula = formula + "+" + "+".join([f"{PREFIX_INDEX}{x}:{y}" for y in type_specific_confounders
+                                                for x in cell_types])
         # Add type-wise intercept:
         formula = formula + "+" + "+".join([f"{PREFIX_INDEX}{x}" for x in cell_types])
         # Add couplings (type-type interactions):
