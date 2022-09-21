@@ -1,12 +1,11 @@
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 import anndata
 import numpy as np
 import pandas as pd
 import patsy
 
-PREFIX_INDEX = "index_"
-PREFIX_NEIGHBOR = "neighbor_"
+from ncem.tools.fit.constants import PREFIX_INDEX, PREFIX_NEIGHBOR
 
 
 def _make_type_categorical(obs, key_type):
@@ -14,7 +13,7 @@ def _make_type_categorical(obs, key_type):
     return obs
 
 
-def extend_formula_ncem(formula: str, cell_types: List[str], per_index_cell: bool = False):
+def extend_formula_ncem(formula: str, cell_types: List[str], per_index_cell: bool = False) -> Tuple[str, List[str]]:
     """
     Adds linear NCEM terms into formula.
 
@@ -28,7 +27,10 @@ def extend_formula_ncem(formula: str, cell_types: List[str], per_index_cell: boo
         per_index_cell: Whether to yield formula per index cell type, ie if one separate linear model is fit for each
             index cell type.
 
-    Returns: Full NCEM formula, or dictionary over index cell-wise formulas
+    Returns:
+
+        - Full NCEM formula, or dictionary over index cell-wise formulas
+        - List of coefficient names to test.
     """
     if per_index_cell:
         formula_out = {}
@@ -50,7 +52,7 @@ def extend_formula_ncem(formula: str, cell_types: List[str], per_index_cell: boo
 
 
 def extend_formula_differential_ncem(formula: str, conditions: List[str], cell_types: List[str],
-                                     per_index_cell: bool = False):
+                                     per_index_cell: bool = False) -> Tuple[str, Dict[str, List[str]]]:
     """
     Adds linear NCEM terms into formula.
 
@@ -67,11 +69,15 @@ def extend_formula_differential_ncem(formula: str, conditions: List[str], cell_t
         per_index_cell: Whether to yield formula per index cell type, ie if one separate linear model is fit for each
             index cell type.
 
-    Returns: Full NCEM formula, or dictionary over index cell-wise formulas
+    Returns:
+
+        - Full NCEM formula, or dictionary over index cell-wise formulas
+        - Dictionary over coefficient names to test grouped by index-target cell type pair. Each value represents all
+            interaction coefficients of that pair to all modelled conditions.
     """
     if per_index_cell:
         formula_out = {}
-        coef_diff_couplings = []
+        coef_diff_couplings_grouped = {}
         for x in cell_types:
             # Add type-wise intercept:
             formula_x = formula + "+" + f"{PREFIX_INDEX}{x}"
@@ -83,9 +89,16 @@ def extend_formula_differential_ncem(formula: str, conditions: List[str], cell_t
                 formula_x = formula_x + "+" + f"{PREFIX_INDEX}{x}:{c}"
                 # Add differential couplings (differential type-type interactions):
                 coef_diff_couplings_x = [f"{PREFIX_INDEX}{x}:{PREFIX_NEIGHBOR}{y}:{c}" for y in cell_types]
-                formula_out[x] = formula_x + "+" + "+".join(coef_diff_couplings_x)
-                coef_diff_couplings.extend(coef_diff_couplings_x)
+                formula_x = formula_x + "+" + "+".join(coef_diff_couplings_x)
+                # Group coefficients across conditions by interaction pair:
+                for y in cell_types:
+                    pair_name = f"{PREFIX_INDEX}{x}:{PREFIX_NEIGHBOR}{y}"
+                    if pair_name not in coef_diff_couplings_grouped:
+                        coef_diff_couplings_grouped[pair_name] = []
+                    coef_diff_couplings_grouped[pair_name].append(f"{PREFIX_INDEX}{x}:{PREFIX_NEIGHBOR}{y}:{c}")
+                formula_out[x] = formula_x
     else:
+        coef_diff_couplings_grouped = {}
         # Add type-wise intercept:
         formula = formula + "+" + "+".join([f"{PREFIX_INDEX}{x}" for x in cell_types])
         # Add couplings (type-type interactions):
@@ -97,8 +110,16 @@ def extend_formula_differential_ncem(formula: str, conditions: List[str], cell_t
             # Add differential couplings (differential type-type interactions):
             coef_diff_couplings = [f"{PREFIX_INDEX}{x}:{PREFIX_NEIGHBOR}{y}:{c}"
                                    for y in cell_types for x in cell_types]
-            formula_out = formula + "+" + "+".join(coef_diff_couplings)
-    return formula_out, coef_diff_couplings
+            formula = formula + "+" + "+".join(coef_diff_couplings)
+            # Group coefficients across conditions by interaction pair:
+            for x in cell_types:
+                for y in cell_types:
+                    pair_name = f"{PREFIX_INDEX}{x}:{PREFIX_NEIGHBOR}{y}"
+                    if pair_name not in coef_diff_couplings_grouped:
+                        coef_diff_couplings_grouped[pair_name] = []
+                    coef_diff_couplings_grouped[pair_name].append(f"{PREFIX_INDEX}{x}:{PREFIX_NEIGHBOR}{y}:{c}")
+        formula_out = formula
+    return formula_out, coef_diff_couplings_grouped
 
 
 def get_obs_niche_from_graph(adata: anndata.AnnData, obs_key_type, obsp_key_graph: str,

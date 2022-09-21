@@ -33,9 +33,9 @@ def test_ncem(adata: anndata.AnnData, coef_to_test: Union[Dict[str, List[str]], 
     if multi_parameter_tests:
         test_keys = list(coef_to_test.keys())
         for k, x in coef_to_test.items():
-            idx = [parameter_names.index(x)]
+            idx = [parameter_names.index(y) for y in x]
             theta_mle = params.values[:, idx]
-            theta_covar = fisher_inv[:, idx, idx]
+            theta_covar = fisher_inv[:, idx, :][:, :, idx]
             pvals[k] = wald_test_chisq(theta_mle=theta_mle.T, theta_covar=theta_covar)
     else:
         test_keys = coef_to_test
