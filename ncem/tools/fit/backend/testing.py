@@ -6,7 +6,8 @@ import pandas as pd
 from diffxpy.stats.stats import wald_test, wald_test_chisq
 from diffxpy.testing.correction import correct
 
-from ncem.tools.fit.constants import OBSM_KEY_DMAT, VARM_KEY_PARAMS, VARM_KEY_PVALs, VARM_KEY_FDR_PVALs
+from ncem.tools.fit.constants import OBSM_KEY_DMAT, VARM_KEY_FDR_PVALs, VARM_KEY_PARAMS, VARM_KEY_PVALs, \
+    VARM_KEY_TESTED_PARAMS
 from ncem.utils.wald_test import get_fim_inv
 
 
@@ -29,6 +30,7 @@ def test_ncem(adata: anndata.AnnData, coef_to_test: Union[Dict[str, List[str]], 
     # Run multi-parameter Wald test:
     parameter_names = params.columns.tolist()
     pvals = {}
+    tested_coefficients = {}
     multi_parameter_tests = isinstance(coef_to_test, dict)
     if multi_parameter_tests:
         test_keys = list(coef_to_test.keys())
@@ -37,6 +39,10 @@ def test_ncem(adata: anndata.AnnData, coef_to_test: Union[Dict[str, List[str]], 
             theta_mle = params.values[:, idx]
             theta_covar = fisher_inv[:, idx, :][:, :, idx]
             pvals[k] = wald_test_chisq(theta_mle=theta_mle.T, theta_covar=theta_covar)
+            if len(idx) == 1:
+                tested_coefficients[k] = theta_mle[:, 0]
+            else:
+                tested_coefficients[k] = np.zeros_like(theta_mle[:, 0]) + np.nan
     else:
         test_keys = coef_to_test
         for x in coef_to_test:
@@ -46,11 +52,13 @@ def test_ncem(adata: anndata.AnnData, coef_to_test: Union[Dict[str, List[str]], 
             theta_sd = np.nextafter(0, np.inf, out=theta_sd, where=theta_sd < np.nextafter(0, np.inf))
             theta_sd = np.sqrt(theta_sd)
             pvals[x] = wald_test(theta_mle=theta_mle, theta_sd=theta_sd)
+            tested_coefficients[x] = theta_mle
     # Run FDR correction:
     pvals_flat = np.hstack(list(pvals.values()))
     qvals_flat = correct(pvals_flat)
     qvals = qvals_flat.reshape((-1, len(test_keys)))
     # Write results to object:
+    adata.varm[VARM_KEY_TESTED_PARAMS] = pd.DataFrame(tested_coefficients, index=adata.var_names)
     adata.varm[VARM_KEY_PVALs] = pd.DataFrame(pvals, index=adata.var_names)
     adata.varm[VARM_KEY_FDR_PVALs] = pd.DataFrame(qvals, index=adata.var_names, columns=test_keys)
     return adata
@@ -74,6 +82,7 @@ def test_ncem_deconvoluted(adata: anndata.AnnData, coef_to_test: Union[Dict[str,
     # Run multi-parameter Wald test for each individually fit model (note that one linear model was fit for each index
     # cell):
     pvals = {}
+    tested_coefficients = {}
     multi_parameter_tests = isinstance(coef_to_test, dict)
     if multi_parameter_tests:
         test_keys = list(coef_to_test.keys())
@@ -96,6 +105,10 @@ def test_ncem_deconvoluted(adata: anndata.AnnData, coef_to_test: Union[Dict[str,
                     fisher_inv_subset = fisher_inv[:, idx, :][:, :, idx]
                     assert k not in pvals.keys()
                     pvals[k] = wald_test_chisq(theta_mle=theta_mle.T, theta_covar=fisher_inv_subset)
+                    if len(idx) == 1:
+                        tested_coefficients[k] = theta_mle[:, 0]
+                    else:
+                        tested_coefficients[k] = np.zeros_like(theta_mle[:, 0]) + np.nan
         else:
             for y in coef_to_test:
                 if y in parameter_names:
@@ -106,11 +119,13 @@ def test_ncem_deconvoluted(adata: anndata.AnnData, coef_to_test: Union[Dict[str,
                     theta_sd = np.sqrt(theta_sd)
                     assert y not in pvals.keys()
                     pvals[y] = wald_test(theta_mle=theta_mle, theta_sd=theta_sd)
+                    tested_coefficients[y] = theta_mle
     # Run FDR correction across all models:
     pvals_flat = np.hstack(list(pvals.values()))
     qvals_flat = correct(pvals_flat)
     qvals = qvals_flat.reshape((-1, len(test_keys)))
     # Write results to object:
+    adata.varm[VARM_KEY_TESTED_PARAMS] = pd.DataFrame(tested_coefficients, index=adata.var_names)
     adata.varm[VARM_KEY_PVALs] = pd.DataFrame(pvals, index=adata.var_names)
     adata.varm[VARM_KEY_FDR_PVALs] = pd.DataFrame(qvals, index=adata.var_names, columns=test_keys)
     return adata

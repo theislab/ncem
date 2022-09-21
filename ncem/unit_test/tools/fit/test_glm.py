@@ -1,7 +1,8 @@
 import numpy as np
 import pytest
 
-from ncem.tools.fit.constants import PREFIX_INDEX, PREFIX_NEIGHBOR, VARM_KEY_PARAMS, VARM_KEY_PVALs, VARM_KEY_FDR_PVALs
+from ncem.tools.fit.constants import PREFIX_INDEX, PREFIX_NEIGHBOR, VARM_KEY_FDR_PVALs, VARM_KEY_PARAMS, \
+    VARM_KEY_PVALs, VARM_KEY_TESTED_PARAMS
 from ncem.tools.fit.glm import differential_ncem, differential_ncem_deconvoluted, linear_ncem, linear_ncem_deconvoluted
 
 from ncem.unit_test.data_for_tests import get_adata, KEY_ADJACENCY, KEY_COND, KEY_DECONV, KEY_TYPE
@@ -12,6 +13,7 @@ def _assert_slot_keys(adata):
     assert VARM_KEY_PARAMS in adata.varm.keys()
     assert VARM_KEY_PVALs in adata.varm.keys()
     assert VARM_KEY_FDR_PVALs in adata.varm.keys()
+    assert VARM_KEY_TESTED_PARAMS in adata.varm.keys()
 
 
 def _assert_slot_domain(adata):
@@ -29,8 +31,10 @@ def _assert_slot_dimension(adata):
     couplings = [f"{PREFIX_INDEX}{x}:{PREFIX_NEIGHBOR}{y}" for y in cell_types for x in cell_types]
     assert np.all(adata.varm[VARM_KEY_PVALs].shape[1] == len(couplings))
     assert np.all(adata.varm[VARM_KEY_FDR_PVALs].shape[1] == len(couplings))
+    assert np.all(adata.varm[VARM_KEY_TESTED_PARAMS].shape[1] == len(couplings))
     assert np.all(np.sort(couplings) == np.sort(list(adata.varm[VARM_KEY_PVALs].columns)))
     assert np.all(np.sort(couplings) == np.sort(list(adata.varm[VARM_KEY_FDR_PVALs].columns)))
+    assert np.all(np.sort(couplings) == np.sort(list(adata.varm[VARM_KEY_TESTED_PARAMS].columns)))
 
 
 @pytest.mark.parametrize("n_conds", [2, 4])
