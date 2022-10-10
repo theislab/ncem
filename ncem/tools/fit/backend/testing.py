@@ -50,20 +50,24 @@ def test_standard(adata: anndata.AnnData, coef_to_test: Union[Dict[str, List[str
         test_keys = coef_to_test
         for x in coef_to_test:
             idx = parameter_names.index(x)
-            theta_mle = params.values[:, idx]
+            theta_mle = params.values[:,idx]
             theta_sd = fisher_inv[:, idx, idx]
             theta_sd = np.nextafter(0, np.inf, out=theta_sd, where=theta_sd < np.nextafter(0, np.inf))
             theta_sd = np.sqrt(theta_sd)
+            theta_sd = np.expand_dims(theta_sd, axis=0)
+            theta_mle = np.expand_dims(theta_mle, axis=0)
             pvals[x] = wald_test(theta_mle=theta_mle, theta_sd=theta_sd)
             tested_coefficients[x] = theta_mle
     # Run FDR correction:
     pvals_flat = np.hstack(list(pvals.values()))
-    qvals_flat = correct(pvals_flat)
+    qvals_flat = correct(pvals_flat.flatten())
     qvals = qvals_flat.reshape((-1, len(test_keys)))
     # Write results to object:
     if key_coef is not None:
+        tested_coefficients = np.concatenate(list(tested_coefficients.values())).T
         adata.varm[key_coef] = pd.DataFrame(tested_coefficients, index=adata.var_names)
-    adata.varm[key_pval] = pd.DataFrame(pvals, index=adata.var_names)
+    pvals = np.concatenate(list(pvals.values())).T
+    adata.varm[key_pval] = pd.DataFrame(pvals, index=adata.var_names, columns=test_keys)
     adata.varm[key_fdr_pval] = pd.DataFrame(qvals, index=adata.var_names, columns=test_keys)
     return adata
 
