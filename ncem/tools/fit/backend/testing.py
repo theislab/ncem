@@ -41,9 +41,9 @@ def test_standard(adata: anndata.AnnData, coef_to_test: Union[Dict[str, List[str
             idx = [parameter_names.index(y) for y in x]
             theta_mle = params.values[:, idx]
             theta_covar = fisher_inv[:, idx, :][:, :, idx]
-            pvals[k] = wald_test_chisq(theta_mle=theta_mle.T, theta_covar=theta_covar)
+            pvals[k] = np.expand_dims(wald_test_chisq(theta_mle=theta_mle.T, theta_covar=theta_covar), axis=0)
             if len(idx) == 1:
-                tested_coefficients[k] = theta_mle[:, 0]
+                tested_coefficients[k] = np.expand_dims(theta_mle[:, 0], axis=0)
             else:
                 tested_coefficients[k] = np.zeros_like(theta_mle[:, 0]) + np.nan
     else:
@@ -64,8 +64,11 @@ def test_standard(adata: anndata.AnnData, coef_to_test: Union[Dict[str, List[str
     qvals = qvals_flat.reshape((-1, len(test_keys)))
     # Write results to object:
     if key_coef is not None:
-        tested_coefficients = np.concatenate(list(tested_coefficients.values())).T
-        adata.varm[key_coef] = pd.DataFrame(tested_coefficients, index=adata.var_names)
+        tested_coefficients = np.concatenate(list(tested_coefficients.values()), axis=0).T
+        #print(tested_coefficients.shape)
+        tested_coefficients = pd.DataFrame(tested_coefficients, index=adata.var_names)
+        #print(tested_coefficients)
+        adata.varm[key_coef] = tested_coefficients
     pvals = np.concatenate(list(pvals.values())).T
     adata.varm[key_pval] = pd.DataFrame(pvals, index=adata.var_names, columns=test_keys)
     adata.varm[key_fdr_pval] = pd.DataFrame(qvals, index=adata.var_names, columns=test_keys)

@@ -43,7 +43,9 @@ def differential_ncem(adata: anndata.AnnData, key_differential: str, key_graph: 
     cell_types = np.sort(np.unique(adata.obs[key_type].values)).tolist()
     # Simulate intercept in this auxiliary design matrix so that first condition is absorbed into intercept.
     obs_condition = get_binary_sample_annotation_conditions(obs=adata.obs, formula=f"~1+{key_differential}")
+    print(obs_condition)
     conditions = obs_condition.columns
+    print(conditions)
     # Add one-hot encoded condition assignments into sample description so that they are available as terms for
     # formula.
     obs = pd.concat([adata.obs, obs_condition], axis=1)
@@ -193,6 +195,7 @@ def linear_ncem_deconvoluted(adata: anndata.AnnData,key_deconvolution: str, form
                                                  type_specific_confounders=type_specific_confounders)
     dmats = get_dmats_from_deconvoluted(deconv=adata.obsm[key_deconvolution], formulas=formulas, obs=adata.obs)
     for k, v in dmats.items():
+        print(k, v)
         dmat_key = f"{OBSM_KEY_DMAT}_{k}"
         adata.obsm[dmat_key] = v
         params = ols_fit(x_=adata.obsm[dmat_key].values, y_=adata.layers[k])
