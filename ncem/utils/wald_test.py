@@ -1,7 +1,9 @@
 import numpy as np
-
+from scipy.sparse import issparse
 
 def get_fim_inv(x: np.array, y: np.array):
+    if issparse(y):
+        y = y.toarray()
     var = np.var(y, axis=0, keepdims=True)
     fim = np.expand_dims(np.matmul(x.T, x), axis=0) / np.expand_dims(var, axis=[1]).T
     fim = np.nan_to_num(fim)
