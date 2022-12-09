@@ -12,6 +12,12 @@ Tools
 .. module:: ncem.tl
 .. currentmodule:: ncem
 
+NCEM tools containing linear models, variance decomposition and ablation study.
+
+
+.. autosummary::
+   :toctree: api
+
     tl.linear_ncem
     tl.linear_ncem_deconvoluted
     tl.differential_ncem
@@ -26,6 +32,12 @@ Plotting
 --------------------------------
 .. module:: ncem.pl
 .. currentmodule:: ncem
+
+NCEM tools containing plotting functions.
+
+
+.. autosummary::
+   :toctree: api
 
     pl.cluster_freq
     pl.noise_structure
