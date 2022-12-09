@@ -16,7 +16,6 @@ from ncem.utils._utils import _assert_categorical_obs
 # ToDo
 # degree versus distance
 # interaction matrices & nhood enrichment -> squidpy
-# noise structure per cluster
 # umap per image -> scanpy
 # spatial allocation -> squidpy
 # cluster enrichment (needs a function in tools that produces this)

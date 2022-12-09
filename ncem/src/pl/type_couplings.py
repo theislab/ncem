@@ -25,10 +25,9 @@ def _get_edge_weights(
                              range(de_genes.shape[0])]
     if params_key:
         magnitude = pd.DataFrame(
-            (adata.varm[params_key].T ** 2).sum(axis=1),
+            np.log10((adata.varm[params_key].T ** 2).sum(axis=1)),
             columns=['magnitude']
         )
-        magnitude = magnitude.iloc[8:, :]
         edge_weights = de_genes.join(magnitude)
     else:
         edge_weights = de_genes
@@ -39,10 +38,10 @@ def _get_graph(
     x,
     edge_width_scale,
     edge_type,
-clip_edges
+    clip_edges
 ):
     G = nx.from_pandas_edgelist(
-        x, source='index', target='neighbor',
+        x, target='index', source='neighbor',
         edge_attr=["magnitude", "de_genes"],
         create_using=nx.DiGraph()
     )
@@ -79,9 +78,9 @@ def _draw_graph(
 def circular(
     adata,
     alpha,
-    pvals_key,
-    params_key,
     scale_edge,
+    pvals_key: str = 'ncem_fdr_pvals',
+    params_key: str = 'ncem_params',
     figsize=(10, 5),
     edge_type: str = 'magnitude',
     clip_edges: int = 0,
@@ -129,14 +128,15 @@ def circular(
     ax[1].legend(loc='center left', frameon=False)
     plt.tight_layout()
     plt.show()
+    return edge_weights
     
     
 def circular_rotated_labels(
     adata,
     alpha,
-    pvals_key,
-    params_key,
     scale_edge,
+    pvals_key: str = 'ncem_fdr_pvals',
+    params_key: str = 'ncem_params',
     figsize=(10, 5),
     edge_type: str = 'magnitude',
     clip_edges: int = 0,
@@ -211,3 +211,5 @@ def circular_rotated_labels(
     
     plt.tight_layout()
     plt.show()
+    
+

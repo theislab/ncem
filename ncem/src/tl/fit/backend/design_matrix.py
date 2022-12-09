@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import patsy
 
-from ncem.tools.fit.constants import PREFIX_INDEX, PREFIX_NEIGHBOR
+from ncem.src.tl.fit.constants import PREFIX_INDEX, PREFIX_NEIGHBOR
 
 
 def _make_type_categorical(obs, key_type):

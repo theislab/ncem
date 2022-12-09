@@ -36,6 +36,10 @@ UNS_KEY_SPLINE_DF = "spline_df"
 UNS_KEY_SPLINE_FAMILY = "spline_family"
 # .obs key of 1D spatial coordinate:
 UNS_KEY_SPLINE_KEY_1D = "spline_1d_coord"
+# .obs key for train-validation-test split:
+OBS_KEY_SPLIT = "ncem_cv"
+# .uns key for ablation study results:
+UNS_KEY_ABLATION = "ncem_ablation"
 
 
 PREFIX_INDEX = "index_"

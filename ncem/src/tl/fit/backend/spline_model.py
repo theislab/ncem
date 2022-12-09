@@ -5,11 +5,11 @@ import numpy as np
 import pandas as pd
 import patsy
 
-from ncem.tools.fit.backend.linear_model import differential_ncem, differential_ncem_deconvoluted, linear_ncem, \
+from ncem.src.tl.fit.backend.linear_model import differential_ncem, differential_ncem_deconvoluted, linear_ncem, \
     linear_ncem_deconvoluted
-from ncem.tools.fit.backend.testing import test_standard, test_deconvoluted
-from ncem.tools.fit.backend.utils import read_uns, write_uns
-from ncem.tools.fit.constants import PREFIX_INDEX, VARM_KEY_PARAMS, VARM_KEY_PVALS_SPLINE, VARM_KEY_FDR_PVALS_SPLINE, \
+from ncem.src.tl.fit.backend.testing import test_standard, test_deconvoluted
+from ncem.src.tl.fit.backend.utils import read_uns, write_uns
+from ncem.src.tl.fit.constants import PREFIX_INDEX, VARM_KEY_PARAMS, VARM_KEY_PVALS_SPLINE, VARM_KEY_FDR_PVALS_SPLINE, \
     UNS_KEY_CELL_TYPES, UNS_KEY_PER_INDEX, UNS_KEY_SPLINE_COEFS, UNS_KEY_SPLINE_DF, UNS_KEY_SPLINE_FAMILY, \
     UNS_KEY_SPLINE_KEY_1D
 

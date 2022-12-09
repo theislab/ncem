@@ -6,7 +6,7 @@ import pandas as pd
 from diffxpy.stats.stats import wald_test, wald_test_chisq
 from diffxpy.testing.correction import correct
 
-from ncem.tools.fit.constants import OBSM_KEY_DMAT, VARM_KEY_PARAMS
+from ncem.src.tl.fit.constants import OBSM_KEY_DMAT, VARM_KEY_PARAMS
 from ncem.utils.wald_test import get_fim_inv
 
 
@@ -56,7 +56,7 @@ def test_standard(adata: anndata.AnnData, coef_to_test: Union[Dict[str, List[str
             theta_sd = np.sqrt(theta_sd)
             theta_sd = np.expand_dims(theta_sd, axis=0)
             theta_mle = np.expand_dims(theta_mle, axis=0)
-            pvals[x] = wald_test(theta_mle=theta_mle, theta_sd=theta_sd)
+            pvals[x] = wald_test(theta_mle=theta_mle, theta_sd=theta_sd, theta0=0)
             tested_coefficients[x] = theta_mle
     # Run FDR correction:
     pvals_flat = np.hstack(list(pvals.values()))
@@ -96,6 +96,7 @@ def test_deconvoluted(adata: anndata.AnnData, coef_to_test: Union[Dict[str, List
     # Run multi-parameter Wald test for each individually fit model (note that one linear model was fit for each index
     # cell):
     pvals = {}
+    qvals = {}
     tested_coefficients = {}
     multi_parameter_tests = isinstance(coef_to_test, dict)
     if multi_parameter_tests:
@@ -133,11 +134,12 @@ def test_deconvoluted(adata: anndata.AnnData, coef_to_test: Union[Dict[str, List
                     theta_sd = np.sqrt(theta_sd)
                     assert y not in pvals.keys()
                     pvals[y] = wald_test(theta_mle=theta_mle, theta_sd=theta_sd)
+                    qvals[y] = correct(pvals[y])
                     tested_coefficients[y] = theta_mle
     # Run FDR correction across all models:
     pvals_flat = np.hstack(list(pvals.values()))
     qvals_flat = correct(pvals_flat)
-    qvals = qvals_flat.reshape((-1, len(test_keys)))
+    #qvals = qvals_flat.reshape((-1, len(test_keys)))
     # Write results to object:
     if key_coef is not None:
         adata.varm[key_coef] = pd.DataFrame(tested_coefficients, index=adata.var_names)
