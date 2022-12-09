@@ -1,13 +1,11 @@
 from pathlib import Path
-from types import MappingProxyType
 from typing import Union, Optional, Tuple  # noqa: F401
-from typing import Any, Literal, Mapping, Sequence, TYPE_CHECKING
 
 from anndata import AnnData
 import scanpy as sc
 import numpy as np
 
-from matplotlib import colors as mcolors, pyplot as plt
+from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 import seaborn as sns
 

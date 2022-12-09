@@ -2,10 +2,9 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import networkx as nx
 import re
-import scanpy as sc
 import numpy as np
 
-from ncem.tools.fit.constants import VARM_KEY_PARAMS, OBSM_KEY_DMAT, OBSM_KEY_DMAT_NICHE, VARM_KEY_FDR_PVALS, \
+from ncem.src.tl.fit.constants import VARM_KEY_PARAMS, OBSM_KEY_DMAT, OBSM_KEY_DMAT_NICHE, VARM_KEY_FDR_PVALS, \
     VARM_KEY_FDR_PVALS_DIFFERENTIAL,  VARM_KEY_PVALS, VARM_KEY_PVALS_DIFFERENTIAL, VARM_KEY_TESTED_PARAMS, \
     VARM_KEY_TESTED_PARAMS_DIFFERENTIAL, UNS_KEY_CELL_TYPES, UNS_KEY_CONDITIONS, UNS_KEY_PER_INDEX
 
@@ -88,10 +87,10 @@ def circular(
 ):
     from scanpy.plotting import palettes
     from matplotlib import rcParams, ticker, gridspec, axes
-    
+
     edge_weights = _get_edge_weights(adata, alpha, pvals_key, params_key)
     G, pos, nodes, width = _get_graph(edge_weights, scale_edge, edge_type, clip_edges)
-    
+
     length = len(nodes)
     # check if default matplotlib palette has enough colors
     if len(rcParams['axes.prop_cycle'].by_key()['color']) >= length:
@@ -111,15 +110,15 @@ def circular(
                 f'the obs value {value_to_plot!r} has more than 103 categories. Uniform '
                 "'grey' color will be used for all categories."
             )
-    
+
     fig, ax = plt.subplots(nrows=1, ncols=2, figsize=figsize)
     ax[0].axis('off')
     ax[1].axis('off')
-    
+
     _draw_graph(G, pos, nodes, width, ax=ax[0], palette=palette, clip_edges=clip_edges)
     node_color = nx.get_node_attributes(G, 'color')
 
-    
+
     values = sorted(list(set(node_color.values())))
     for k, v in node_color.items():
         # make dummy scatterplot to generate labels
@@ -129,8 +128,8 @@ def circular(
     plt.tight_layout()
     plt.show()
     return edge_weights
-    
-    
+
+
 def circular_rotated_labels(
     adata,
     alpha,
@@ -144,10 +143,10 @@ def circular_rotated_labels(
 ):
     from scanpy.plotting import palettes
     from matplotlib import rcParams, ticker, gridspec, axes
-    
+
     edge_weights = _get_edge_weights(adata, alpha, pvals_key, params_key)
     G, pos, nodes, width = _get_graph(edge_weights, scale_edge, edge_type, clip_edges)
-    
+
     length = len(nodes)
     # check if default matplotlib palette has enough colors
     if len(rcParams['axes.prop_cycle'].by_key()['color']) >= length:
@@ -167,15 +166,15 @@ def circular_rotated_labels(
                 f'the obs value {value_to_plot!r} has more than 103 categories. Uniform '
                 "'grey' color will be used for all categories."
             )
-    
+
     fig, ax = plt.subplots(nrows=1, ncols=1, figsize=figsize)
     ax.axis('off')
-    
+
     nx.set_node_attributes(G, dict([(x, palette[i]) for i,x in enumerate(nodes)]), "color")
     node_color = nx.get_node_attributes(G, 'color')
 
     selected_edges = [(u, v) for u, v, e in G.edges(data=True) if e['de_genes'] > clip_edges]
-    
+
     description = nx.draw_networkx_labels(G,pos, font_size=17)
     n = len(nodes)
     node_list = sorted(G.nodes())
@@ -207,9 +206,7 @@ def circular_rotated_labels(
     )
     node_color = nx.get_node_attributes(G, 'color')
 
-    
-    
     plt.tight_layout()
     plt.show()
-    
+
 
