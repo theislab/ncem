@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from typing import Tuple  # noqa: F401
 
-from ncem.src.tl.fit.constants import UNS_KEY_ABLATION
+from ncem.tl.fit.constants import UNS_KEY_ABLATION
 
 
 def ablation(

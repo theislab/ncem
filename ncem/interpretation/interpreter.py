@@ -517,12 +517,12 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
                 h_obs.append(y_batch[0].numpy().squeeze())
                 pbar.update(1)
         
-        target = np.concatenate(target, axis=0)
-        interactions = np.concatenate(interactions, axis=0)
-        sf = np.concatenate(sf, axis=0)
-        node_covar = np.concatenate(node_covar, axis=0)
+        target = np.concatenate(np.expand_dims(target, axis=0), axis=0)
+        interactions = np.concatenate(np.expand_dims(interactions, axis=0), axis=0)
+        sf = np.concatenate(np.expand_dims(sf, axis=0), axis=0)
+        node_covar = np.concatenate(np.expand_dims(node_covar, axis=0), axis=0)
         g = np.array(g)
-        h_obs = np.concatenate(h_obs, axis=0)
+        h_obs = np.concatenate(np.expand_dims(h_obs, axis=0), axis=0)
         
         return (target, interactions, sf, node_covar, g), h_obs
 
@@ -909,7 +909,9 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
 
         print('using ols parameters.')
         if params_type == 'ols':
-            x_design = np.concatenate([target, interactions], axis=1)
+            print(target.shape)
+            print(interactions.shape)
+            x_design = np.concatenate([target, interactions.squeeze()], axis=1)
             ols = ols_fit(x_=x_design, y_=y)
             params = ols.squeeze()
         else:
@@ -922,15 +924,13 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
         # get inverse fisher information matrix
         print('calculating inv fim.')
         fim_inv = get_fim_inv(x_design, y)
-
+        
+        
+        interaction_shape = np.int(self.n_features_0**2)
+        params = params[:, self.n_features_0 : interaction_shape + self.n_features_0]
         is_sign, pvalues, qvalues = wald_test(
             params=params, fisher_inv=fim_inv, significance_threshold=significance_threshold
         )
-        interaction_shape = np.int(self.n_features_0**2)
-        # subset to interaction terms
-        is_sign = is_sign[self.n_features_0 : interaction_shape + self.n_features_0, :]
-        pvalues = pvalues[self.n_features_0 : interaction_shape + self.n_features_0, :]
-        qvalues = qvalues[self.n_features_0 : interaction_shape + self.n_features_0, :]
 
         self.pvalues = np.concatenate(
             np.expand_dims(np.split(pvalues, indices_or_sections=np.sqrt(pvalues.shape[0]), axis=0), axis=0),
@@ -945,9 +945,8 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
             axis=0,
         )
 
-        interaction_params = params[:, self.n_features_0 : interaction_shape + self.n_features_0]
         self.fold_change = np.concatenate(
-            np.expand_dims(np.split(interaction_params.T, indices_or_sections=np.sqrt(interaction_params.T.shape[0]), axis=0), axis=0),
+            np.expand_dims(np.split(params.T, indices_or_sections=np.sqrt(params.T.shape[0]), axis=0), axis=0),
             axis=0,
         )
         

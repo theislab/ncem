@@ -1,4 +1,4 @@
-from ncem.src.tl.fit.constants import UNS_KEY_NCEM
+from ncem.tl.fit.constants import UNS_KEY_NCEM
 
 
 def read_uns(adata, k):

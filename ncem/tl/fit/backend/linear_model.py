@@ -4,12 +4,12 @@ import anndata
 import numpy as np
 import pandas as pd
 
-from ncem.src.tl.fit.backend.design_matrix import extend_formula_ncem, extend_formula_differential_ncem, \
+from ncem.tl.fit.backend.design_matrix import extend_formula_ncem, extend_formula_differential_ncem, \
     get_binary_sample_annotation_conditions, get_dmats_from_deconvoluted, get_dmat_from_obs, get_obs_niche_from_graph
-from ncem.src.tl.fit.backend.ols_fit import ols_fit
-from ncem.src.tl.fit.backend.testing import test_standard, test_deconvoluted
-from ncem.src.tl.fit.backend.utils import write_uns
-from ncem.src.tl.fit.constants import VARM_KEY_PARAMS, OBSM_KEY_DMAT, OBSM_KEY_DMAT_NICHE, VARM_KEY_FDR_PVALS, \
+from ncem.tl.fit.backend.ols_fit import ols_fit
+from ncem.tl.fit.backend.testing import test_standard, test_deconvoluted
+from ncem.tl.fit.backend.utils import write_uns
+from ncem.tl.fit.constants import VARM_KEY_PARAMS, OBSM_KEY_DMAT, OBSM_KEY_DMAT_NICHE, VARM_KEY_FDR_PVALS, \
     VARM_KEY_FDR_PVALS_DIFFERENTIAL,  VARM_KEY_PVALS, VARM_KEY_PVALS_DIFFERENTIAL, VARM_KEY_TESTED_PARAMS, \
     VARM_KEY_TESTED_PARAMS_DIFFERENTIAL, UNS_KEY_CELL_TYPES, UNS_KEY_CONDITIONS, UNS_KEY_PER_INDEX
 

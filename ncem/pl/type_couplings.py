@@ -4,10 +4,6 @@ import networkx as nx
 import re
 import numpy as np
 
-from ncem.src.tl.fit.constants import VARM_KEY_PARAMS, OBSM_KEY_DMAT, OBSM_KEY_DMAT_NICHE, VARM_KEY_FDR_PVALS, \
-    VARM_KEY_FDR_PVALS_DIFFERENTIAL,  VARM_KEY_PVALS, VARM_KEY_PVALS_DIFFERENTIAL, VARM_KEY_TESTED_PARAMS, \
-    VARM_KEY_TESTED_PARAMS_DIFFERENTIAL, UNS_KEY_CELL_TYPES, UNS_KEY_CONDITIONS, UNS_KEY_PER_INDEX
-
 
 def _get_edge_weights(
     adata,

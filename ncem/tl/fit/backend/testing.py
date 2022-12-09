@@ -6,7 +6,7 @@ import pandas as pd
 from diffxpy.stats.stats import wald_test, wald_test_chisq
 from diffxpy.testing.correction import correct
 
-from ncem.src.tl.fit.constants import OBSM_KEY_DMAT, VARM_KEY_PARAMS
+from ncem.tl.fit.constants import OBSM_KEY_DMAT, VARM_KEY_PARAMS
 from ncem.utils.wald_test import get_fim_inv
 
 

@@ -9,8 +9,8 @@ from scipy.stats import linregress
 import squidpy as sq
 import warnings
 
-from ncem.src.tl.fit.glm import linear_ncem
-from ncem.src.tl.fit.constants import OBSM_KEY_DMAT, VARM_KEY_PARAMS, OBS_KEY_SPLIT, UNS_KEY_ABLATION
+from ncem.tl.fit.glm import linear_ncem
+from ncem.tl.fit.constants import OBSM_KEY_DMAT, VARM_KEY_PARAMS, OBS_KEY_SPLIT, UNS_KEY_ABLATION
 
 
 def _train_split(

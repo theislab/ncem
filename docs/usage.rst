@@ -7,6 +7,32 @@ Import ncem as::
    import ncem
 
 
+Tools
+--------------------------------
+.. module:: ncem.tl
+.. currentmodule:: ncem
+
+    tl.glm.linear_ncem
+    tl.glm.linear_ncem_deconvoluted
+    tl.glm.differential_ncem
+    tl.glm.differential_ncem_deconvoluted
+
+    tl.glm.spline_linear_ncem
+    tl.glm.spline_linear_ncem_deconvoluted
+    tl.glm.spline_differential_ncem
+    tl.glm.spline_differential_ncem_deconvoluted
+
+Plotting
+--------------------------------
+.. module:: ncem.pl
+.. currentmodule:: ncem
+
+    pl.cluster_freq
+    pl.noise_structure
+    pl.circular
+    pl.circular_rotated_labels
+    pl.ablation
+
 Estimator classes: `estimators`
 --------------------------------
 .. module:: ncem.estimators
