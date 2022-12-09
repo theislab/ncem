@@ -12,15 +12,15 @@ Tools
 .. module:: ncem.tl
 .. currentmodule:: ncem
 
-    tl.glm.linear_ncem
-    tl.glm.linear_ncem_deconvoluted
-    tl.glm.differential_ncem
-    tl.glm.differential_ncem_deconvoluted
+    tl.linear_ncem
+    tl.linear_ncem_deconvoluted
+    tl.differential_ncem
+    tl.differential_ncem_deconvoluted
 
-    tl.glm.spline_linear_ncem
-    tl.glm.spline_linear_ncem_deconvoluted
-    tl.glm.spline_differential_ncem
-    tl.glm.spline_differential_ncem_deconvoluted
+    tl.spline_linear_ncem
+    tl.spline_linear_ncem_deconvoluted
+    tl.spline_differential_ncem
+    tl.spline_differential_ncem_deconvoluted
 
 Plotting
 --------------------------------
