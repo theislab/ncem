@@ -12,11 +12,12 @@ packages = [
     { include = "ncem" },
 ]
 classifiers = [
+    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
 ]
 
 [tool.poetry.dependencies]
-python = ">3.8,<3.10"
+python = ">3.7,<3.10"
 click = "^8.0.0"
 rich = "^10.1.0"
 PyYAML = "^5.4.1"
