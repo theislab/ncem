@@ -32,7 +32,9 @@ matplotlib = "^3.7.1"
 louvain = "^0.7.0"
 diffxpy = "^0.7.4"
 docrep = "^0.3.2"
-tensorflow = "^2.5.0"
+tensorflow = "^2.11.1"
+joblib = "^1.2.0"
+numpy = ">=1.22"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.3"
