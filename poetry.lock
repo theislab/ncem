@@ -18,7 +18,7 @@ optional = false
 python-versions = "*"
 
 [package.extras]
-test = ["pytest (>=3.0)", "pytest-cov", "pydocstyle", "coveralls"]
+test = ["coveralls", "pydocstyle", "pytest-cov", "pytest (>=3.0)"]
 
 [[package]]
 name = "alabaster"
@@ -307,7 +307,7 @@ python-versions = "*"
 click = ">=4.0"
 
 [package.extras]
-dev = ["pytest (>=3.6)", "pytest-cov", "wheel", "coveralls"]
+dev = ["coveralls", "wheel", "pytest-cov", "pytest (>=3.6)"]
 
 [[package]]
 name = "cligj"
@@ -348,7 +348,7 @@ optional = false
 python-versions = "*"
 
 [package.extras]
-test = ["flake8 (==3.7.8)", "hypothesis (==3.55.3)"]
+test = ["hypothesis (==3.55.3)", "flake8 (==3.7.8)"]
 
 [[package]]
 name = "coverage"
@@ -741,8 +741,8 @@ python-versions = ">=3.6"
 [package.dependencies]
 cached-property = {version = "*", markers = "python_version < \"3.8\""}
 numpy = [
-    {version = ">=1.14.5", markers = "python_version == \"3.7\""},
     {version = ">=1.17.5", markers = "python_version == \"3.8\""},
+    {version = ">=1.14.5", markers = "python_version == \"3.7\""},
 ]
 
 [[package]]
@@ -1031,9 +1031,9 @@ numpy = ">=1.9.1"
 six = ">=1.9.0"
 
 [package.extras]
-image = ["scipy (>=0.14)", "Pillow (>=5.2.0)"]
+tests = ["pytest-cov", "pytest-xdist", "pytest", "keras", "tensorflow", "pillow", "pandas"]
 pep8 = ["flake8"]
-tests = ["pandas", "pillow", "tensorflow", "keras", "pytest", "pytest-xdist", "pytest-cov"]
+image = ["Pillow (>=5.2.0)", "scipy (>=0.14)"]
 
 [[package]]
 name = "kiwisolver"
@@ -1410,10 +1410,10 @@ urllib3 = ">=1.26.0"
 wrapt = ">=1.12.0"
 
 [package.extras]
-dev = ["pre-commit (>=2.7.1)", "bump2version"]
-docs = ["sphinx (>=3.3.0)", "sphinx-autodoc-annotation", "sphinx-autodoc-typehints (>=1.10.3)", "sphinx-paramlinks", "sphinx-toolbox", "sphinx-copybutton", "sphinx-last-updated-by-git", "sphinx-rtd-theme"]
-graph = ["networkx (>=4.3.0)"]
 tests = ["tox (>=3.20.1)"]
+graph = ["networkx (>=4.3.0)"]
+docs = ["sphinx-rtd-theme", "sphinx-last-updated-by-git", "sphinx-copybutton", "sphinx-toolbox", "sphinx-paramlinks", "sphinx-autodoc-typehints (>=1.10.3)", "sphinx-autodoc-annotation", "sphinx (>=3.3.0)"]
+dev = ["bump2version", "pre-commit (>=2.7.1)"]
 
 [[package]]
 name = "opt-einsum"
@@ -1455,7 +1455,7 @@ python-dateutil = ">=2.7.3"
 pytz = ">=2017.2"
 
 [package.extras]
-test = ["pytest (>=4.0.2)", "pytest-xdist", "hypothesis (>=3.58)"]
+test = ["hypothesis (>=3.58)", "pytest-xdist", "pytest (>=4.0.2)"]
 
 [[package]]
 name = "pandocfilters"
@@ -1490,7 +1490,7 @@ locket = "*"
 toolz = "*"
 
 [package.extras]
-complete = ["numpy (>=1.9.0)", "pandas (>=0.19.0)", "pyzmq", "blosc"]
+complete = ["blosc", "pyzmq", "pandas (>=0.19.0)", "numpy (>=1.9.0)"]
 
 [[package]]
 name = "pathspec"
@@ -1522,14 +1522,14 @@ python-versions = ">=2.6"
 
 [[package]]
 name = "pep8-naming"
-version = "0.11.1"
+version = "0.13.2"
 description = "Check PEP-8 naming conventions, plugin for flake8"
 category = "dev"
 optional = false
-python-versions = "*"
+python-versions = ">=3.7"
 
 [package.dependencies]
-flake8-polyfill = ">=1.0.2,<2"
+flake8 = ">=3.9.1"
 
 [[package]]
 name = "pexpect"
@@ -2186,10 +2186,10 @@ numpy = ">=1.17"
 scipy = ">=0.19"
 
 [package.extras]
-all = ["dask", "pytest (>=3.5)", "pytest-black", "pytest-cov", "tox", "sphinx", "sphinx-rtd-theme"]
-docs = ["sphinx", "sphinx-rtd-theme"]
-tests = ["dask", "pytest (>=3.5)", "pytest-black", "pytest-cov"]
-tox = ["dask", "pytest (>=3.5)", "pytest-black", "pytest-cov", "tox"]
+tox = ["tox", "pytest-cov", "pytest-black", "pytest (>=3.5)", "dask"]
+tests = ["pytest-cov", "pytest-black", "pytest (>=3.5)", "dask"]
+docs = ["sphinx-rtd-theme", "sphinx"]
+all = ["sphinx-rtd-theme", "sphinx", "tox", "pytest-cov", "pytest-black", "pytest (>=3.5)", "dask"]
 
 [[package]]
 name = "sphinx"
@@ -2264,7 +2264,7 @@ docutils = "<0.17"
 sphinx = "*"
 
 [package.extras]
-dev = ["transifex-client", "sphinxcontrib-httpdomain", "bump2version"]
+dev = ["bump2version", "sphinxcontrib-httpdomain", "transifex-client"]
 
 [[package]]
 name = "sphinxcontrib-applehelp"
@@ -2275,8 +2275,8 @@ optional = false
 python-versions = ">=3.5"
 
 [package.extras]
-lint = ["flake8", "mypy", "docutils-stubs"]
 test = ["pytest"]
+lint = ["docutils-stubs", "mypy", "flake8"]
 
 [[package]]
 name = "sphinxcontrib-devhelp"
@@ -2287,8 +2287,8 @@ optional = false
 python-versions = ">=3.5"
 
 [package.extras]
-lint = ["flake8", "mypy", "docutils-stubs"]
 test = ["pytest"]
+lint = ["docutils-stubs", "mypy", "flake8"]
 
 [[package]]
 name = "sphinxcontrib-htmlhelp"
@@ -2299,8 +2299,8 @@ optional = false
 python-versions = ">=3.5"
 
 [package.extras]
-lint = ["flake8", "mypy", "docutils-stubs"]
-test = ["pytest", "html5lib"]
+test = ["html5lib", "pytest"]
+lint = ["docutils-stubs", "mypy", "flake8"]
 
 [[package]]
 name = "sphinxcontrib-jsmath"
@@ -2311,7 +2311,7 @@ optional = false
 python-versions = ">=3.5"
 
 [package.extras]
-test = ["pytest", "flake8", "mypy"]
+test = ["mypy", "flake8", "pytest"]
 
 [[package]]
 name = "sphinxcontrib-qthelp"
@@ -2322,8 +2322,8 @@ optional = false
 python-versions = ">=3.5"
 
 [package.extras]
-lint = ["flake8", "mypy", "docutils-stubs"]
 test = ["pytest"]
+lint = ["docutils-stubs", "mypy", "flake8"]
 
 [[package]]
 name = "sphinxcontrib-serializinghtml"
@@ -2334,8 +2334,8 @@ optional = false
 python-versions = ">=3.5"
 
 [package.extras]
-lint = ["flake8", "mypy", "docutils-stubs"]
 test = ["pytest"]
+lint = ["docutils-stubs", "mypy", "flake8"]
 
 [[package]]
 name = "squidpy"
@@ -2363,11 +2363,11 @@ xarray = ">=0.16.1"
 zarr = ">=2.6.1"
 
 [package.extras]
-all = ["PyQt5 (>=5.15.0)", "napari (>=0.4.2)", "esda (>=2.3.1)", "libpysal (>=4.3.0)", "astropy (>=4.1)"]
+test = ["pytest-mock", "tox (>=3.20.1)"]
+interactive = ["napari (>=0.4.2)", "PyQt5 (>=5.15.0)"]
+docs = ["sphinxcontrib-spelling", "sphinxcontrib-bibtex (>=2.1.0)", "sphinx-rtd-theme", "sphinx-last-updated-by-git", "sphinx-gallery (>=0.8.2)", "sphinx-autodoc-typehints (>=1.10.3)", "sphinx-autodoc-annotation", "sphinx (>=3.3.0)", "requests", "pyenchant (>=3.1.1)", "nbsphinx (>=0.8.1)"]
 dev = ["pre-commit (>=2.9.0)"]
-docs = ["nbsphinx (>=0.8.1)", "pyenchant (>=3.1.1)", "requests", "sphinx (>=3.3.0)", "sphinx-autodoc-annotation", "sphinx-autodoc-typehints (>=1.10.3)", "sphinx-gallery (>=0.8.2)", "sphinx-last-updated-by-git", "sphinx-rtd-theme", "sphinxcontrib-bibtex (>=2.1.0)", "sphinxcontrib-spelling"]
-interactive = ["PyQt5 (>=5.15.0)", "napari (>=0.4.2)"]
-test = ["tox (>=3.20.1)", "pytest-mock"]
+all = ["astropy (>=4.1)", "libpysal (>=4.3.0)", "esda (>=2.3.1)", "napari (>=0.4.2)", "PyQt5 (>=5.15.0)"]
 
 [[package]]
 name = "statsmodels"
@@ -2529,7 +2529,7 @@ optional = false
 python-versions = ">= 3.5"
 
 [package.extras]
-test = ["pytest", "pathlib2"]
+test = ["pathlib2", "pytest"]
 
 [[package]]
 name = "texttable"
@@ -2817,7 +2817,7 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=1.2.3)", "pytest-flake8", "pyt
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.7,<3.9"
-content-hash = "24674f2aff1f2a9fe7c40453fd4cceda67116b21aee7d3aac1f46e4588d4a4a3"
+content-hash = "9e76328e4aab007c0c39d17672073d21a5f7343b3c93b0618145dea7c5beb127"
 
 [metadata.files]
 absl-py = [
@@ -3795,8 +3795,8 @@ pbr = [
     {file = "pbr-5.5.1.tar.gz", hash = "sha256:5fad80b613c402d5b7df7bd84812548b2a61e9977387a80a5fc5c396492b13c9"},
 ]
 pep8-naming = [
-    {file = "pep8-naming-0.11.1.tar.gz", hash = "sha256:a1dd47dd243adfe8a83616e27cf03164960b507530f155db94e10b36a6cd6724"},
-    {file = "pep8_naming-0.11.1-py2.py3-none-any.whl", hash = "sha256:f43bfe3eea7e0d73e8b5d07d6407ab47f2476ccaeff6937c84275cd30b016738"},
+    {file = "pep8-naming-0.13.2.tar.gz", hash = "sha256:93eef62f525fd12a6f8c98f4dcc17fa70baae2f37fa1f73bec00e3e44392fa48"},
+    {file = "pep8_naming-0.13.2-py3-none-any.whl", hash = "sha256:59e29e55c478db69cffbe14ab24b5bd2cd615c0413edf790d47d3fb7ba9a4e23"},
 ]
 pexpect = [
     {file = "pexpect-4.8.0-py2.py3-none-any.whl", hash = "sha256:0b48a55dcb3c05f3329815901ea4fc1537514d6ba867a152b581d69ae3710937"},
