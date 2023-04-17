@@ -12,32 +12,30 @@ packages = [
     { include = "ncem" },
 ]
 classifiers = [
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
 ]
 
-
 [tool.poetry.dependencies]
-python = ">3.7,<3.10"
-click = "^7.1.2"
+python = ">3.8,<3.10"
+click = "^8.0.0"
 rich = "^10.1.0"
 PyYAML = "^5.4.1"
 Jinja2 = ">=2.11.3,<4.0.0"
-scanpy = "^1.7.2"
-tensorflow = "^2.5.0"
-squidpy = "^1.0.0"
+scanpy = "^1.9.3"
+squidpy = "^1.2.3"
 patsy = "^0.5.1"
-scipy = "^1.7.0"
-seaborn = "^0.11.1"
-matplotlib = "^3.4.2"
+scipy = "^1.10.1"
+seaborn = "^0.12.2"
+matplotlib = "^3.7.1"
 louvain = "^0.7.0"
 diffxpy = "^0.7.4"
 docrep = "^0.3.2"
+tensorflow = "^2.5.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.3"
 coverage = {extras = ["toml"], version = "^5.3"}
-safety = "^1.9.0"
+safety = "^2.3.0"
 mypy = "^0.812"
 typeguard = "^2.12.0"
 xdoctest = {extras = ["colors"], version = "^0.15.0"}
