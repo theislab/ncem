@@ -7,19 +7,19 @@ ncem.models.ModelLinear
 
 .. autoclass:: ModelLinear
 
-   
-   
-   
 
-   
-   
+
+
+
+
+
    .. rubric:: Methods
 
    .. autosummary::
       :toctree: .
-   
-   
-   
+
+
+
 
    .. _sphx_glr_backref_ncem.models.ModelLinear:
 

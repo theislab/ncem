@@ -7,19 +7,19 @@ ncem.models.ModelEDncem
 
 .. autoclass:: ModelEDncem
 
-   
-   
-   
 
-   
-   
+
+
+
+
+
    .. rubric:: Methods
 
    .. autosummary::
       :toctree: .
-   
-   
-   
+
+
+
 
    .. _sphx_glr_backref_ncem.models.ModelEDncem:
 

@@ -42,13 +42,13 @@ ncem.estimators.EstimatorGraph
 
 .. autoclass:: EstimatorGraph
 
-   
-   
+
+
    .. rubric:: Attributes
 
    .. autosummary::
       :toctree: .
-   
+
       ~ncem.estimators.EstimatorGraph.img_keys_all
       ~ncem.estimators.EstimatorGraph.nodes_idx_all
       ~ncem.estimators.EstimatorGraph.nodes_idx_eval
@@ -88,16 +88,16 @@ ncem.estimators.EstimatorGraph
       ~ncem.estimators.EstimatorGraph.output_layer
       ~ncem.estimators.EstimatorGraph.steps_per_epoch
       ~ncem.estimators.EstimatorGraph.validation_steps
-   
-   
 
-   
-   
+
+
+
+
    .. rubric:: Methods
 
    .. autosummary::
       :toctree: .
-   
+
       ~ncem.estimators.EstimatorGraph.evaluate_any
       ~ncem.estimators.EstimatorGraph.evaluate_per_node_type
       ~ncem.estimators.EstimatorGraph.get_data
@@ -110,8 +110,8 @@ ncem.estimators.EstimatorGraph
       ~ncem.estimators.EstimatorGraph.train
       ~ncem.estimators.EstimatorGraph.train_aggressive
       ~ncem.estimators.EstimatorGraph.train_normal
-   
-   
+
+
 
    .. _sphx_glr_backref_ncem.estimators.EstimatorGraph:
 

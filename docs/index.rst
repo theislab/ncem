@@ -4,7 +4,7 @@
 NCEM
 ===========================
 
-**NCEM** is a tool for the inference of cell-cell communication in spatial molecular data. 
+**NCEM** is a tool for the inference of cell-cell communication in spatial molecular data.
 
 .. image:: https://raw.githubusercontent.com/theislab/ncem/main/docs/_static/img/concept.png
    :target: https://raw.githubusercontent.com/theislab/ncem/main/docs/_static/img/concept.png
@@ -15,7 +15,7 @@ NCEM
 
 Manuscript
 --------
-Please see our manuscript :cite:`fischer_modeling_2023` in **Nature Biotechnology** to learn more. 
+Please see our manuscript :cite:`fischer_modeling_2023` in **Nature Biotechnology** to learn more.
 
 NCEM's key application
 ----------------------
@@ -24,9 +24,9 @@ NCEM's key application
 
 * NCEMs can be used for cell communication inference captured with different spatial profiling technologies and are not limited to receptor-ligand signaling.
 
-* NCEMs can be applied to deconvoluted spot transcriptomics. 
+* NCEMs can be applied to deconvoluted spot transcriptomics.
 
-* Dependencies inferred by NCEMs are directional. 
+* Dependencies inferred by NCEMs are directional.
 
 Getting started with NCEM
 -------------------------
@@ -100,4 +100,3 @@ We are happy about any contributions! Before you start, check out our contributo
 .. _Usage: https://ncem.readthedocs.io/en/latest/usage.html
 .. _preprint: https://www.biorxiv.org/content/10.1101/2021.07.11.451750v1
 .. _paper: https://www.nature.com/articles/s41587-022-01467-z
-

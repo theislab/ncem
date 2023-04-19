@@ -7,19 +7,19 @@ ncem.models.ModelCVAEncem
 
 .. autoclass:: ModelCVAEncem
 
-   
-   
-   
 
-   
-   
+
+
+
+
+
    .. rubric:: Methods
 
    .. autosummary::
       :toctree: .
-   
-   
-   
+
+
+
 
    .. _sphx_glr_backref_ncem.models.ModelCVAEncem:
 

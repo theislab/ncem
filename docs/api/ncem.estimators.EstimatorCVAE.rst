@@ -42,13 +42,13 @@ ncem.estimators.EstimatorCVAE
 
 .. autoclass:: EstimatorCVAE
 
-   
-   
+
+
    .. rubric:: Attributes
 
    .. autosummary::
       :toctree: .
-   
+
       ~ncem.estimators.EstimatorCVAE.img_keys_all
       ~ncem.estimators.EstimatorCVAE.nodes_idx_all
       ~ncem.estimators.EstimatorCVAE.nodes_idx_eval
@@ -88,16 +88,16 @@ ncem.estimators.EstimatorCVAE
       ~ncem.estimators.EstimatorCVAE.output_layer
       ~ncem.estimators.EstimatorCVAE.steps_per_epoch
       ~ncem.estimators.EstimatorCVAE.validation_steps
-   
-   
 
-   
-   
+
+
+
+
    .. rubric:: Methods
 
    .. autosummary::
       :toctree: .
-   
+
       ~ncem.estimators.EstimatorCVAE.evaluate_any
       ~ncem.estimators.EstimatorCVAE.evaluate_any_posterior_sampling
       ~ncem.estimators.EstimatorCVAE.evaluate_per_node_type
@@ -111,8 +111,8 @@ ncem.estimators.EstimatorCVAE
       ~ncem.estimators.EstimatorCVAE.train
       ~ncem.estimators.EstimatorCVAE.train_aggressive
       ~ncem.estimators.EstimatorCVAE.train_normal
-   
-   
+
+
 
    .. _sphx_glr_backref_ncem.estimators.EstimatorCVAE:
 

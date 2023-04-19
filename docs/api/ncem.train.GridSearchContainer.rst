@@ -42,13 +42,13 @@ ncem.train.GridSearchContainer
 
 .. autoclass:: GridSearchContainer
 
-   
-   
+
+
    .. rubric:: Attributes
 
    .. autosummary::
       :toctree: .
-   
+
       ~ncem.train.GridSearchContainer.cv_keys
       ~ncem.train.GridSearchContainer.runparams
       ~ncem.train.GridSearchContainer.run_ids_clean
@@ -57,16 +57,16 @@ ncem.train.GridSearchContainer
       ~ncem.train.GridSearchContainer.target_cell_runparams
       ~ncem.train.GridSearchContainer.target_cell_evals
       ~ncem.train.GridSearchContainer.target_cell_indices
-   
-   
 
-   
-   
+
+
+
+
    .. rubric:: Methods
 
    .. autosummary::
       :toctree: .
-   
+
       ~ncem.train.GridSearchContainer.copy_best_model
       ~ncem.train.GridSearchContainer.get_best_model_id
       ~ncem.train.GridSearchContainer.get_info
@@ -75,8 +75,8 @@ ncem.train.GridSearchContainer
       ~ncem.train.GridSearchContainer.plot_best_model_by_hyperparam
       ~ncem.train.GridSearchContainer.plot_target_cell_evaluation
       ~ncem.train.GridSearchContainer.select_cv
-   
-   
+
+
 
    .. _sphx_glr_backref_ncem.train.GridSearchContainer:
 

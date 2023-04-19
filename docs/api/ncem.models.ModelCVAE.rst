@@ -7,19 +7,19 @@ ncem.models.ModelCVAE
 
 .. autoclass:: ModelCVAE
 
-   
-   
-   
 
-   
-   
+
+
+
+
+
    .. rubric:: Methods
 
    .. autosummary::
       :toctree: .
-   
-   
-   
+
+
+
 
    .. _sphx_glr_backref_ncem.models.ModelCVAE:
 

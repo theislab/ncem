@@ -7,19 +7,19 @@ ncem.models.ModelInteractions
 
 .. autoclass:: ModelInteractions
 
-   
-   
-   
 
-   
-   
+
+
+
+
+
    .. rubric:: Methods
 
    .. autosummary::
       :toctree: .
-   
-   
-   
+
+
+
 
    .. _sphx_glr_backref_ncem.models.ModelInteractions:
 

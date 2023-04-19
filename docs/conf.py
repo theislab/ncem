@@ -88,8 +88,8 @@ exclude_patterns = [
     "interpretation/**.py",
     "train/**.py",
     "**.ipynb_checkpoints",
-    "_build", 
-    "Thumbs.db", 
+    "_build",
+    "Thumbs.db",
     ".DS_Store"
 ]
 suppress_warnings = ["download.not_readable", "git.too_shallow"]

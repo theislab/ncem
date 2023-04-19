@@ -1,17 +1,15 @@
 import numpy as np
 from scipy.sparse import issparse
 
+
 def get_fim_inv(x: np.array, y: np.array):
     if issparse(y):
         y = y.toarray()
     var = np.var(y, axis=0, keepdims=True)
     fim = np.expand_dims(np.matmul(x.T, x), axis=0) / np.expand_dims(var, axis=[1]).T
     fim = np.nan_to_num(fim)
-    
-    fim_inv = np.array([
-        np.linalg.pinv(fim[i, :, :])
-        for i in range(fim.shape[0])
-    ])
+
+    fim_inv = np.array([np.linalg.pinv(fim[i, :, :]) for i in range(fim.shape[0])])
     return fim_inv
 
 
@@ -61,17 +59,18 @@ def wald_test(
     bool_res, res
     """
     from diffxpy.testing.correction import correct
+
     significance = []
     qvalues = []
     pvalues = []
     for idx in range(params.T.shape[0]):
         pvals = _get_p_value(params.T, fisher_inv, idx)
         pvalues.append(pvals)
-        
+
     pvalues = np.concatenate(pvalues)
     qvalues = correct(pvalues)
-    pvalues = np.reshape(pvalues, (-1,params.T.shape[1])) 
-    qvalues = np.reshape(qvalues, (-1,params.T.shape[1]))  
+    pvalues = np.reshape(pvalues, (-1, params.T.shape[1]))
+    qvalues = np.reshape(qvalues, (-1, params.T.shape[1]))
     significance = qvalues < significance_threshold
 
     return significance, pvalues, qvalues
