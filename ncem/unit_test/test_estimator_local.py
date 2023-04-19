@@ -1,22 +1,18 @@
-import pytest
 from typing import Union
+
+import pytest
 
 import ncem.api as ncem
 from ncem.estimators import Estimator
-
-from ncem.unit_test.directories import DATA_PATH_ZHANG, DATA_PATH_HARTMANN, DATA_PATH_LU, DATA_PATH_DESTVI
+from ncem.unit_test.directories import (DATA_PATH_DESTVI, DATA_PATH_HARTMANN,
+                                        DATA_PATH_LU, DATA_PATH_ZHANG)
 
 
 class HelperTestEstimator:
     est: Estimator
 
-    def get_estimator(
-        self,
-        model: str,
-        data_origin: str = "zhang",
-        **kwargs
-    ):
-        #node_label_space_id = "type"
+    def get_estimator(self, model: str, data_origin: str = "zhang", **kwargs):
+        # node_label_space_id = "type"
         node_label_space_id = "proportions"
         node_feature_space_id = "standard"
         if model in ["linear_baseline", "linear"]:
@@ -78,14 +74,14 @@ class HelperTestEstimator:
         self.get_estimator(model=model, data_origin=data_origin, **kwargs)
 
         kwargs_shared = {
-            'optimizer': "adam",
-            'latent_dim': 4,
-            'dropout_rate': 0.,
-            'l2_coef': 0.,
-            'l1_coef': 0.,
-            'n_eval_nodes_per_graph': 4,
-            'scale_node_size': False,
-            'output_layer': "gaussian"
+            "optimizer": "adam",
+            "latent_dim": 4,
+            "dropout_rate": 0.0,
+            "l2_coef": 0.0,
+            "l1_coef": 0.0,
+            "n_eval_nodes_per_graph": 4,
+            "scale_node_size": False,
+            "output_layer": "gaussian",
         }
 
         if model == "linear":
@@ -147,29 +143,30 @@ class HelperTestEstimator:
             train_kwargs = {}
         elif model.startswith("ed_ncem2"):
             kwargs = kwargs_shared
-            kwargs.update({
-                "use_domain": True,
-                "use_bias": True,
-                "learning_rate": 1e-2,
-                "cond_type": self.est.cond_type,
-                "dec_intermediate_dim": 0,
-                "dec_n_hidden": 0,
-                "dec_dropout_rate": float,
-                "dec_l1_coef": 0.,
-                "dec_l2_coef": 0.,
-                "dec_use_batch_norm": False,
-            })
+            kwargs.update(
+                {
+                    "use_domain": True,
+                    "use_bias": True,
+                    "learning_rate": 1e-2,
+                    "cond_type": self.est.cond_type,
+                    "dec_intermediate_dim": 0,
+                    "dec_n_hidden": 0,
+                    "dec_dropout_rate": float,
+                    "dec_l1_coef": 0.0,
+                    "dec_l2_coef": 0.0,
+                    "dec_use_batch_norm": False,
+                }
+            )
             train_kwargs = {}
             self.est.set_input_features(
-                h0_in=False,
-                target_feature_names=["Abcb4", "Abcc3"],
-                neighbor_feature_names=["Adgre1", "Ammecr1"])
+                h0_in=False, target_feature_names=["Abcb4", "Abcc3"], neighbor_feature_names=["Adgre1", "Ammecr1"]
+            )
         else:
             assert False
         self._model_kwargs = kwargs
         self.est.init_model(**kwargs)
         self.est.split_data_node(validation_split=0.5, test_split=0.5)
-        #self.est.split_data_target_cell("B cells", validation_split=0.5, test_split=0.5)
+        # self.est.split_data_target_cell("B cells", validation_split=0.5, test_split=0.5)
 
         if data_origin == "hartmann":
             batch_size = None
@@ -206,11 +203,14 @@ class HelperTestEstimatorEd(HelperTestEstimator):
         _ = self.est.get_decoding_weights()
 
 
-@pytest.mark.parametrize("transformation_kwargs", [
-    {"resimulate_nodes": True, "resimulate_nodes_w_depdency": True},
-    {"resimulate_nodes": True, "resimulate_nodes_w_depdency": False},
-    {"robustness": True},
-])
+@pytest.mark.parametrize(
+    "transformation_kwargs",
+    [
+        {"resimulate_nodes": True, "resimulate_nodes_w_depdency": True},
+        {"resimulate_nodes": True, "resimulate_nodes_w_depdency": False},
+        {"robustness": True},
+    ],
+)
 def test_data_transformations(transformation_kwargs: dict):
     estim = HelperTestEstimator()
     estim.test_train(model="interaction_baseline", data_origin="luwt", **transformation_kwargs)
@@ -238,7 +238,7 @@ def test_cvae(dataset: str, model: str):
 
 
 @pytest.mark.parametrize("dataset", ["luwt"])
-#@pytest.mark.parametrize("model", ["ed_ncem2_max", "ed_ncem2_gcn", "ed_ncem2_lr_gat", "ed_ncem2_gat"])
+# @pytest.mark.parametrize("model", ["ed_ncem2_max", "ed_ncem2_gcn", "ed_ncem2_lr_gat", "ed_ncem2_gat"])
 @pytest.mark.parametrize("model", ["ed_ncem2_none"])
 def test_ed2(dataset: str, model: str):
     estim = HelperTestEstimatorEd()
@@ -252,5 +252,3 @@ def test_ed2(dataset: str, model: str):
 def test_deconv(dataset: str, model: str):
     estim = HelperTestEstimator()
     estim.test_train(model=model, data_origin=dataset)
-
-

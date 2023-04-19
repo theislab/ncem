@@ -1,7 +1,8 @@
 import numpy as np
 import tensorflow as tf
 
-from ncem.models.layers import (Decoder, Encoder, get_out, PreprocInput, SamplingPrior)
+from ncem.models.layers import (Decoder, Encoder, PreprocInput, SamplingPrior,
+                                get_out)
 
 
 class ModelCVAE:
@@ -161,12 +162,16 @@ class ModelCVAE:
             output_layer=output_layer, out_feature_dim=out_node_feature_dim, scale_node_size=scale_node_size
         )((output_decoder, input_node_size))
         output_sampling_decoder1 = get_out(
-            output_layer=output_layer, out_feature_dim=out_node_feature_dim, scale_node_size=scale_node_size,
-            name='sampling1'
+            output_layer=output_layer,
+            out_feature_dim=out_node_feature_dim,
+            scale_node_size=scale_node_size,
+            name="sampling1",
         )((sampling_decoder1, input_node_size))
         output_sampling_decoder2 = get_out(
-            output_layer=output_layer, out_feature_dim=out_node_feature_dim, scale_node_size=scale_node_size,
-            name='sampling2'
+            output_layer=output_layer,
+            out_feature_dim=out_node_feature_dim,
+            scale_node_size=scale_node_size,
+            name="sampling2",
         )((sampling_decoder2, input_node_size))
 
         output_decoder_concat = tf.keras.layers.Concatenate(axis=2, name="reconstruction")(output_decoder_layer)

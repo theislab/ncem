@@ -98,7 +98,7 @@ class EstimatorDeconvolution(Estimator):
                     # dropping
                     index_list = [
                         np.asarray(
-                            nodes_idx[key][self.n_eval_nodes_per_graph * i: self.n_eval_nodes_per_graph * (i + 1)],
+                            nodes_idx[key][self.n_eval_nodes_per_graph * i : self.n_eval_nodes_per_graph * (i + 1)],
                             dtype=np.int32,
                         )
                         for i in range(len(nodes_idx[key]) // self.n_eval_nodes_per_graph)
@@ -169,7 +169,7 @@ class EstimatorDeconvolution(Estimator):
                     tf.TensorSpec(shape=(self.n_domains,), dtype=tf.int32),
                 ),
                 tf.TensorSpec(shape=(self.n_eval_nodes_per_graph, self.n_features_1), dtype=tf.float32),
-            )
+            ),
         )
         if train:
             if shuffle_buffer_size is not None:

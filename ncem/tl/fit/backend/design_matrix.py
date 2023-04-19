@@ -13,8 +13,9 @@ def _make_type_categorical(obs, key_type):
     return obs
 
 
-def extend_formula_ncem(formula: str, cell_types: List[str], per_index_type: bool = False,
-                        type_specific_confounders: List[str] = []) -> Tuple[str, List[str]]:
+def extend_formula_ncem(
+    formula: str, cell_types: List[str], per_index_type: bool = False, type_specific_confounders: List[str] = []
+) -> Tuple[str, List[str]]:
     """
     Adds linear NCEM terms into formula.
 
@@ -52,8 +53,11 @@ def extend_formula_ncem(formula: str, cell_types: List[str], per_index_type: boo
     else:
         # Add type-specific confounders:
         if len(type_specific_confounders) > 0:
-            formula = formula + "+" + "+".join([f"{PREFIX_INDEX}{x}:{y}" for y in type_specific_confounders
-                                                for x in cell_types])
+            formula = (
+                formula
+                + "+"
+                + "+".join([f"{PREFIX_INDEX}{x}:{y}" for y in type_specific_confounders for x in cell_types])
+            )
         # Add type-wise intercept:
         formula = formula + "+" + "+".join([f"{PREFIX_INDEX}{x}" for x in cell_types])
         # Add couplings (type-type interactions):
@@ -62,9 +66,13 @@ def extend_formula_ncem(formula: str, cell_types: List[str], per_index_type: boo
     return formula_out, coef_couplings
 
 
-def extend_formula_differential_ncem(formula: str, conditions: List[str], cell_types: List[str],
-                                     per_index_type: bool = False, type_specific_confounders: List[str] = []) -> \
-    Tuple[str, List[str], Dict[str, List[str]]]:
+def extend_formula_differential_ncem(
+    formula: str,
+    conditions: List[str],
+    cell_types: List[str],
+    per_index_type: bool = False,
+    type_specific_confounders: List[str] = [],
+) -> Tuple[str, List[str], Dict[str, List[str]]]:
     """
     Adds linear NCEM terms into formula.
 
@@ -121,8 +129,11 @@ def extend_formula_differential_ncem(formula: str, conditions: List[str], cell_t
     else:
         # Add type-specific confounders:
         if len(type_specific_confounders) > 0:
-            formula = formula + "+" + "+".join([f"{PREFIX_INDEX}{x}:{y}" for y in type_specific_confounders
-                                                for x in cell_types])
+            formula = (
+                formula
+                + "+"
+                + "+".join([f"{PREFIX_INDEX}{x}:{y}" for y in type_specific_confounders for x in cell_types])
+            )
         # Add type-wise intercept:
         formula = formula + "+" + "+".join([f"{PREFIX_INDEX}{x}" for x in cell_types])
         # Add couplings (type-type interactions):
@@ -132,8 +143,9 @@ def extend_formula_differential_ncem(formula: str, conditions: List[str], cell_t
             # Add condition interaction to type-wise intercept:
             formula = formula + "+" + "+".join([f"{PREFIX_INDEX}{x}:{c}" for x in cell_types])
             # Add differential couplings (differential type-type interactions):
-            coef_diff_couplings = [f"{PREFIX_INDEX}{x}:{PREFIX_NEIGHBOR}{y}:{c}"
-                                   for y in cell_types for x in cell_types]
+            coef_diff_couplings = [
+                f"{PREFIX_INDEX}{x}:{PREFIX_NEIGHBOR}{y}:{c}" for y in cell_types for x in cell_types
+            ]
             formula = formula + "+" + "+".join(coef_diff_couplings)
             # Group coefficients across conditions by interaction pair:
             for x in cell_types:
@@ -146,8 +158,9 @@ def extend_formula_differential_ncem(formula: str, conditions: List[str], cell_t
     return formula_out, coef_couplings, coef_diff_couplings_grouped
 
 
-def get_obs_niche_from_graph(adata: anndata.AnnData, obs_key_type, obsp_key_graph: str,
-                             marginalisation: str = "binary") -> pd.DataFrame:
+def get_obs_niche_from_graph(
+    adata: anndata.AnnData, obs_key_type, obsp_key_graph: str, marginalisation: str = "binary"
+) -> pd.DataFrame:
     """
     Create niche sample annotation table from graph.
 
@@ -172,7 +185,7 @@ def get_obs_niche_from_graph(adata: anndata.AnnData, obs_key_type, obsp_key_grap
     onehot_type = pd.get_dummies(obs[[obs_key_type]], columns=[obs_key_type], drop_first=False)
     # Make sure diagonal of graph is zero:
     g = adata.obsp[obsp_key_graph].copy()
-    g[np.arange(0, g.shape[0]), np.arange(0, g.shape[1])] = 0.
+    g[np.arange(0, g.shape[0]), np.arange(0, g.shape[1])] = 0.0
     # Cell type counts in each neighborhood:
     counts = g.dot(onehot_type.values)
     if marginalisation == "binary":
@@ -227,8 +240,9 @@ def get_dmat_from_obs(obs: pd.DataFrame, obs_niche: pd.DataFrame, formula: str, 
     assert np.all(obs.index == obs_niche.index)
     assert np.all([x in obs[key_type].values.categories for x in obs_niche.columns])
     # One-hot encode index cell:
-    obs_index_type = pd.get_dummies(obs[[key_type]], prefix=PREFIX_INDEX, prefix_sep='', columns=[key_type],
-                                    drop_first=False)
+    obs_index_type = pd.get_dummies(
+        obs[[key_type]], prefix=PREFIX_INDEX, prefix_sep="", columns=[key_type], drop_first=False
+    )
     # Process niche table:
     obs_niche.columns = [PREFIX_NEIGHBOR + x for x in obs_niche.columns]
     # Merge sample annotation:
@@ -238,8 +252,9 @@ def get_dmat_from_obs(obs: pd.DataFrame, obs_niche: pd.DataFrame, formula: str, 
     return dmat
 
 
-def get_dmats_from_deconvoluted(obs: pd.DataFrame, deconv: pd.DataFrame, formulas: List[str]) -> \
-    Dict[str, pd.DataFrame]:
+def get_dmats_from_deconvoluted(
+    obs: pd.DataFrame, deconv: pd.DataFrame, formulas: List[str]
+) -> Dict[str, pd.DataFrame]:
     """
     Create a design matrix per index cell from a sample description table and deconvolution results according to a
     patsy style formula.
@@ -269,8 +284,9 @@ def get_dmats_from_deconvoluted(obs: pd.DataFrame, deconv: pd.DataFrame, formula
     # One hot encode index cells:
     dummy_type_annotation = pd.DataFrame({type_index_key: deconv.columns})
     dummy_type_annotation = _make_type_categorical(obs=dummy_type_annotation, key_type=type_index_key)
-    obs_index_type = pd.get_dummies(dummy_type_annotation, prefix=PREFIX_INDEX, prefix_sep='',
-                                    columns=[type_index_key], drop_first=False)
+    obs_index_type = pd.get_dummies(
+        dummy_type_annotation, prefix=PREFIX_INDEX, prefix_sep="", columns=[type_index_key], drop_first=False
+    )
     dmats = {}
     for i, x in enumerate(cell_types):
         # Create index cell annotation:
@@ -316,8 +332,9 @@ def get_dmat_global_from_deconvoluted(obs: pd.DataFrame, deconv: pd.DataFrame, f
     # One hot encode index cells:
     dummy_type_annotation = pd.DataFrame({type_index_key: deconv.columns})
     dummy_type_annotation = _make_type_categorical(obs=dummy_type_annotation, key_type=type_index_key)
-    obs_index_type = pd.get_dummies(dummy_type_annotation, prefix=PREFIX_INDEX, prefix_sep='',
-                                    columns=[type_index_key], drop_first=False)
+    obs_index_type = pd.get_dummies(
+        dummy_type_annotation, prefix=PREFIX_INDEX, prefix_sep="", columns=[type_index_key], drop_first=False
+    )
     dmats = []
     for i, x in enumerate(cell_types):
         # Create index cell annotation:

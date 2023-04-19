@@ -41,15 +41,15 @@ class EstimatorNeighborhood(Estimator):
             self.idx_target_features = np.array([features.index(x) for x in target_feature_names])
             self.idx_neighbor_features = np.array([features.index(x) for x in neighbor_feature_names])
             assert len(self.idx_target_features) == len(self.idx_neighbor_features)
-            #assert len(set(self.idx_target_features.tolist()).intersection(set(self.idx_neighbor_features.tolist()))) == 0
+            # assert len(set(self.idx_target_features.tolist()).intersection(set(self.idx_neighbor_features.tolist()))) == 0
             self.n_features_in = len(self.idx_target_features)
 
     @property
     def n_neighbors_padded(self):
         if self._n_neighbors_padded is None:
-            self._n_neighbors_padded = int(np.max(np.asarray([
-                np.max(np.asarray(np.sum(a, axis=1)).flatten()) for a in self.a.values()
-            ])))
+            self._n_neighbors_padded = int(
+                np.max(np.asarray([np.max(np.asarray(np.sum(a, axis=1)).flatten()) for a in self.a.values()]))
+            )
         return self._n_neighbors_padded
 
     def _get_output_signature(self, resampled: bool = False):
@@ -65,9 +65,7 @@ class EstimatorNeighborhood(Estimator):
         output_signature
         """
         # target node features
-        h_targets = tf.TensorSpec(
-            shape=(self.n_eval_nodes_per_graph, self.n_features_in), dtype=tf.float32
-        )
+        h_targets = tf.TensorSpec(shape=(self.n_eval_nodes_per_graph, self.n_features_in), dtype=tf.float32)
         # neighbor node features
         h_neighbors = tf.TensorSpec(
             shape=(self.n_eval_nodes_per_graph, self.n_neighbors_padded, self.n_features_in), dtype=tf.float32
@@ -93,8 +91,7 @@ class EstimatorNeighborhood(Estimator):
                     (reconstruction, kl_dummy),
                 )
             else:
-                output_signature = ((h_targets, h_neighbors, sf, a, node_covar, domain),
-                                    (reconstruction, kl_dummy))
+                output_signature = ((h_targets, h_neighbors, sf, a, node_covar, domain), (reconstruction, kl_dummy))
         else:
             if resampled:
                 output_signature = (
@@ -104,8 +101,7 @@ class EstimatorNeighborhood(Estimator):
                     reconstruction,
                 )
             else:
-                output_signature = ((h_targets, h_neighbors, sf, a, node_covar, domain),
-                                    reconstruction)
+                output_signature = ((h_targets, h_neighbors, sf, a, node_covar, domain), reconstruction)
         # print(output_signature)
         return output_signature
 
@@ -174,7 +170,7 @@ class EstimatorNeighborhood(Estimator):
                     # dropping
                     index_list = [
                         np.asarray(
-                            nodes_idx[key][self.n_eval_nodes_per_graph * i: self.n_eval_nodes_per_graph * (i + 1)],
+                            nodes_idx[key][self.n_eval_nodes_per_graph * i : self.n_eval_nodes_per_graph * (i + 1)],
                             dtype=np.int32,
                         )
                         for i in range(len(nodes_idx[key]) // self.n_eval_nodes_per_graph)
@@ -190,7 +186,7 @@ class EstimatorNeighborhood(Estimator):
                     a_neighborhood = np.zeros((self.n_eval_nodes_per_graph, self.n_neighbors_padded), "float32")
                     for i, j in enumerate(idx_nodes[indices]):
                         a_j = np.asarray(self.a[key][j, :].todense()).flatten()
-                        idx_neighbors = np.where(a_j > 0.)[0]
+                        idx_neighbors = np.where(a_j > 0.0)[0]
                         if self.h0_in:
                             h_neighbors_j = self.h_0[key][idx_neighbors, :]
                         else:
@@ -201,7 +197,7 @@ class EstimatorNeighborhood(Estimator):
                         zeros = np.zeros((1, diff, h_neighbors_j.shape[2]), dtype="float32")
                         h_neighbors_j = np.concatenate([h_neighbors_j, zeros], axis=1)
                         h_neighbors.append(h_neighbors_j)
-                        a_neighborhood[i, :len(idx_neighbors)] = a_j[idx_neighbors]
+                        a_neighborhood[i, : len(idx_neighbors)] = a_j[idx_neighbors]
                     h_neighbors = np.concatenate(h_neighbors, axis=0)
                     if self.log_transform:
                         h_targets = np.log(h_targets + 1.0)

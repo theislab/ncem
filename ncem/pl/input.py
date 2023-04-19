@@ -1,13 +1,12 @@
 from pathlib import Path
-from typing import Union, Optional, Tuple  # noqa: F401
+from typing import Optional, Tuple, Union  # noqa: F401
 
-from anndata import AnnData
-import scanpy as sc
 import numpy as np
-
+import scanpy as sc
+import seaborn as sns
+from anndata import AnnData
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
-import seaborn as sns
 
 from ncem.utils._utils import _assert_categorical_obs
 
@@ -20,7 +19,7 @@ from ncem.utils._utils import _assert_categorical_obs
 # umaps of cluster enrichment
 # ligrec -> squidpy
 # ligrec barplot
-# variance decomposition (needs function in tools that produces this
+# variance decomposition (needs function in tools that produces this)
 
 
 def cluster_freq(
@@ -34,8 +33,16 @@ def cluster_freq(
 ) -> None:
     """
     Plot cluster frequencies.
-    Parameters
-    ----------
+
+    Args:
+        adata: AnnData instance with data and annotation.
+        cluster_key:
+        title:
+        figsize:
+        dpi:
+        save:
+        ax:
+
     """
     _assert_categorical_obs(adata, key=cluster_key)
     if title is None:
@@ -46,9 +53,7 @@ def cluster_freq(
     else:
         fig = ax.figure
 
-    fig = adata.obs[cluster_key].value_counts().sort_index(ascending=False).plot(
-        kind='barh', ax=ax, title=title
-    )
+    fig = adata.obs[cluster_key].value_counts().sort_index(ascending=False).plot(kind="barh", ax=ax, title=title)
     if save is not None:
         fig.savefig(save)
 
@@ -60,6 +65,17 @@ def noise_structure(
     figsize: Optional[Tuple[float, float]] = None,
     dpi: Optional[int] = None,
 ) -> None:
+    """
+    Plot cluster frequencies.
+
+    Args:
+        adata: AnnData instance with data and annotation.
+        cluster_key:
+        title:
+        figsize:
+        dpi:
+
+    """
     _assert_categorical_obs(adata, key=cluster_key)
     if title is None:
         title = "Noise structure"
@@ -76,7 +92,7 @@ def noise_structure(
         ncols=12, nrows=nrows, constrained_layout=True, dpi=dpi, figsize=figsize, sharex="all", sharey="all"
     )
     ax = ax.flat
-    for axis in ax[x.shape[0]:]:
+    for axis in ax[x.shape[0] :]:
         axis.remove()
 
     for i in range(x.shape[0]):

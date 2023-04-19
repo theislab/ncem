@@ -10,8 +10,13 @@ from ncem.tl.fit.constants import OBSM_KEY_DMAT, VARM_KEY_PARAMS
 from ncem.utils.wald_test import get_fim_inv
 
 
-def test_standard(adata: anndata.AnnData, coef_to_test: Union[Dict[str, List[str]], List[str]], key_coef: str,
-                  key_pval: str, key_fdr_pval: str) -> anndata.AnnData:
+def test_standard(
+    adata: anndata.AnnData,
+    coef_to_test: Union[Dict[str, List[str]], List[str]],
+    key_coef: str,
+    key_pval: str,
+    key_fdr_pval: str,
+) -> anndata.AnnData:
     """
         Test for model with individual spatially localised entities, e.g. cell-resolution.
 
@@ -50,7 +55,7 @@ def test_standard(adata: anndata.AnnData, coef_to_test: Union[Dict[str, List[str
         test_keys = coef_to_test
         for x in coef_to_test:
             idx = parameter_names.index(x)
-            theta_mle = params.values[:,idx]
+            theta_mle = params.values[:, idx]
             theta_sd = fisher_inv[:, idx, idx]
             theta_sd = np.nextafter(0, np.inf, out=theta_sd, where=theta_sd < np.nextafter(0, np.inf))
             theta_sd = np.sqrt(theta_sd)
@@ -65,9 +70,9 @@ def test_standard(adata: anndata.AnnData, coef_to_test: Union[Dict[str, List[str
     # Write results to object:
     if key_coef is not None:
         tested_coefficients = np.concatenate(list(tested_coefficients.values()), axis=0).T
-        #print(tested_coefficients.shape)
+        # print(tested_coefficients.shape)
         tested_coefficients = pd.DataFrame(tested_coefficients, index=adata.var_names)
-        #print(tested_coefficients)
+        # print(tested_coefficients)
         adata.varm[key_coef] = tested_coefficients
     pvals = np.concatenate(list(pvals.values())).T
     adata.varm[key_pval] = pd.DataFrame(pvals, index=adata.var_names, columns=test_keys)
@@ -75,8 +80,14 @@ def test_standard(adata: anndata.AnnData, coef_to_test: Union[Dict[str, List[str
     return adata
 
 
-def test_deconvoluted(adata: anndata.AnnData, coef_to_test: Union[Dict[str, List[str]], List[str]],
-                      cell_types: List[str], key_coef: str, key_pval: str, key_fdr_pval: str) -> anndata.AnnData:
+def test_deconvoluted(
+    adata: anndata.AnnData,
+    coef_to_test: Union[Dict[str, List[str]], List[str]],
+    cell_types: List[str],
+    key_coef: str,
+    key_pval: str,
+    key_fdr_pval: str,
+) -> anndata.AnnData:
     """
     Test for model of deconvoluted spots.
 
@@ -139,7 +150,7 @@ def test_deconvoluted(adata: anndata.AnnData, coef_to_test: Union[Dict[str, List
     # Run FDR correction across all models:
     pvals_flat = np.hstack(list(pvals.values()))
     qvals_flat = correct(pvals_flat)
-    #qvals = qvals_flat.reshape((-1, len(test_keys)))
+    # qvals = qvals_flat.reshape((-1, len(test_keys)))
     # Write results to object:
     if key_coef is not None:
         adata.varm[key_coef] = pd.DataFrame(tested_coefficients, index=adata.var_names)

@@ -1,7 +1,7 @@
 import abc
+import os
 import warnings
 from collections import OrderedDict
-import os
 from typing import Dict, List, Optional, Sequence, Tuple, Union
 
 import matplotlib.colors as colors
@@ -16,17 +16,19 @@ from diffxpy.testing.correction import correct
 from matplotlib.ticker import FormatStrFormatter
 from matplotlib.tri import Triangulation
 from omnipath.interactions import import_intercell_network
-from pandas import read_csv, read_excel, DataFrame
+from pandas import DataFrame, read_csv, read_excel
 from scipy import sparse, stats
 from tqdm import tqdm
 
 
-def get_data_custom(interpreter, deconvolution: bool = False, n_eval_nodes_per_graph: int=10):
+def get_data_custom(interpreter, deconvolution: bool = False, n_eval_nodes_per_graph: int = 10):
     interpreter.undefined_node_types = None
     interpreter.img_to_patient_dict = interpreter.data.celldata.uns["img_to_patient_dict"]
     interpreter.complete_img_keys = list(interpreter.data.img_celldata.keys())
 
-    interpreter.a = {k: adata.obsp["adjacency_matrix_connectivities"] for k, adata in interpreter.data.img_celldata.items()}
+    interpreter.a = {
+        k: adata.obsp["adjacency_matrix_connectivities"] for k, adata in interpreter.data.img_celldata.items()
+    }
     interpreter.h_0 = {k: adata.obsm["node_types"] for k, adata in interpreter.data.img_celldata.items()}
     interpreter.h_1 = {k: adata.X for k, adata in interpreter.data.img_celldata.items()}
     interpreter.node_types = {k: adata.obsm["node_types"] for k, adata in interpreter.data.img_celldata.items()}
@@ -59,15 +61,15 @@ def get_data_custom(interpreter, deconvolution: bool = False, n_eval_nodes_per_g
         "Mean of mean node degree per images across images: %f"
         % np.mean([np.mean(v.sum(axis=1)) for k, v in interpreter.a.items()])
     )
-    
+
     # splitting data into test and validation sets, can be ignored for non sender-receiver focused analysis
     interpreter.split_data_node(0.1, 0.1)
     interpreter.n_eval_nodes_per_graph = n_eval_nodes_per_graph
-    interpreter.cell_names = list(interpreter.data.celldata.uns['node_type_names'].values())
+    interpreter.cell_names = list(interpreter.data.celldata.uns["node_type_names"].values())
     if deconvolution:
         interpreter.proportions = {k: adata.obsm["proportions"] for k, adata in interpreter.data.img_celldata.items()}
-    
-    
+
+
 class GraphTools:
     """GraphTools class."""
 
@@ -75,7 +77,7 @@ class GraphTools:
     img_celldata: Dict[str, AnnData]
 
     def compute_adjacency_matrices(
-        self, radius: int, coord_type: str = 'generic', n_rings: int = 1, transform: str = None
+        self, radius: int, coord_type: str = "generic", n_rings: int = 1, transform: str = None
     ):
         """Compute adjacency matrix for each image in dataset (uses `squidpy.gr.spatial_neighbors`).
 
@@ -97,7 +99,7 @@ class GraphTools:
         pbar_total = len(self.img_celldata.keys())
         with tqdm(total=pbar_total) as pbar:
             for _k, adata in self.img_celldata.items():
-                if coord_type == 'grid':
+                if coord_type == "grid":
                     radius = None
                 else:
                     n_rings = 1
@@ -107,9 +109,9 @@ class GraphTools:
                     radius=radius,
                     n_rings=n_rings,
                     transform=transform,
-                    key_added="adjacency_matrix"
+                    key_added="adjacency_matrix",
                 )
-                #print(adata.obsp['adjacency_matrix_connectivities'].sum(axis=1).mean())
+                # print(adata.obsp['adjacency_matrix_connectivities'].sum(axis=1).mean())
                 pbar.update(1)
 
     @staticmethod
@@ -325,7 +327,7 @@ class PlottingTools:
         by_row_index = df_concat.groupby(df_concat.index)
         df_means = by_row_index.sum().sort_index(axis=1)
         interactions = np.array(df_means).T
-        self.celldata.uns[f"{cluster_key}_interactions"] = interactions/np.sum(interactions, axis=1)[:, np.newaxis]
+        self.celldata.uns[f"{cluster_key}_interactions"] = interactions / np.sum(interactions, axis=1)[:, np.newaxis]
 
         if fontsize:
             sc.set_figure_params(scanpy=True, fontsize=fontsize)
@@ -749,7 +751,14 @@ class PlottingTools:
             sc.set_figure_params(scanpy=True, fontsize=fontsize)
         fig, ax = plt.subplots(nrows=1, ncols=1, figsize=figsize)
         sc.pl.spatial(
-            temp_adata, color=cluster_id, spot_size=spot_size, legend_loc=legend_loc, ax=ax, show=False, title="", frameon=False
+            temp_adata,
+            color=cluster_id,
+            spot_size=spot_size,
+            legend_loc=legend_loc,
+            ax=ax,
+            show=False,
+            title="",
+            frameon=False,
         )
         ax.set_xlabel("")
         ax.set_ylabel("")
@@ -881,8 +890,8 @@ class PlottingTools:
         fold_change_df = adata_substates.obs[[cluster_col, f"{target_cell_type} substates"] + sorce_type_names]
         fold_change_df = fold_change_df.replace({"in neighbourhood": 1, "not in neighbourhood": 0})
         for x in fold_change_df.columns:
-            if x.startswith('source type'):
-                fold_change_df[x] = fold_change_df[x].astype('int')
+            if x.startswith("source type"):
+                fold_change_df[x] = fold_change_df[x].astype("int")
         counts = pd.pivot_table(
             fold_change_df,
             index=[f"{target_cell_type} substates"],
@@ -1065,24 +1074,35 @@ class PlottingTools:
         ax = axs[:n]
 
         for i, x in enumerate(filter_titles[:-1]):
-            sc.pl.umap(adata, color=f"source type {x}", title='', show=False, size=size, legend_loc="None", ax=ax[i], frameon=False, hspace=0., wspace=0.)
+            sc.pl.umap(
+                adata,
+                color=f"source type {x}",
+                title="",
+                show=False,
+                size=size,
+                legend_loc="None",
+                ax=ax[i],
+                frameon=False,
+                hspace=0.0,
+                wspace=0.0,
+            )
             ax[i].set_xlabel("")
             ax[i].set_ylabel("")
             ax[i].set_title(x)
         sc.pl.umap(
             adata,
             color=f"source type {filter_titles[-1]}",
-            title='',
+            title="",
             size=size,
             show=False,
             ax=ax[n - 1],
-            frameon=False
+            frameon=False,
         )
         ax[n - 1].set_xlabel("")
         ax[n - 1].set_ylabel("")
         ax[n - 1].set_title(filter_titles[-1])
         # Save, show and return figure.
-        #plt.tight_layout(pad=1.2)
+        # plt.tight_layout(pad=1.2)
         if save is not None:
             plt.savefig(save + suffix)
 
@@ -1169,7 +1189,7 @@ class PlottingTools:
             show=False,
             na_color="whitesmoke",
             title="",
-            frameon=False
+            frameon=False,
         )
         sc.pl.spatial(
             adata_substates,
@@ -1180,7 +1200,7 @@ class PlottingTools:
             legend_loc=legend_loc,
             title="",
             palette=palette,
-            frameon=False
+            frameon=False,
         )
         ax.invert_yaxis()
         ax.set_xlabel("")
@@ -1598,9 +1618,9 @@ class PlottingTools:
 
         fig, ax = plt.subplots(1, 1, figsize=figsize)
         sns.histplot(x, ax=ax)
-        plt.axvline(np.mean(x), color='Red', linewidth=2, ax=ax)
+        plt.axvline(np.mean(x), color="Red", linewidth=2, ax=ax)
         min_ylim, max_ylim = plt.ylim()
-        plt.text(np.mean(x) * text_pos[0], max_ylim * text_pos[1], 'mean: {:.2f} $\mu$m'.format(np.mean(x)), ax=ax)
+        plt.text(np.mean(x) * text_pos[0], max_ylim * text_pos[1], "mean: {:.2f} $\mu$m".format(np.mean(x)), ax=ax)
         ax.set_xlabel("")
         ax.set_ylabel("")
 
@@ -1659,7 +1679,7 @@ class PlottingTools:
         x = []
         with tqdm(total=len(self.img_celldata.keys())) as pbar:
             for adata in self.img_celldata.values():
-                dist = adata.obsp['adjacency_matrix_distances'].todense()
+                dist = adata.obsp["adjacency_matrix_distances"].todense()
                 for i in range(dist.shape[0]):
                     vec = dist[i, :]
                     vec = vec[vec != 0]
@@ -1670,9 +1690,9 @@ class PlottingTools:
 
         fig, ax = plt.subplots(1, 1, figsize=figsize)
         sns.histplot(x, ax=ax)
-        plt.axvline(np.mean(x), color='Red', linewidth=2, ax=ax)
+        plt.axvline(np.mean(x), color="Red", linewidth=2, ax=ax)
         min_ylim, max_ylim = plt.ylim()
-        plt.text(np.mean(x) * text_pos[0], max_ylim * text_pos[1], 'mean: {:.2f} $\mu$m'.format(np.mean(x)), ax=ax)
+        plt.text(np.mean(x) * text_pos[0], max_ylim * text_pos[1], "mean: {:.2f} $\mu$m".format(np.mean(x)), ax=ax)
         ax.set_xlabel("")
         ax.set_ylabel("")
 
@@ -1699,10 +1719,10 @@ class DataLoader(GraphTools, PlottingTools):
         self,
         data_path: str,
         radius: Optional[int] = None,
-        coord_type: str = 'generic',
+        coord_type: str = "generic",
         n_rings: int = 1,
         label_selection: Optional[List[str]] = None,
-        n_top_genes: Optional[int] = None
+        n_top_genes: Optional[int] = None,
     ):
         """Initialize DataLoader.
 
@@ -1808,21 +1828,20 @@ class DataLoader(GraphTools, PlottingTools):
     @property
     def var_names(self):
         return self.celldata.var_names
-    
+
 
 class customLoader(DataLoader):
-    
     def __init__(
         self,
-        adata, 
-        cluster, 
-        patient, 
+        adata,
+        cluster,
+        patient,
         library_id,
         radius,
-        coord_type='generic',
+        coord_type="generic",
         n_rings=1,
         n_top_genes=None,
-        label_selection=None
+        label_selection=None,
     ):
         self.adata = adata.copy()
         self.cluster = cluster
@@ -1847,27 +1866,22 @@ class customLoader(DataLoader):
                 len(self.celldata.uns["node_type_names"]),
             )
         )
-    
+
     def _register_celldata(self, n_top_genes):
-        
-        metadata = {
-            "cluster_col_preprocessed": self.cluster,
-            "image_col": self.library_id
-        }
-        
+
+        metadata = {"cluster_col_preprocessed": self.cluster, "image_col": self.library_id}
+
         celldata = self.adata.copy()
         celldata.X = celldata.X.toarray()
         celldata.uns["metadata"] = metadata
-        del celldata.uns['spatial']
+        del celldata.uns["spatial"]
 
         # register node type names
         node_type_names = list(np.unique(celldata.obs[self.cluster]))
         celldata.uns["node_type_names"] = {x: x for x in node_type_names}
         node_types = np.zeros((celldata.shape[0], len(node_type_names)))
         node_type_idx = np.array(
-            [
-                node_type_names.index(x) for x in celldata.obs[self.cluster].values
-            ]  # index in encoding vector
+            [node_type_names.index(x) for x in celldata.obs[self.cluster].values]  # index in encoding vector
         )
         node_types[np.arange(0, node_type_idx.shape[0]), node_type_idx] = 1
         celldata.obsm["node_types"] = node_types
@@ -1883,7 +1897,7 @@ class customLoader(DataLoader):
         self.img_to_patient_dict = img_to_patient_dict
 
         self.celldata = celldata
-        
+
     def _register_img_celldata(self):
         """Load dictionary of of image-wise celldata objects with {imgage key : anndata object of image}."""
         img_celldata = {}
@@ -1923,19 +1937,18 @@ class customLoader(DataLoader):
         }
         self.celldata.uns["graph_covariates"] = graph_covariates
 
-        
+
 class customLoaderDeconvolution(DataLoader):
-    
     def __init__(
         self,
-        adata, 
-        patient, 
+        adata,
+        patient,
         library_id,
         radius,
-        coord_type='generic',
+        coord_type="generic",
         n_rings=1,
         n_top_genes=None,
-        label_selection=None
+        label_selection=None,
     ):
         self.adata = adata.copy()
         self.patient = patient
@@ -1959,14 +1972,14 @@ class customLoaderDeconvolution(DataLoader):
                 len(self.celldata.uns["node_type_names"]),
             )
         )
-    
+
     def _register_celldata(self, n_top_genes):
-        
+
         metadata = {
-            #"cluster_col_preprocessed": self.cluster,
+            # "cluster_col_preprocessed": self.cluster,
             "image_col": self.library_id
         }
-        
+
         celldata = self.adata.copy()
         celldata.uns["metadata"] = metadata
 
@@ -1986,7 +1999,7 @@ class customLoaderDeconvolution(DataLoader):
         self.img_to_patient_dict = img_to_patient_dict
 
         self.celldata = celldata
-        
+
     def _register_img_celldata(self):
         """Load dictionary of of image-wise celldata objects with {imgage key : anndata object of image}."""
         img_celldata = {}
@@ -2177,30 +2190,29 @@ class DataLoaderJarosch(DataLoader):
         }
         celldata = read_h5ad(os.path.join(self.data_path, metadata["fn"]))
         feature_cols_hgnc_names = [
-            'CD14',
-            'MS4A1',
-            'IL2RA',
-            'CD3G',
-            'CD4',
-            'PTPRC',
-            'PTPRC',
-            'PTPRC',
-            'CD68',
-            'CD8A',
-            'KRT5',  # 'KRT1', 'KRT14'
-            'FOXP3',
-            'GATA3',
-            'MKI67',
-            'Nuclei',
-            'PDCD1',
-            'CD274',
-            'SMN1',
-            'VIM'
+            "CD14",
+            "MS4A1",
+            "IL2RA",
+            "CD3G",
+            "CD4",
+            "PTPRC",
+            "PTPRC",
+            "PTPRC",
+            "CD68",
+            "CD8A",
+            "KRT5",  # 'KRT1', 'KRT14'
+            "FOXP3",
+            "GATA3",
+            "MKI67",
+            "Nuclei",
+            "PDCD1",
+            "CD274",
+            "SMN1",
+            "VIM",
         ]
         X = DataFrame(celldata.X, columns=feature_cols_hgnc_names)
         celldata = AnnData(
-            X=X, obs=celldata.obs, uns=celldata.uns, obsm=celldata.obsm,
-            varm=celldata.varm, obsp=celldata.obsp
+            X=X, obs=celldata.obs, uns=celldata.uns, obsm=celldata.obsm, varm=celldata.varm, obsp=celldata.obsp
         )
         celldata.var_names_make_unique()
         celldata = celldata[celldata.obs[metadata["image_col"]] != "Dirt"].copy()
@@ -2348,48 +2360,47 @@ class DataLoaderHartmann(DataLoader):
             # "Cluster",
         ]
         var_names = [
-            'H3-4', 
-            'VIM', 
-            'SMN1', 
-            'SLC3A2', 
-            'NFE2L2', 
-            'CD4', 
-            'CD14', 
-            'PTPRC', 
-            'PDCD1',
-            'PECAM1', 
-            'SDHA', 
-            'MKI67', 
-            'CS', 
-            'RPS6', 
-            'ITGAX', 
-            'CD68', 
-            'CD36', 
-            'ATP5F1A',
-            'CD247', 
-            'ENTPD1', 
-            'VDAC1', 
-            'G6PD', 
-            'XBP1', 
-            'PKM', 
-            'SLC1A5', 
-            'SLC2A1', 
-            'CD8A',
-            'B3GAT1', 
-            'LDHA', 
-            'IDH2', 
-            'HK1', 
-            'CDH1', 
-            'CPT1A', 
-            'CKM', 
-            'ATP1A1',
-            'HIF1A'
+            "H3-4",
+            "VIM",
+            "SMN1",
+            "SLC3A2",
+            "NFE2L2",
+            "CD4",
+            "CD14",
+            "PTPRC",
+            "PDCD1",
+            "PECAM1",
+            "SDHA",
+            "MKI67",
+            "CS",
+            "RPS6",
+            "ITGAX",
+            "CD68",
+            "CD36",
+            "ATP5F1A",
+            "CD247",
+            "ENTPD1",
+            "VDAC1",
+            "G6PD",
+            "XBP1",
+            "PKM",
+            "SLC1A5",
+            "SLC2A1",
+            "CD8A",
+            "B3GAT1",
+            "LDHA",
+            "IDH2",
+            "HK1",
+            "CDH1",
+            "CPT1A",
+            "CKM",
+            "ATP1A1",
+            "HIF1A",
         ]
 
         celldata = AnnData(
-            X=pd.DataFrame(np.array(celldata_df[feature_cols]), columns=var_names), obs=celldata_df[
-                ["point", "cell_id", "cell_size", "donor", "Cluster"]
-            ].astype("category"),
+            X=pd.DataFrame(np.array(celldata_df[feature_cols]), columns=var_names),
+            obs=celldata_df[["point", "cell_id", "cell_size", "donor", "Cluster"]].astype("category"),
         )
 
         celldata.uns["metadata"] = metadata
@@ -2812,63 +2823,63 @@ class DataLoaderSchuerch(DataLoader):
             "MMP12 - matrix metalloproteinase:Cyc_21_ch_4",
         ]
         feature_cols_hgnc_names = [
-            'CD44',
-            'FOXP3',
-            'CD8A',
-            'TP53',
-            'GATA3',
-            'PTPRC',
-            'TBX21',
-            'CTNNB1',
-            'HLA-DR',
-            'CD274',
-            'MKI67',
-            'PTPRC',
-            'CD4',
-            'CR2',
-            'MUC1',
-            'TNFRSF8',
-            'CD2',
-            'VIM',
-            'MS4A1',
-            'LAG3',
-            'ATP1A1',
-            'CD5',
-            'IDO1',
-            'KRT1',
-            'ITGAM',
-            'NCAM1',
-            'ACTA1',
-            'BCL2',
-            'IL2RA',
-            'ITGAX',
-            'PDCD1',
-            'GZMB',
-            'EGFR',
-            'VISTA',
-            'FUT4',
-            'ICOS',
-            'SYP',
-            'GFAP',
-            'CD7',
-            'CD247',
-            'CHGA',
-            'CD163',
-            'PTPRC',
-            'CD68',
-            'PECAM1',
-            'PDPN',
-            'CD34',
-            'CD38',
-            'SDC1',
-            'HOECHST1:Cyc_1_ch_1',  ##
-            'CDX2',
-            'COL6A1',
-            'CCR4',
-            'MMP9',
-            'TFRC',
-            'B3GAT1',
-            'MMP12'
+            "CD44",
+            "FOXP3",
+            "CD8A",
+            "TP53",
+            "GATA3",
+            "PTPRC",
+            "TBX21",
+            "CTNNB1",
+            "HLA-DR",
+            "CD274",
+            "MKI67",
+            "PTPRC",
+            "CD4",
+            "CR2",
+            "MUC1",
+            "TNFRSF8",
+            "CD2",
+            "VIM",
+            "MS4A1",
+            "LAG3",
+            "ATP1A1",
+            "CD5",
+            "IDO1",
+            "KRT1",
+            "ITGAM",
+            "NCAM1",
+            "ACTA1",
+            "BCL2",
+            "IL2RA",
+            "ITGAX",
+            "PDCD1",
+            "GZMB",
+            "EGFR",
+            "VISTA",
+            "FUT4",
+            "ICOS",
+            "SYP",
+            "GFAP",
+            "CD7",
+            "CD247",
+            "CHGA",
+            "CD163",
+            "PTPRC",
+            "CD68",
+            "PECAM1",
+            "PDPN",
+            "CD34",
+            "CD38",
+            "SDC1",
+            "HOECHST1:Cyc_1_ch_1",  ##
+            "CDX2",
+            "COL6A1",
+            "CCR4",
+            "MMP9",
+            "TFRC",
+            "B3GAT1",
+            "MMP12",
         ]
         X = DataFrame(np.array(celldata_df[feature_cols]), columns=feature_cols_hgnc_names)
         celldata = AnnData(X=X, obs=celldata_df[["File Name", "patients", "ClusterName"]])
@@ -3124,36 +3135,36 @@ class DataLoaderLohoff(DataLoader):
     """DataLoaderLohoff class. Inherits all functions from DataLoader."""
 
     cell_type_merge_dict = {
-        'Allantois': 'Allantois',
-        'Anterior somitic tissues': 'Anterior somitic tissues',
-        'Blood progenitors': 'Blood progenitors',
-        'Cardiomyocytes': 'Cardiomyocytes',
-        'Cranial mesoderm': 'Cranial mesoderm',
-        'Definitive endoderm': 'Definitive endoderm',
-        'Dermomyotome': 'Dermomyotome',
-        'Endothelium': 'Endothelium',
-        'Erythroid': 'Erythroid',
-        'ExE endoderm': 'ExE endoderm',
-        'Forebrain/Midbrain/Hindbrain': 'Forebrain/Midbrain/Hindbrain',
-        'Gut tube': 'Gut tube',
-        'Haematoendothelial progenitors': 'Haematoendothelial progenitors',
-        'Intermediate mesoderm': 'Intermediate mesoderm',
-        'Lateral plate mesoderm': 'Lateral plate mesoderm',
-        'Low quality': 'Low quality',
-        'Mixed mesenchymal mesoderm': 'Mixed mesenchymal mesoderm',
-        'NMP': 'NMP',
-        'Neural crest': 'Neural crest',
-        'Presomitic mesoderm': 'Presomitic mesoderm',
-        'Sclerotome': 'Sclerotome',
-        'Spinal cord': 'Spinal cord',
-        'Splanchnic mesoderm': 'Splanchnic mesoderm',
-        'Surface ectoderm': 'Surface ectoderm'
+        "Allantois": "Allantois",
+        "Anterior somitic tissues": "Anterior somitic tissues",
+        "Blood progenitors": "Blood progenitors",
+        "Cardiomyocytes": "Cardiomyocytes",
+        "Cranial mesoderm": "Cranial mesoderm",
+        "Definitive endoderm": "Definitive endoderm",
+        "Dermomyotome": "Dermomyotome",
+        "Endothelium": "Endothelium",
+        "Erythroid": "Erythroid",
+        "ExE endoderm": "ExE endoderm",
+        "Forebrain/Midbrain/Hindbrain": "Forebrain/Midbrain/Hindbrain",
+        "Gut tube": "Gut tube",
+        "Haematoendothelial progenitors": "Haematoendothelial progenitors",
+        "Intermediate mesoderm": "Intermediate mesoderm",
+        "Lateral plate mesoderm": "Lateral plate mesoderm",
+        "Low quality": "Low quality",
+        "Mixed mesenchymal mesoderm": "Mixed mesenchymal mesoderm",
+        "NMP": "NMP",
+        "Neural crest": "Neural crest",
+        "Presomitic mesoderm": "Presomitic mesoderm",
+        "Sclerotome": "Sclerotome",
+        "Spinal cord": "Spinal cord",
+        "Splanchnic mesoderm": "Splanchnic mesoderm",
+        "Surface ectoderm": "Surface ectoderm",
     }
 
     def _register_celldata(self, n_top_genes: Optional[int] = None):
         """Load AnnData object of complete dataset."""
         metadata = {
-            "lateral_resolution": 1.,
+            "lateral_resolution": 1.0,
             "fn": "preprocessed_lohoff.h5ad",
             "image_col": "embryo",
             "pos_cols": ["x_global", "y_global"],
@@ -3398,8 +3409,7 @@ class DataLoaderLuWT(DataLoader):
         ]
 
         celldata = AnnData(
-            X=celldata_df[feature_cols],
-            obs=celldata_df[["CellID", "FOV", "CellTypeID_new", "Center_x", "Center_y"]]
+            X=celldata_df[feature_cols], obs=celldata_df[["CellID", "FOV", "CellTypeID_new", "Center_x", "Center_y"]]
         )
 
         celldata.uns["metadata"] = metadata
@@ -3409,10 +3419,7 @@ class DataLoaderLuWT(DataLoader):
         # register x and y coordinates into obsm
         celldata.obsm["spatial"] = np.array(celldata_df[metadata["pos_cols"]])
 
-        img_to_patient_dict = {
-            str(x): "patient"
-            for x in celldata_df[metadata["image_col"]].values
-        }
+        img_to_patient_dict = {str(x): "patient" for x in celldata_df[metadata["image_col"]].values}
         # img_to_patient_dict = {k: "p_1" for k in img_keys}
         celldata.uns["img_to_patient_dict"] = img_to_patient_dict
         self.img_to_patient_dict = img_to_patient_dict
@@ -3424,7 +3431,7 @@ class DataLoaderLuWT(DataLoader):
         celldata.obs[metadata["cluster_col_preprocessed"]] = celldata.obs[metadata["cluster_col_preprocessed"]].astype(
             "str"
         )
-        #celldata = celldata[celldata.obs[metadata["cluster_col_preprocessed"]] != 'Unknown']
+        # celldata = celldata[celldata.obs[metadata["cluster_col_preprocessed"]] != 'Unknown']
 
         # register node type names
         node_type_names = list(np.unique(celldata.obs[metadata["cluster_col_preprocessed"]]))
@@ -3501,7 +3508,7 @@ class DataLoaderLuWTimputed(DataLoader):
             "pos_cols": ["Center_x", "Center_y"],
             "cluster_col": "CellTypeID_new",
             "cluster_col_preprocessed": "CellTypeID_new_preprocessed",
-            "n_top_genes": n_top_genes
+            "n_top_genes": n_top_genes,
         }
         celldata = read_h5ad(self.data_path + metadata["fn"])
         celldata.uns["metadata"] = metadata
@@ -3712,8 +3719,7 @@ class DataLoaderLuTET2(DataLoader):
         ]
 
         celldata = AnnData(
-            X=celldata_df[feature_cols],
-            obs=celldata_df[["CellID", "FOV", "CellTypeID_new", "Center_x", "Center_y"]]
+            X=celldata_df[feature_cols], obs=celldata_df[["CellID", "FOV", "CellTypeID_new", "Center_x", "Center_y"]]
         )
 
         celldata.uns["metadata"] = metadata
@@ -3723,10 +3729,7 @@ class DataLoaderLuTET2(DataLoader):
         # register x and y coordinates into obsm
         celldata.obsm["spatial"] = np.array(celldata_df[metadata["pos_cols"]])
 
-        img_to_patient_dict = {
-            str(x): "patient"
-            for x in celldata_df[metadata["image_col"]].values
-        }
+        img_to_patient_dict = {str(x): "patient" for x in celldata_df[metadata["image_col"]].values}
         # img_to_patient_dict = {k: "p_1" for k in img_keys}
         celldata.uns["img_to_patient_dict"] = img_to_patient_dict
         self.img_to_patient_dict = img_to_patient_dict
@@ -3794,33 +3797,33 @@ class DataLoader10xVisiumMouseBrain(DataLoader):
     """DataLoader10xVisiumMouseBrain class. Inherits all functions from DataLoader."""
 
     cell_type_merge_dict = {
-        'Cortex_1': 'Cortex 1',
-        'Cortex_2': 'Cortex 2',
-        'Cortex_3': 'Cortex 3',
-        'Cortex_4': 'Cortex 4',
-        'Cortex_5': 'Cortex 5',
-        'Fiber_tract': 'Fiber tract',
-        'Hippocampus': 'Hippocampus',
-        'Hypothalamus_1': 'Hypothalamus 1',
-        'Hypothalamus_2': 'Hypothalamus 2',
-        'Lateral_ventricle': 'Lateral ventricle',
-        'Pyramidal_layer': 'Pyramidal layer',
-        'Pyramidal_layer_dentate_gyrus': 'Pyramidal layer dentate gyrus',
-        'Striatum': 'Striatum',
-        'Thalamus_1': 'Thalamus 1',
-        'Thalamus_2': 'Thalamus 2'
+        "Cortex_1": "Cortex 1",
+        "Cortex_2": "Cortex 2",
+        "Cortex_3": "Cortex 3",
+        "Cortex_4": "Cortex 4",
+        "Cortex_5": "Cortex 5",
+        "Fiber_tract": "Fiber tract",
+        "Hippocampus": "Hippocampus",
+        "Hypothalamus_1": "Hypothalamus 1",
+        "Hypothalamus_2": "Hypothalamus 2",
+        "Lateral_ventricle": "Lateral ventricle",
+        "Pyramidal_layer": "Pyramidal layer",
+        "Pyramidal_layer_dentate_gyrus": "Pyramidal layer dentate gyrus",
+        "Striatum": "Striatum",
+        "Thalamus_1": "Thalamus 1",
+        "Thalamus_2": "Thalamus 2",
     }
 
     def _register_celldata(self, n_top_genes: Optional[int] = None):
         """Load AnnData object of complete dataset."""
         metadata = {
-            "lateral_resolution": 1.,
+            "lateral_resolution": 1.0,
             "fn": "visium_hne_adata.h5ad",
             "image_col": "in_tissue",
             "cluster_col": "cluster",
             "cluster_col_preprocessed": "cluster_preprocessed",
             "patient_col": "in_tissue",
-            "n_top_genes": n_top_genes
+            "n_top_genes": n_top_genes,
         }
 
         celldata = read_h5ad(self.data_path + metadata["fn"]).copy()
@@ -3835,9 +3838,7 @@ class DataLoader10xVisiumMouseBrain(DataLoader):
         celldata.uns["img_to_patient_dict"] = {"1": "1"}
         self.img_to_patient_dict = {"1": "1"}
 
-        celldata.obs[metadata["cluster_col"]] = celldata.obs[metadata["cluster_col"]].astype(
-            "str"
-        )
+        celldata.obs[metadata["cluster_col"]] = celldata.obs[metadata["cluster_col"]].astype("str")
         # add clean cluster column which removes regular expression from cluster_col
         celldata.obs[metadata["cluster_col_preprocessed"]] = list(
             pd.Series(list(celldata.obs[metadata["cluster_col"]]), dtype="str").map(self.cell_type_merge_dict)
@@ -3903,30 +3904,25 @@ class DataLoader10xLymphnode(DataLoader):
     def _register_celldata(self, n_top_genes: Optional[int] = None):
         """Load AnnData object of complete dataset."""
         metadata = {
-            "lateral_resolution": 1.,
+            "lateral_resolution": 1.0,
             "fn": "destVI_lymphnode.h5ad",
-            #"image_col": "batch",
+            # "image_col": "batch",
             "cluster_col": "lymph_node",
             "cluster_col_preprocessed": "lymph_node",
-            "n_top_genes": None
+            "n_top_genes": None,
         }
 
         ad = read_h5ad(self.data_path + metadata["fn"]).copy()
-        metadata['var_names'] = ad.var_names
+        metadata["var_names"] = ad.var_names
 
-        celldata = AnnData(
-            X=ad.obsm['scale'],
-            obs=ad.obs, obsm=ad.obsm
-        )
-        celldata.obsm['spatial'] = celldata.obsm['location']
+        celldata = AnnData(X=ad.obsm["scale"], obs=ad.obs, obsm=ad.obsm)
+        celldata.obsm["spatial"] = celldata.obsm["location"]
         celldata.uns["metadata"] = metadata
 
         celldata.uns["img_to_patient_dict"] = {"1": "1"}
         self.img_to_patient_dict = {"1": "1"}
 
-        celldata.obs[metadata["cluster_col"]] = celldata.obs[metadata["cluster_col"]].astype(
-            "str"
-        )
+        celldata.obs[metadata["cluster_col"]] = celldata.obs[metadata["cluster_col"]].astype("str")
         # register node type names
         node_type_names = list(np.unique(celldata.obs[metadata["cluster_col_preprocessed"]]))
         celldata.uns["node_type_names"] = {x: x for x in node_type_names}
@@ -3986,13 +3982,13 @@ class DataLoaderDestViLymphnode(DataLoader):
     def _register_celldata(self, n_top_genes: Optional[int] = None):
         """Load AnnData object of complete dataset."""
         metadata = {
-            "lateral_resolution": 1.,
+            "lateral_resolution": 1.0,
             "fn": "destVI_lymphnode.h5ad",
-            #"image_col": "in_tissue",
-            #"cluster_col": "cluster",
-            #"cluster_col_preprocessed": "cluster_preprocessed",
-            #"patient_col": "in_tissue",
-            "n_top_genes": n_top_genes
+            # "image_col": "in_tissue",
+            # "cluster_col": "cluster",
+            # "cluster_col_preprocessed": "cluster_preprocessed",
+            # "patient_col": "in_tissue",
+            "n_top_genes": n_top_genes,
         }
 
         celldata = read_h5ad(self.data_path + metadata["fn"]).copy()
@@ -4000,7 +3996,7 @@ class DataLoaderDestViLymphnode(DataLoader):
             sc.pp.highly_variable_genes(celldata, n_top_genes=n_top_genes)
             celldata = celldata[:, celldata.var.highly_variable].copy()
 
-        #celldata.X = celldata.X.toarray()
+        # celldata.X = celldata.X.toarray()
         celldata.uns["metadata"] = metadata
 
         celldata.uns["img_to_patient_dict"] = {"1": "1"}
@@ -4010,11 +4006,11 @@ class DataLoaderDestViLymphnode(DataLoader):
 
     def _register_img_celldata(self):
         """Load dictionary of of image-wise celldata objects with {imgage key : anndata object of image}."""
-        #image_col = self.celldata.uns["metadata"]["image_col"]
-        #img_celldata = {}
-        #for k in self.celldata.uns["img_keys"]:
+        # image_col = self.celldata.uns["metadata"]["image_col"]
+        # img_celldata = {}
+        # for k in self.celldata.uns["img_keys"]:
         #    img_celldata[str(k)] = self.celldata[self.celldata.obs[image_col] == k].copy()
-        #self.img_celldata = img_celldata
+        # self.img_celldata = img_celldata
         self.img_celldata = {"1": self.celldata}
 
     def _register_graph_features(self, label_selection):
@@ -4053,13 +4049,13 @@ class DataLoaderDestViMousebrain(DataLoader):
     def _register_celldata(self, n_top_genes: Optional[int] = None):
         """Load AnnData object of complete dataset."""
         metadata = {
-            "lateral_resolution": 1.,
+            "lateral_resolution": 1.0,
             "fn": "destVI_mousebrain.h5ad",
-            #"image_col": "in_tissue",
-            #"cluster_col": "cluster",
-            #"cluster_col_preprocessed": "cluster_preprocessed",
-            #"patient_col": "in_tissue",
-            "n_top_genes": n_top_genes
+            # "image_col": "in_tissue",
+            # "cluster_col": "cluster",
+            # "cluster_col_preprocessed": "cluster_preprocessed",
+            # "patient_col": "in_tissue",
+            "n_top_genes": n_top_genes,
         }
 
         celldata = read_h5ad(self.data_path + metadata["fn"]).copy()
@@ -4067,7 +4063,7 @@ class DataLoaderDestViMousebrain(DataLoader):
             sc.pp.highly_variable_genes(celldata, n_top_genes=n_top_genes)
             celldata = celldata[:, celldata.var.highly_variable].copy()
 
-        #celldata.X = celldata.X.toarray()
+        # celldata.X = celldata.X.toarray()
         celldata.uns["metadata"] = metadata
 
         celldata.uns["img_to_patient_dict"] = {"1": "1"}
@@ -4077,11 +4073,11 @@ class DataLoaderDestViMousebrain(DataLoader):
 
     def _register_img_celldata(self):
         """Load dictionary of of image-wise celldata objects with {imgage key : anndata object of image}."""
-        #image_col = self.celldata.uns["metadata"]["image_col"]
-        #img_celldata = {}
-        #for k in self.celldata.uns["img_keys"]:
+        # image_col = self.celldata.uns["metadata"]["image_col"]
+        # img_celldata = {}
+        # for k in self.celldata.uns["img_keys"]:
         #    img_celldata[str(k)] = self.celldata[self.celldata.obs[image_col] == k].copy()
-        #self.img_celldata = img_celldata
+        # self.img_celldata = img_celldata
         self.img_celldata = {"1": self.celldata}
 
     def _register_graph_features(self, label_selection):
@@ -4120,13 +4116,13 @@ class DataLoaderCell2locationLymphnode(DataLoader):
     def _register_celldata(self, n_top_genes: Optional[int] = None):
         """Load AnnData object of complete dataset."""
         metadata = {
-            "lateral_resolution": 1.,
+            "lateral_resolution": 1.0,
             "fn": "cell2location_lymphnode.h5ad",
-            #"image_col": "in_tissue",
-            #"cluster_col": "cluster",
-            #"cluster_col_preprocessed": "cluster_preprocessed",
-            #"patient_col": "in_tissue",
-            "n_top_genes": n_top_genes
+            # "image_col": "in_tissue",
+            # "cluster_col": "cluster",
+            # "cluster_col_preprocessed": "cluster_preprocessed",
+            # "patient_col": "in_tissue",
+            "n_top_genes": n_top_genes,
         }
 
         celldata = read_h5ad(self.data_path + metadata["fn"]).copy()
@@ -4134,7 +4130,7 @@ class DataLoaderCell2locationLymphnode(DataLoader):
             sc.pp.highly_variable_genes(celldata, n_top_genes=n_top_genes)
             celldata = celldata[:, celldata.var.highly_variable].copy()
 
-        #celldata.X = celldata.X.toarray()
+        # celldata.X = celldata.X.toarray()
         celldata.uns["metadata"] = metadata
 
         celldata.uns["img_to_patient_dict"] = {"1": "1"}
@@ -4144,11 +4140,11 @@ class DataLoaderCell2locationLymphnode(DataLoader):
 
     def _register_img_celldata(self):
         """Load dictionary of of image-wise celldata objects with {imgage key : anndata object of image}."""
-        #image_col = self.celldata.uns["metadata"]["image_col"]
-        #img_celldata = {}
-        #for k in self.celldata.uns["img_keys"]:
+        # image_col = self.celldata.uns["metadata"]["image_col"]
+        # img_celldata = {}
+        # for k in self.celldata.uns["img_keys"]:
         #    img_celldata[str(k)] = self.celldata[self.celldata.obs[image_col] == k].copy()
-        #self.img_celldata = img_celldata
+        # self.img_celldata = img_celldata
         self.img_celldata = {"1": self.celldata}
 
     def _register_graph_features(self, label_selection):
@@ -4220,7 +4216,7 @@ class DataLoaderSalasIss(DataLoader):
     def _register_celldata(self, n_top_genes: Optional[int] = None):
         """Load AnnData object of complete dataset."""
         metadata = {
-            "lateral_resolution": 1.,
+            "lateral_resolution": 1.0,
             "fn": "Cell_type/PCW13/S1T1_pciseq_mALL_pciseq_results_V02.csv",
             "cluster_col": "name",
             "cluster_col_preprocessed": "name_preprocessed",

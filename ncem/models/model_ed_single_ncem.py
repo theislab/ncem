@@ -1,7 +1,10 @@
 import tensorflow as tf
 
-from ncem.models.layers import get_out, Decoder
-from ncem.models.layers.single_gnn_layers import SingleMaxLayer, SingleGcnLayer, SingleGatLayer, SingleLrGatLayer
+from ncem.models.layers import Decoder, get_out
+from ncem.models.layers.single_gnn_layers import (SingleGatLayer,
+                                                  SingleGcnLayer,
+                                                  SingleLrGatLayer,
+                                                  SingleMaxLayer)
 
 
 class ModelEd2Ncem:
@@ -55,15 +58,17 @@ class ModelEd2Ncem:
         # node features - node representation of neighbors: Input Tensor - shape=(None, targets, F-in)
         input_x_targets = tf.keras.Input(shape=(num_targets_dim, in_lr_feature_dim), name="node_features_targets")
         # node features - node representation of neighbors: Input Tensor - shape=(None, neighbors, F-in)
-        input_x_neighbors = tf.keras.Input(shape=(num_targets_dim, neighbors_dim, in_lr_feature_dim),
-                                           name="node_features_neighbors")
+        input_x_neighbors = tf.keras.Input(
+            shape=(num_targets_dim, neighbors_dim, in_lr_feature_dim), name="node_features_neighbors"
+        )
         # node size - reconstruction: Input Tensor - shape=(None, targets, 1)
         input_node_size = tf.keras.Input(shape=(num_targets_dim, 1), name="node_size_reconstruct")
         # adj_matrices - A: Input Tensor - shape=(None, targets, neighbors)
         input_a = tf.keras.Input(shape=(num_targets_dim, neighbors_dim), name="adjacency_matrix")
         # Categorical predictors: Input Tensor - shape=(None, targets, P)
-        input_categ_condition = tf.keras.Input(shape=(num_targets_dim, categ_condition_dim),
-                                               name="categorical_predictor")
+        input_categ_condition = tf.keras.Input(
+            shape=(num_targets_dim, categ_condition_dim), name="categorical_predictor"
+        )
         # domain information of graph - shape=(None, 1)
         input_g = tf.keras.layers.Input(shape=(domain_dim,), name="input_da_group", dtype="int32")
 
@@ -95,9 +100,7 @@ class ModelEd2Ncem:
             )([input_x_targets, input_x_neighbors, input_a])
         elif cond_type == "max":
             print("MAX")
-            x_encoder = SingleMaxLayer(
-                name=f"max_layer"
-            )([input_x_neighbors, input_a])
+            x_encoder = SingleMaxLayer(name=f"max_layer")([input_x_neighbors, input_a])
         elif cond_type == "gcn":
             x_encoder = SingleGcnLayer(
                 latent_dim=latent_dim,
@@ -105,7 +108,7 @@ class ModelEd2Ncem:
                 activation="relu",
                 l2_reg=l2_coef,
                 use_bias=True,
-                name=f"gcn_layer"
+                name=f"gcn_layer",
             )([input_x_targets, input_x_neighbors, input_a])
         elif cond_type == "none":
             x_encoder = input_x_targets
@@ -126,8 +129,9 @@ class ModelEd2Ncem:
         else:
             x = tf.concat([x_encoder, categ_condition], axis=-1)
 
-        output_decoder = get_out(output_layer=output_layer, out_feature_dim=out_feature_dim,
-                                 scale_node_size=scale_node_size)((x, input_node_size))
+        output_decoder = get_out(
+            output_layer=output_layer, out_feature_dim=out_feature_dim, scale_node_size=scale_node_size
+        )((x, input_node_size))
         output_decoder_concat = tf.keras.layers.Concatenate(axis=2, name="reconstruction")(output_decoder)
 
         self.encoder = tf.keras.Model(

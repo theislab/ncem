@@ -2,7 +2,7 @@ from typing import Union
 
 import tensorflow as tf
 
-from ncem.models.layers import (Decoder, Encoder, GCNLayer, MaxLayer, get_out)
+from ncem.models.layers import Decoder, Encoder, GCNLayer, MaxLayer, get_out
 
 
 class ModelEDncem:
@@ -215,8 +215,10 @@ class ModelEDncem:
             output_layer=output_layer, out_feature_dim=out_node_feature_dim, scale_node_size=scale_node_size
         )((output_decoder, input_node_size))
         output_sampling_decoder = get_out(
-            output_layer=output_layer, out_feature_dim=out_node_feature_dim, scale_node_size=scale_node_size,
-            name='sampling'
+            output_layer=output_layer,
+            out_feature_dim=out_node_feature_dim,
+            scale_node_size=scale_node_size,
+            name="sampling",
         )((sampling_decoder, input_node_size))
 
         output_decoder_concat = tf.keras.layers.Concatenate(axis=2, name="reconstruction")(output_decoder_layer)
