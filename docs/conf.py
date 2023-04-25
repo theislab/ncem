@@ -48,8 +48,8 @@ extensions = [
     "nbsphinx",
     "sphinx_rtd_theme",
     "sphinxcontrib.bibtex",
-    #"typed_returns",
-    #"IPython.sphinxext.ipython_console_highlighting",
+    # "typed_returns",
+    # "IPython.sphinxext.ipython_console_highlighting",
 ]
 
 intersphinx_mapping = dict(  # noqa: C408
@@ -90,7 +90,7 @@ exclude_patterns = [
     "**.ipynb_checkpoints",
     "_build",
     "Thumbs.db",
-    ".DS_Store"
+    ".DS_Store",
 ]
 suppress_warnings = ["download.not_readable", "git.too_shallow"]
 
@@ -136,6 +136,7 @@ gh_url = "https://github.com/{github_user}/{github_repo}".format_map(html_contex
 
 # -- Images for plot functions -------------------------------------------------
 
+
 def insert_function_images(app, what, name, obj, options, lines):
     path = Path(__file__).parent / "api" / f"{name}.png"
     if what != "function" or not path.is_file():
@@ -144,6 +145,7 @@ def insert_function_images(app, what, name, obj, options, lines):
 
 
 # -- GitHub links --------------------------------------------------------------
+
 
 def autolink(url_template, title_template="{}"):
     from docutils import nodes
@@ -156,9 +158,10 @@ def autolink(url_template, title_template="{}"):
 
     return role
 
+
 def setup(app: Sphinx) -> None:
-    #app.connect("autodoc-process-docstring", insert_function_images)
-    #app.add_role("pr", autolink(f"{gh_url}/pull/{{}}", "PR {}"))
+    # app.connect("autodoc-process-docstring", insert_function_images)
+    # app.add_role("pr", autolink(f"{gh_url}/pull/{{}}", "PR {}"))
     app.add_css_file("css/custom.css")
     app.add_css_file("css/sphinx_gallery.css")
     app.add_css_file("css/nbsphinx.css")

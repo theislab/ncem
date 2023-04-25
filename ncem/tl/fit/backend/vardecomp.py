@@ -1,6 +1,6 @@
 import anndata
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 
 def vardecomp(
@@ -15,6 +15,7 @@ def vardecomp(
     if library_key:
         df[library_key] = pd.Series(list(adata.obs[library_key]), dtype="category")
         images = np.unique(df[library_key])
+
 
 """
 
@@ -65,4 +66,3 @@ df["intra cell type variance"] = df.intra_celltype_var / df.total
 df["inter cell type variance"] = df.inter_celltype_var / df.total
 df["gene variance"] = df.gene_var / df.total
 """
-
