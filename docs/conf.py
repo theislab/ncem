@@ -29,9 +29,9 @@ copyright = "2021, theislab"
 # the built documents.
 #
 # The short X.Y version.
-version = "0.1.4"
+version = "0.1.5"
 # The full version, including alpha/beta/rc tags.
-release = "0.1.4"
+release = "0.1.5"
 
 
 # Add any Sphinx extension module names here, as strings. They can be
