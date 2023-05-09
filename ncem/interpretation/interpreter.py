@@ -919,7 +919,7 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
         print("calculating inv fim.")
         fim_inv = get_fim_inv(x_design, y)
 
-        interaction_shape = np.int(self.n_features_0 ** 2)
+        interaction_shape = np.int(self.n_features_0**2)
         params = params[:, self.n_features_0 : interaction_shape + self.n_features_0]
         is_sign, pvalues, qvalues = wald_test(
             params=params, fisher_inv=fim_inv, significance_threshold=significance_threshold
@@ -991,7 +991,7 @@ class InterpreterInteraction(estimators.EstimatorInteractions, InterpreterBase):
         text_space: float = 1.15,
     ):
         coeff = self.fold_change * self.is_sign
-        coeff_df = pd.DataFrame(np.sqrt(np.sum(coeff ** 2, axis=-1)), columns=self.cell_names, index=self.cell_names)
+        coeff_df = pd.DataFrame(np.sqrt(np.sum(coeff**2, axis=-1)), columns=self.cell_names, index=self.cell_names)
         network_coeff_df = (
             pd.DataFrame(coeff_df.unstack()).reset_index().rename(columns={"level_0": "sender", "level_1": "receiver"})
         )
@@ -1902,7 +1902,7 @@ class InterpreterDeconvolution(estimators.EstimatorDeconvolution, InterpreterInt
     def get_sender_receiver_effects(self, params_type: str = "ols", significance_threshold: float = 0.05):
         data = {"target": self.data.celldata.obsm["node_types"], "proportions": self.data.celldata.obsm["proportions"]}
         target = np.asarray(dmatrix("target-1", data))
-        interaction_shape = np.int(self.n_features_0 ** 2)
+        interaction_shape = np.int(self.n_features_0**2)
         interactions = np.asarray(dmatrix("target:proportions-1", data))
 
         y = self.data.celldata.X
@@ -1922,7 +1922,7 @@ class InterpreterDeconvolution(estimators.EstimatorDeconvolution, InterpreterInt
         is_sign, pvalues, qvalues = wald_test(
             params=params, fisher_inv=fim_inv, significance_threshold=significance_threshold
         )
-        interaction_shape = np.int(self.n_features_0 ** 2)
+        interaction_shape = np.int(self.n_features_0**2)
         # subset to interaction terms
         is_sign = is_sign[self.n_features_0 : interaction_shape + self.n_features_0, :]
         pvalues = pvalues[self.n_features_0 : interaction_shape + self.n_features_0, :]

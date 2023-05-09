@@ -82,5 +82,5 @@ def ablation(
 
             pred = np.matmul(test_ad.obsm[OBSM_KEY_DMAT], train_ad.varm[VARM_KEY_PARAMS].T)
             _, _, r, _, _ = linregress(test_ad.X.flatten(), np.array(pred).flatten())
-            res_ablation.append([cv, res, r ** 2])
+            res_ablation.append([cv, res, r**2])
     adata.uns[UNS_KEY_ABLATION] = pd.DataFrame(res_ablation, columns=["cv", "resolution", "r_squared"])
