@@ -38,7 +38,7 @@ def extend_formula_ncem(
     """
     if per_index_type:
         formula_out = {}
-        coef_couplings = []
+        coef_couplings = {}
         for x in cell_types:
             formula_x = formula
             # Add type-specific confounders:
@@ -46,10 +46,10 @@ def extend_formula_ncem(
                 formula_x = formula_x + "+" + "+".join([f"{PREFIX_INDEX}{x}:{y}" for y in type_specific_confounders])
             # Add type-wise intercept:
             formula_x = formula_x + "+" + f"{PREFIX_INDEX}{x}"
-            # Add couplings (type-type interactions):
+            # Add couplings (type-type interactions)
             coef_couplings_x = [f"{PREFIX_INDEX}{x}:{PREFIX_NEIGHBOR}{y}" for y in cell_types]
             formula_out[x] = formula_x + "+" + "+".join(coef_couplings_x)
-            coef_couplings.extend(coef_couplings_x)
+            coef_couplings[x] = coef_couplings_x
     else:
         # Add type-specific confounders:
         if len(type_specific_confounders) > 0:
