@@ -98,7 +98,7 @@ class EstimatorDeconvolution(Estimator):
                     # dropping
                     index_list = [
                         np.asarray(
-                            nodes_idx[key][self.n_eval_nodes_per_graph * i: self.n_eval_nodes_per_graph * (i + 1)],
+                            nodes_idx[key][self.n_eval_nodes_per_graph * i : self.n_eval_nodes_per_graph * (i + 1)],
                             dtype=np.int32,
                         )
                         for i in range(len(nodes_idx[key]) // self.n_eval_nodes_per_graph)
@@ -134,7 +134,7 @@ class EstimatorDeconvolution(Estimator):
                     interactions_ind = np.asarray(np.mat([coo.row, coo.col]).transpose(), dtype="int64")
                     interactions_val = np.asarray(coo.data, dtype="float32")
                     interactions_shape = np.asarray(
-                        (self.n_eval_nodes_per_graph, self.n_features_0 ** 2), dtype="int64"
+                        (self.n_eval_nodes_per_graph, self.n_features_0**2), dtype="int64"
                     )
                     interactions = tf.SparseTensor(
                         indices=interactions_ind, values=interactions_val, dense_shape=interactions_shape
@@ -163,13 +163,13 @@ class EstimatorDeconvolution(Estimator):
             output_signature=(
                 (
                     tf.TensorSpec(shape=(self.n_eval_nodes_per_graph, self.n_features_0), dtype=tf.float32),
-                    tf.SparseTensorSpec(shape=(self.n_eval_nodes_per_graph, self.n_features_0 ** 2), dtype=tf.float32),
+                    tf.SparseTensorSpec(shape=(self.n_eval_nodes_per_graph, self.n_features_0**2), dtype=tf.float32),
                     tf.TensorSpec(shape=(self.n_eval_nodes_per_graph, 1), dtype=tf.float32),
                     tf.TensorSpec(shape=(self.n_eval_nodes_per_graph, self.n_node_covariates), dtype=tf.float32),
                     tf.TensorSpec(shape=(self.n_domains,), dtype=tf.int32),
                 ),
                 tf.TensorSpec(shape=(self.n_eval_nodes_per_graph, self.n_features_1), dtype=tf.float32),
-            )
+            ),
         )
         if train:
             if shuffle_buffer_size is not None:
@@ -249,7 +249,7 @@ class EstimatorDeconvolution(Estimator):
             input_shapes=(
                 self.n_features_0,  # target_dim
                 self.n_features_1,  # out_node_feature_dim
-                self.n_features_0 ** 2,  # interaction_dim
+                self.n_features_0**2,  # interaction_dim
                 self.n_eval_nodes_per_graph,  # in_node_dim
                 self.n_node_covariates,  # categ_condition_dim
                 self.n_domains,  # domain_dim

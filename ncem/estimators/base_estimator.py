@@ -114,7 +114,7 @@ class Estimator:
         radius: Optional[int] = None,
         n_rings: int = 1,
         label_selection: Optional[List[str]] = None,
-        n_top_genes: Optional[int] = None
+        n_top_genes: Optional[int] = None,
     ):
         """Initialize a DataLoader object.
 
@@ -136,7 +136,7 @@ class Estimator:
         ValueError
             If `data_origin` not recognized.
         """
-        coord_type = 'generic'
+        coord_type = "generic"
         self.targeted_assay = True
         if data_origin.startswith("zhang"):
             from ncem.data import DataLoaderZhang as DataLoader
@@ -163,55 +163,57 @@ class Estimator:
                 "tumor cells / immune cells",
                 "immune cells / vasculature",
             ]
-        elif data_origin.startswith('lohoff'):
+        elif data_origin.startswith("lohoff"):
             from ncem.data import DataLoaderLohoff as DataLoader
-            self.undefined_node_types = ['Low quality']
+
+            self.undefined_node_types = ["Low quality"]
         elif data_origin.startswith("luwt"):
             if data_origin == "luwt_imputation":
                 from ncem.data import DataLoaderLuWTimputed as DataLoader
             else:
                 from ncem.data import DataLoaderLuWT as DataLoader
 
-            self.undefined_node_types = ['Unknown']
+            self.undefined_node_types = ["Unknown"]
         elif data_origin.startswith("lutet2"):
             from ncem.data import DataLoaderLuTET2 as DataLoader
 
-            self.undefined_node_types = ['Unknown']
+            self.undefined_node_types = ["Unknown"]
         elif data_origin == "10xvisium":
             from ncem.data import DataLoader10xVisiumMouseBrain as DataLoader
 
             self.undefined_node_types = None
             if n_rings > 1:
-                coord_type = 'grid'
+                coord_type = "grid"
             else:
                 n_rings = 1
-                coord_type = 'generic'
+                coord_type = "generic"
                 radius = 0
         elif data_origin == "10xvisium_lymphnode":
             from ncem.data import DataLoader10xLymphnode as DataLoader
 
             self.undefined_node_types = None
             if n_rings > 1:
-                coord_type = 'grid'
+                coord_type = "grid"
             else:
                 n_rings = 1
-                coord_type = 'generic'
+                coord_type = "generic"
                 radius = 0
 
-        elif data_origin.startswith('destvi_lymphnode'):
+        elif data_origin.startswith("destvi_lymphnode"):
             self.targeted_assay = False
             from ncem.data import DataLoaderDestViLymphnode as DataLoader
 
             self.undefined_node_types = None
-        elif data_origin.startswith('destvi_mousebrain'):
+        elif data_origin.startswith("destvi_mousebrain"):
             self.targeted_assay = False
             from ncem.data import DataLoaderDestViMousebrain as DataLoader
 
             self.undefined_node_types = None
 
-        elif data_origin.startswith('cell2location_lymphnode'):
+        elif data_origin.startswith("cell2location_lymphnode"):
             self.targeted_assay = False
-            from ncem.data import DataLoaderCell2locationLymphnode as DataLoader
+            from ncem.data import \
+                DataLoaderCell2locationLymphnode as DataLoader
 
             self.undefined_node_types = None
 
@@ -221,8 +223,12 @@ class Estimator:
             self.undefined_node_types = None
 
         self.data = DataLoader(
-            data_path, radius=radius, coord_type=coord_type, n_rings=n_rings, label_selection=label_selection,
-            n_top_genes=n_top_genes
+            data_path,
+            radius=radius,
+            coord_type=coord_type,
+            n_rings=n_rings,
+            label_selection=label_selection,
+            n_top_genes=n_top_genes,
         )
 
     def get_data(
@@ -297,21 +303,23 @@ class Estimator:
             radius=radius,
             n_rings=n_rings,
             label_selection=labels_to_load,
-            n_top_genes=n_top_genes
+            n_top_genes=n_top_genes,
         )
         if robustness:
             np.random.seed(robustness_seed)
             n_images = np.int(len(self.data.img_celldata) * robustness)
             print(n_images)
-            image_keys = list(np.random.choice(
-                a=list(self.data.img_celldata.keys()),
-                size=n_images,
-                replace=False,
-            ))
+            image_keys = list(
+                np.random.choice(
+                    a=list(self.data.img_celldata.keys()),
+                    size=n_images,
+                    replace=False,
+                )
+            )
             self.data.img_celldata = {k: self.data.img_celldata[k] for k in image_keys}
             metadata = self.data.celldata.uns["metadata"]
 
-            self.data.celldata = self.data.celldata[self.data.celldata.obs[metadata['image_col']].isin(image_keys)]
+            self.data.celldata = self.data.celldata[self.data.celldata.obs[metadata["image_col"]].isin(image_keys)]
 
             print(
                 "\nAttention: Running robustness model with a fraction %f images, so [%i] images. \n"
@@ -329,23 +337,19 @@ class Estimator:
             for key, ad in self.data.img_celldata.items():
                 size = np.int(ad.shape[0] * node_fraction)
                 random_indices = np.random.choice(ad.shape[0], size=size, replace=False)
-                a = ad.obsp['adjacency_matrix_connectivities'].toarray()
+                a = ad.obsp["adjacency_matrix_connectivities"].toarray()
                 err_ad = ad.copy()
                 for idx in random_indices:
                     adj = a[idx, :]
-                    neigh_idx = np.random.choice(np.where(adj == 1.)[0], size=1, replace=False)
+                    neigh_idx = np.random.choice(np.where(adj == 1.0)[0], size=1, replace=False)
                     err_ad.X[idx, :] = ad.X[idx, :] + overflow_fraction * ad.X[neigh_idx, :]
-                    err_ad.X[neigh_idx, :] = (1. - overflow_fraction) * ad.X[neigh_idx, :]
+                    err_ad.X[neigh_idx, :] = (1.0 - overflow_fraction) * ad.X[neigh_idx, :]
                 self.data.img_celldata[key] = err_ad
 
             print(
                 "\nAttention: Running segmentation robustness model on %f of all nodes, so [%i] nodes. \n"
                 "\nSignal overflow is set to %f . This adjusts img_celldata, celldata remains unchanged.\n"
-                % (
-                    node_fraction,
-                    total_size,
-                    overflow_fraction
-                )
+                % (node_fraction, total_size, overflow_fraction)
             )
         self.simulation = False
         if resimulate_nodes:
@@ -358,24 +362,28 @@ class Estimator:
             futile_counter = 0
             node_type_map_idx = None
             while not found_all_types:
-                node_type_map_idx = np.array([
-                    np.random.randint(low=0, high=n_target_cell_types)
-                    for _ in self.data.celldata.uns["node_type_names"].keys()
-                ])
+                node_type_map_idx = np.array(
+                    [
+                        np.random.randint(low=0, high=n_target_cell_types)
+                        for _ in self.data.celldata.uns["node_type_names"].keys()
+                    ]
+                )
                 futile_counter += 1
                 if np.all([x in node_type_map_idx for x in range(n_target_cell_types)]):
                     found_all_types = True
                 if futile_counter > 100:
                     raise ValueError("did not manage to sample all target cell types")
-            node_type_names = dict([
-                (x, "sim_" + str(y))
-                for x, y in zip(self.data.celldata.uns["node_type_names"].keys(), node_type_map_idx)
-            ])
+            node_type_names = dict(
+                [
+                    (x, "sim_" + str(y))
+                    for x, y in zip(self.data.celldata.uns["node_type_names"].keys(), node_type_map_idx)
+                ]
+            )
             self.data.celldata.uns["node_type_names"] = node_type_names
 
             nfeatures = self.data.img_celldata[list(self.data.img_celldata.keys())[0]].n_vars
             # Mean effect per simulated cell types:
-            effect_ct = np.random.uniform(low=0., high=10., size=(n_target_cell_types, nfeatures))
+            effect_ct = np.random.uniform(low=0.0, high=10.0, size=(n_target_cell_types, nfeatures))
             # Create dependency structure of cell types.
             # Base line dependency structure with all dependencies as 0.
             cov_ct = np.zeros((n_target_cell_types, n_target_cell_types))
@@ -383,51 +391,62 @@ class Estimator:
                 # Add dependencies_per_type for each cell type:
                 for i in range(n_target_cell_types):
                     # Sample desired dependencies from non-self cell types:
-                    js = np.random.choice(a=[ii for ii in range(n_target_cell_types) if i != ii],
-                                          size=dependencies_per_type, replace=False)
-                    cov_ct[i, js] = 1.
+                    js = np.random.choice(
+                        a=[ii for ii in range(n_target_cell_types) if i != ii],
+                        size=dependencies_per_type,
+                        replace=False,
+                    )
+                    cov_ct[i, js] = 1.0
                 # Pairwise dependencies: Effect (self cell type, neighbor cell type, feature)
-                effect_neighbors = np.random.uniform(low=4., high=6.,
-                                                     size=(n_target_cell_types, n_target_cell_types, nfeatures))
+                effect_neighbors = np.random.uniform(
+                    low=4.0, high=6.0, size=(n_target_cell_types, n_target_cell_types, nfeatures)
+                )
                 # Simulate sparse effects:
                 sparsity_rate = resimulate_nodes_sparsity_rate  # fraction of zero effects
-                effect_neighbors[np.random.binomial(n=1, p=sparsity_rate, size=effect_neighbors.shape) == 1.] = 0.
+                effect_neighbors[np.random.binomial(n=1, p=sparsity_rate, size=effect_neighbors.shape) == 1.0] = 0.0
             else:
                 effect_neighbors = np.zeros((n_target_cell_types, n_target_cell_types, nfeatures))
-            sigma_sq = 1.
+            sigma_sq = 1.0
 
             self._simulation_parameters = {
                 "effect_ct": effect_ct,
                 "cov_ct": cov_ct,
                 "effect_neighbors": effect_neighbors,
                 "sigma_sq": sigma_sq,
-                "adatas": {}
+                "adatas": {},
             }
             for key, ad in self.data.img_celldata.items():
-                adj = ad.obsp['adjacency_matrix_connectivities'].toarray()
+                adj = ad.obsp["adjacency_matrix_connectivities"].toarray()
                 sim_ad = ad.copy()
                 nobs = sim_ad.n_obs
                 # Assign all cells from old cell type sets to corresponding new cell types, assumes one hot encoding.
-                sim_ad.obsm["node_types"] = np.concatenate([
-                    np.expand_dims(
-                        np.max(sim_ad.obsm["node_types"][:, np.where(node_type_map_idx == i)[0]], axis=1),
-                        axis=1
-                    )
-                    for i in range(n_target_cell_types)
-                ], axis=1)
-                assert np.all(sim_ad.obsm["node_types"].sum(axis=1) == 1.)
+                sim_ad.obsm["node_types"] = np.concatenate(
+                    [
+                        np.expand_dims(
+                            np.max(sim_ad.obsm["node_types"][:, np.where(node_type_map_idx == i)[0]], axis=1), axis=1
+                        )
+                        for i in range(n_target_cell_types)
+                    ],
+                    axis=1,
+                )
+                assert np.all(sim_ad.obsm["node_types"].sum(axis=1) == 1.0)
                 # Simulate count matrix:
                 dmat_ct = sim_ad.obsm["node_types"]
                 loc_neighbors = np.zeros((nobs, nfeatures))
                 for i in range(nobs):
-                    ct = np.where(dmat_ct[i, :] == 1.)[0]
+                    ct = np.where(dmat_ct[i, :] == 1.0)[0]
                     ct = ct[0]  # flatten list of length 1
-                    dmat_neighhors_i = np.zeros((1, n_target_cell_types,))
+                    dmat_neighhors_i = np.zeros(
+                        (
+                            1,
+                            n_target_cell_types,
+                        )
+                    )
                     if resimulate_nodes_w_depdency:
                         for j in np.where(np.asarray(adj[i, :]).flatten() > 0)[0]:
-                            ct_j = np.where(dmat_ct[j, :] == 1.)[0]
+                            ct_j = np.where(dmat_ct[j, :] == 1.0)[0]
                             ct_j = ct_j[0]  # flatten list of length 1
-                            dmat_neighhors_i[0, ct_j] = 1.
+                            dmat_neighhors_i[0, ct_j] = 1.0
                     loc_neighbors[i, :] = np.matmul(dmat_neighhors_i, effect_neighbors[ct])[0]
                 loc = np.matmul(dmat_ct, effect_ct) + loc_neighbors
                 sim_ad.X = np.random.normal(loc=loc, scale=sigma_sq)
@@ -469,7 +488,7 @@ class Estimator:
             self.h_0 = {k: adata.X for k, adata in self.data.img_celldata.items()}
         elif node_label_space_id == "type":
             self.h_0 = {k: adata.obsm["node_types"] for k, adata in self.data.img_celldata.items()}
-        elif node_label_space_id == 'proportions':
+        elif node_label_space_id == "proportions":
             self.h_0 = {k: adata.obsm["proportions"] for k, adata in self.data.img_celldata.items()}
         else:
             raise ValueError("node_label_space_id %s not recognized" % node_label_space_id)

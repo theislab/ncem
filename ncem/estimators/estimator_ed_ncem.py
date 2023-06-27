@@ -1,10 +1,11 @@
 import abc
-import tensorflow as tf
 from typing import Tuple, Union
+
+import tensorflow as tf
 
 from ncem.estimators import Estimator, EstimatorGraph, EstimatorNeighborhood
 from ncem.estimators.base_estimator import transfer_layers
-from ncem.models import ModelEDncem, ModelEd2Ncem
+from ncem.models import ModelEd2Ncem, ModelEDncem
 from ncem.models.layers.output_layers import IDENTIFIER_OUTPUT_LAYER
 
 

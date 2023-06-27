@@ -1,7 +1,8 @@
 import pytest
 
-from ncem.unit_test.directories import DATA_PATH_ZHANG, DATA_PATH_JAROSCH, DATA_PATH_HARTMANN, DATA_PATH_SCHUERCH, \
-    DATA_PATH_LU
+from ncem.unit_test.directories import (DATA_PATH_HARTMANN, DATA_PATH_JAROSCH,
+                                        DATA_PATH_LU, DATA_PATH_SCHUERCH,
+                                        DATA_PATH_ZHANG)
 
 
 class HelperTestDataLoader:

@@ -237,7 +237,7 @@ def r_squared_linreg(y_true, y_pred):
         return ssxym / tnp.sqrt(xmym)  # formula for r
 
     def r2():
-        return r ** 2  # formula for r_squared
+        return r**2  # formula for r_squared
 
     # R-value
     # If the denominator was going to be 0, r = 0.0
@@ -299,4 +299,4 @@ def logp1_r_squared_linreg(y_true, y_pred):
 
     # R-value
     r = ssxym / tnp.sqrt(ssxm * ssym)
-    return r ** 2
+    return r**2

@@ -42,22 +42,29 @@ ncem.train.TrainModelED
 
 .. autoclass:: TrainModelED
 
-   
-   
-   
 
-   
-   
+
+   .. rubric:: Attributes
+
+   .. autosummary::
+      :toctree: .
+
+      ~ncem.train.TrainModelED.estimator
+
+
+
+
+
    .. rubric:: Methods
 
    .. autosummary::
       :toctree: .
-   
+
       ~ncem.train.TrainModelED.init_estim
       ~ncem.train.TrainModelED.save
       ~ncem.train.TrainModelED.save_time
-   
-   
+
+
 
    .. _sphx_glr_backref_ncem.train.TrainModelED:
 

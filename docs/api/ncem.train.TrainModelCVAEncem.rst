@@ -42,22 +42,29 @@ ncem.train.TrainModelCVAEncem
 
 .. autoclass:: TrainModelCVAEncem
 
-   
-   
-   
 
-   
-   
+
+   .. rubric:: Attributes
+
+   .. autosummary::
+      :toctree: .
+
+      ~ncem.train.TrainModelCVAEncem.estimator
+
+
+
+
+
    .. rubric:: Methods
 
    .. autosummary::
       :toctree: .
-   
+
       ~ncem.train.TrainModelCVAEncem.init_estim
       ~ncem.train.TrainModelCVAEncem.save
       ~ncem.train.TrainModelCVAEncem.save_time
-   
-   
+
+
 
    .. _sphx_glr_backref_ncem.train.TrainModelCVAEncem:
 

@@ -42,13 +42,13 @@ ncem.estimators.EstimatorCVAEncem
 
 .. autoclass:: EstimatorCVAEncem
 
-   
-   
+
+
    .. rubric:: Attributes
 
    .. autosummary::
       :toctree: .
-   
+
       ~ncem.estimators.EstimatorCVAEncem.img_keys_all
       ~ncem.estimators.EstimatorCVAEncem.nodes_idx_all
       ~ncem.estimators.EstimatorCVAEncem.nodes_idx_eval
@@ -56,16 +56,48 @@ ncem.estimators.EstimatorCVAEncem
       ~ncem.estimators.EstimatorCVAEncem.nodes_idx_train
       ~ncem.estimators.EstimatorCVAEncem.patient_ids_bytarget
       ~ncem.estimators.EstimatorCVAEncem.patient_ids_unique
-   
-   
+      ~ncem.estimators.EstimatorCVAEncem.img_to_patient_dict
+      ~ncem.estimators.EstimatorCVAEncem.complete_img_keys
+      ~ncem.estimators.EstimatorCVAEncem.a
+      ~ncem.estimators.EstimatorCVAEncem.h_0
+      ~ncem.estimators.EstimatorCVAEncem.h_1
+      ~ncem.estimators.EstimatorCVAEncem.size_factors
+      ~ncem.estimators.EstimatorCVAEncem.graph_covar
+      ~ncem.estimators.EstimatorCVAEncem.node_covar
+      ~ncem.estimators.EstimatorCVAEncem.domains
+      ~ncem.estimators.EstimatorCVAEncem.covar_selection
+      ~ncem.estimators.EstimatorCVAEncem.node_types
+      ~ncem.estimators.EstimatorCVAEncem.node_type_names
+      ~ncem.estimators.EstimatorCVAEncem.graph_covar_names
+      ~ncem.estimators.EstimatorCVAEncem.node_feature_names
+      ~ncem.estimators.EstimatorCVAEncem.n_features_type
+      ~ncem.estimators.EstimatorCVAEncem.n_features_standard
+      ~ncem.estimators.EstimatorCVAEncem.n_features_0
+      ~ncem.estimators.EstimatorCVAEncem.n_features_1
+      ~ncem.estimators.EstimatorCVAEncem.n_graph_covariates
+      ~ncem.estimators.EstimatorCVAEncem.n_node_covariates
+      ~ncem.estimators.EstimatorCVAEncem.n_domains
+      ~ncem.estimators.EstimatorCVAEncem.max_nodes
+      ~ncem.estimators.EstimatorCVAEncem.n_eval_nodes_per_graph
+      ~ncem.estimators.EstimatorCVAEncem.vi_model
+      ~ncem.estimators.EstimatorCVAEncem.log_transform
+      ~ncem.estimators.EstimatorCVAEncem.model_type
+      ~ncem.estimators.EstimatorCVAEncem.adj_type
+      ~ncem.estimators.EstimatorCVAEncem.cond_type
+      ~ncem.estimators.EstimatorCVAEncem.cond_depth
+      ~ncem.estimators.EstimatorCVAEncem.output_layer
+      ~ncem.estimators.EstimatorCVAEncem.steps_per_epoch
+      ~ncem.estimators.EstimatorCVAEncem.validation_steps
 
-   
-   
+
+
+
+
    .. rubric:: Methods
 
    .. autosummary::
       :toctree: .
-   
+
       ~ncem.estimators.EstimatorCVAEncem.evaluate_any
       ~ncem.estimators.EstimatorCVAEncem.evaluate_any_posterior_sampling
       ~ncem.estimators.EstimatorCVAEncem.evaluate_per_node_type
@@ -79,8 +111,8 @@ ncem.estimators.EstimatorCVAEncem
       ~ncem.estimators.EstimatorCVAEncem.train
       ~ncem.estimators.EstimatorCVAEncem.train_aggressive
       ~ncem.estimators.EstimatorCVAEncem.train_normal
-   
-   
+
+
 
    .. _sphx_glr_backref_ncem.estimators.EstimatorCVAEncem:
 
