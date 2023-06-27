@@ -3,7 +3,7 @@ import tensorflow as tf
 IDENTIFIER_OUTPUT_LAYER = "Output"
 
 
-def get_out(output_layer: str, out_feature_dim, scale_node_size, name: str = 'decoder'):
+def get_out(output_layer: str, out_feature_dim, scale_node_size, name: str = "decoder"):
     if output_layer == "gaussian":
         output_decoder_layer = GaussianOutput(
             original_dim=out_feature_dim,

@@ -42,13 +42,13 @@ ncem.estimators.EstimatorInteractions
 
 .. autoclass:: EstimatorInteractions
 
-   
-   
+
+
    .. rubric:: Attributes
 
    .. autosummary::
       :toctree: .
-   
+
       ~ncem.estimators.EstimatorInteractions.img_keys_all
       ~ncem.estimators.EstimatorInteractions.nodes_idx_all
       ~ncem.estimators.EstimatorInteractions.nodes_idx_eval
@@ -56,16 +56,48 @@ ncem.estimators.EstimatorInteractions
       ~ncem.estimators.EstimatorInteractions.nodes_idx_train
       ~ncem.estimators.EstimatorInteractions.patient_ids_bytarget
       ~ncem.estimators.EstimatorInteractions.patient_ids_unique
-   
-   
+      ~ncem.estimators.EstimatorInteractions.img_to_patient_dict
+      ~ncem.estimators.EstimatorInteractions.complete_img_keys
+      ~ncem.estimators.EstimatorInteractions.a
+      ~ncem.estimators.EstimatorInteractions.h_0
+      ~ncem.estimators.EstimatorInteractions.h_1
+      ~ncem.estimators.EstimatorInteractions.size_factors
+      ~ncem.estimators.EstimatorInteractions.graph_covar
+      ~ncem.estimators.EstimatorInteractions.node_covar
+      ~ncem.estimators.EstimatorInteractions.domains
+      ~ncem.estimators.EstimatorInteractions.covar_selection
+      ~ncem.estimators.EstimatorInteractions.node_types
+      ~ncem.estimators.EstimatorInteractions.node_type_names
+      ~ncem.estimators.EstimatorInteractions.graph_covar_names
+      ~ncem.estimators.EstimatorInteractions.node_feature_names
+      ~ncem.estimators.EstimatorInteractions.n_features_type
+      ~ncem.estimators.EstimatorInteractions.n_features_standard
+      ~ncem.estimators.EstimatorInteractions.n_features_0
+      ~ncem.estimators.EstimatorInteractions.n_features_1
+      ~ncem.estimators.EstimatorInteractions.n_graph_covariates
+      ~ncem.estimators.EstimatorInteractions.n_node_covariates
+      ~ncem.estimators.EstimatorInteractions.n_domains
+      ~ncem.estimators.EstimatorInteractions.max_nodes
+      ~ncem.estimators.EstimatorInteractions.n_eval_nodes_per_graph
+      ~ncem.estimators.EstimatorInteractions.vi_model
+      ~ncem.estimators.EstimatorInteractions.log_transform
+      ~ncem.estimators.EstimatorInteractions.model_type
+      ~ncem.estimators.EstimatorInteractions.adj_type
+      ~ncem.estimators.EstimatorInteractions.cond_type
+      ~ncem.estimators.EstimatorInteractions.cond_depth
+      ~ncem.estimators.EstimatorInteractions.output_layer
+      ~ncem.estimators.EstimatorInteractions.steps_per_epoch
+      ~ncem.estimators.EstimatorInteractions.validation_steps
 
-   
-   
+
+
+
+
    .. rubric:: Methods
 
    .. autosummary::
       :toctree: .
-   
+
       ~ncem.estimators.EstimatorInteractions.evaluate_any
       ~ncem.estimators.EstimatorInteractions.evaluate_per_node_type
       ~ncem.estimators.EstimatorInteractions.get_data
@@ -78,8 +110,8 @@ ncem.estimators.EstimatorInteractions
       ~ncem.estimators.EstimatorInteractions.train
       ~ncem.estimators.EstimatorInteractions.train_aggressive
       ~ncem.estimators.EstimatorInteractions.train_normal
-   
-   
+
+
 
    .. _sphx_glr_backref_ncem.estimators.EstimatorInteractions:
 

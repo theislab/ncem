@@ -42,22 +42,29 @@ ncem.train.TrainModelInteractions
 
 .. autoclass:: TrainModelInteractions
 
-   
-   
-   
 
-   
-   
+
+   .. rubric:: Attributes
+
+   .. autosummary::
+      :toctree: .
+
+      ~ncem.train.TrainModelInteractions.estimator
+
+
+
+
+
    .. rubric:: Methods
 
    .. autosummary::
       :toctree: .
-   
+
       ~ncem.train.TrainModelInteractions.init_estim
       ~ncem.train.TrainModelInteractions.save
       ~ncem.train.TrainModelInteractions.save_time
-   
-   
+
+
 
    .. _sphx_glr_backref_ncem.train.TrainModelInteractions:
 
