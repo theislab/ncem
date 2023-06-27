@@ -1,13 +1,16 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="English" >
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ncem.estimators.base_estimator &mdash; ncem 0.1.4 documentation</title>
+  <title>ncem.estimators.base_estimator &mdash; ncem 0.1.5 documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/custom.css" type="text/css" />
-      <link rel="stylesheet" href="../../../_static/custom_cookietemple.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/sphinx_gallery.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/nbsphinx.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/dataframe.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/sg_gallery.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -15,8 +18,8 @@
         <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
         <script src="../../../_static/jquery.js"></script>
         <script src="../../../_static/underscore.js"></script>
-        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" /> 
@@ -27,30 +30,37 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../../../index.html" class="icon icon-home"> ncem
+
+          
+          
+          <a href="../../../index.html">
+            
+              <img src="../../../_static/ncem_logo.png" class="logo" alt="Logo"/>
           </a>
               <div class="version">
-                0.1.4
+                0.1.5
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+              <p class="caption"><span class="caption-text">General</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../readme.html">ncem</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributing.html">Contributor Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ecosystem.html">Ecosystem</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../authors.html">Credits</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../references.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../code_of_conduct.html">Contributor Covenant Code of Conduct</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Methods</span></p>
+<ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../usage.html">API</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../ecosystem.html">Ecosystem</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../reference.html">Reference</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../contributing.html">Contributor Guide</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../authors.html">Credits</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../code_of_conduct.html">Contributor Covenant Code of Conduct</a></li>
 </ul>
 
         </div>
@@ -66,9 +76,9 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
-          <li><a href="../../index.html">Module code</a> &raquo;</li>
-      <li>ncem.estimators.base_estimator</li>
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ncem.estimators.base_estimator</li>
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul>
@@ -96,7 +106,7 @@
 
 
 <span class="k">def</span> <span class="nf">transfer_layers</span><span class="p">(</span><span class="n">model1</span><span class="p">,</span> <span class="n">model2</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Transfer layer weights from model 1 to model 2.</span>
 
 <span class="sd">    :param model1: Input model.</span>
@@ -119,7 +129,7 @@
 
 
 <div class="viewcode-block" id="Estimator"><a class="viewcode-back" href="../../../api/ncem.estimators.Estimator.html#ncem.estimators.Estimator">[docs]</a><span class="k">class</span> <span class="nc">Estimator</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Estimator class for models.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Estimator class for models.</span>
 
 <span class="sd">    Contains all necessary methods for data loading, model initialization, training, evaluation and prediction.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -172,7 +182,7 @@
     <span class="n">validation_steps</span><span class="p">:</span> <span class="nb">int</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize Estimator class.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize Estimator class.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">loss</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span> <span class="o">=</span> <span class="p">[]</span>
@@ -194,9 +204,9 @@
         <span class="n">radius</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">n_rings</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
         <span class="n">label_selection</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">n_top_genes</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">n_top_genes</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize a DataLoader object.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize a DataLoader object.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -216,7 +226,7 @@
 <span class="sd">        ValueError</span>
 <span class="sd">            If `data_origin` not recognized.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">coord_type</span> <span class="o">=</span> <span class="s1">&#39;generic&#39;</span>
+        <span class="n">coord_type</span> <span class="o">=</span> <span class="s2">&quot;generic&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">targeted_assay</span> <span class="o">=</span> <span class="kc">True</span>
         <span class="k">if</span> <span class="n">data_origin</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;zhang&quot;</span><span class="p">):</span>
             <span class="kn">from</span> <span class="nn">ncem.data</span> <span class="kn">import</span> <span class="n">DataLoaderZhang</span> <span class="k">as</span> <span class="n">DataLoader</span>
@@ -243,55 +253,57 @@
                 <span class="s2">&quot;tumor cells / immune cells&quot;</span><span class="p">,</span>
                 <span class="s2">&quot;immune cells / vasculature&quot;</span><span class="p">,</span>
             <span class="p">]</span>
-        <span class="k">elif</span> <span class="n">data_origin</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;lohoff&#39;</span><span class="p">):</span>
+        <span class="k">elif</span> <span class="n">data_origin</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;lohoff&quot;</span><span class="p">):</span>
             <span class="kn">from</span> <span class="nn">ncem.data</span> <span class="kn">import</span> <span class="n">DataLoaderLohoff</span> <span class="k">as</span> <span class="n">DataLoader</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">undefined_node_types</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Low quality&#39;</span><span class="p">]</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">undefined_node_types</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Low quality&quot;</span><span class="p">]</span>
         <span class="k">elif</span> <span class="n">data_origin</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;luwt&quot;</span><span class="p">):</span>
             <span class="k">if</span> <span class="n">data_origin</span> <span class="o">==</span> <span class="s2">&quot;luwt_imputation&quot;</span><span class="p">:</span>
                 <span class="kn">from</span> <span class="nn">ncem.data</span> <span class="kn">import</span> <span class="n">DataLoaderLuWTimputed</span> <span class="k">as</span> <span class="n">DataLoader</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="kn">from</span> <span class="nn">ncem.data</span> <span class="kn">import</span> <span class="n">DataLoaderLuWT</span> <span class="k">as</span> <span class="n">DataLoader</span>
 
-            <span class="bp">self</span><span class="o">.</span><span class="n">undefined_node_types</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Unknown&#39;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">undefined_node_types</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Unknown&quot;</span><span class="p">]</span>
         <span class="k">elif</span> <span class="n">data_origin</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;lutet2&quot;</span><span class="p">):</span>
             <span class="kn">from</span> <span class="nn">ncem.data</span> <span class="kn">import</span> <span class="n">DataLoaderLuTET2</span> <span class="k">as</span> <span class="n">DataLoader</span>
 
-            <span class="bp">self</span><span class="o">.</span><span class="n">undefined_node_types</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Unknown&#39;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">undefined_node_types</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Unknown&quot;</span><span class="p">]</span>
         <span class="k">elif</span> <span class="n">data_origin</span> <span class="o">==</span> <span class="s2">&quot;10xvisium&quot;</span><span class="p">:</span>
             <span class="kn">from</span> <span class="nn">ncem.data</span> <span class="kn">import</span> <span class="n">DataLoader10xVisiumMouseBrain</span> <span class="k">as</span> <span class="n">DataLoader</span>
 
             <span class="bp">self</span><span class="o">.</span><span class="n">undefined_node_types</span> <span class="o">=</span> <span class="kc">None</span>
             <span class="k">if</span> <span class="n">n_rings</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-                <span class="n">coord_type</span> <span class="o">=</span> <span class="s1">&#39;grid&#39;</span>
+                <span class="n">coord_type</span> <span class="o">=</span> <span class="s2">&quot;grid&quot;</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">n_rings</span> <span class="o">=</span> <span class="mi">1</span>
-                <span class="n">coord_type</span> <span class="o">=</span> <span class="s1">&#39;generic&#39;</span>
+                <span class="n">coord_type</span> <span class="o">=</span> <span class="s2">&quot;generic&quot;</span>
                 <span class="n">radius</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="k">elif</span> <span class="n">data_origin</span> <span class="o">==</span> <span class="s2">&quot;10xvisium_lymphnode&quot;</span><span class="p">:</span>
             <span class="kn">from</span> <span class="nn">ncem.data</span> <span class="kn">import</span> <span class="n">DataLoader10xLymphnode</span> <span class="k">as</span> <span class="n">DataLoader</span>
 
             <span class="bp">self</span><span class="o">.</span><span class="n">undefined_node_types</span> <span class="o">=</span> <span class="kc">None</span>
             <span class="k">if</span> <span class="n">n_rings</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-                <span class="n">coord_type</span> <span class="o">=</span> <span class="s1">&#39;grid&#39;</span>
+                <span class="n">coord_type</span> <span class="o">=</span> <span class="s2">&quot;grid&quot;</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">n_rings</span> <span class="o">=</span> <span class="mi">1</span>
-                <span class="n">coord_type</span> <span class="o">=</span> <span class="s1">&#39;generic&#39;</span>
+                <span class="n">coord_type</span> <span class="o">=</span> <span class="s2">&quot;generic&quot;</span>
                 <span class="n">radius</span> <span class="o">=</span> <span class="mi">0</span>
 
-        <span class="k">elif</span> <span class="n">data_origin</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;destvi_lymphnode&#39;</span><span class="p">):</span>
+        <span class="k">elif</span> <span class="n">data_origin</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;destvi_lymphnode&quot;</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">targeted_assay</span> <span class="o">=</span> <span class="kc">False</span>
             <span class="kn">from</span> <span class="nn">ncem.data</span> <span class="kn">import</span> <span class="n">DataLoaderDestViLymphnode</span> <span class="k">as</span> <span class="n">DataLoader</span>
 
             <span class="bp">self</span><span class="o">.</span><span class="n">undefined_node_types</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">elif</span> <span class="n">data_origin</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;destvi_mousebrain&#39;</span><span class="p">):</span>
+        <span class="k">elif</span> <span class="n">data_origin</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;destvi_mousebrain&quot;</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">targeted_assay</span> <span class="o">=</span> <span class="kc">False</span>
             <span class="kn">from</span> <span class="nn">ncem.data</span> <span class="kn">import</span> <span class="n">DataLoaderDestViMousebrain</span> <span class="k">as</span> <span class="n">DataLoader</span>
 
             <span class="bp">self</span><span class="o">.</span><span class="n">undefined_node_types</span> <span class="o">=</span> <span class="kc">None</span>
 
-        <span class="k">elif</span> <span class="n">data_origin</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;cell2location_lymphnode&#39;</span><span class="p">):</span>
+        <span class="k">elif</span> <span class="n">data_origin</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;cell2location_lymphnode&quot;</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">targeted_assay</span> <span class="o">=</span> <span class="kc">False</span>
-            <span class="kn">from</span> <span class="nn">ncem.data</span> <span class="kn">import</span> <span class="n">DataLoaderCell2locationLymphnode</span> <span class="k">as</span> <span class="n">DataLoader</span>
+            <span class="kn">from</span> <span class="nn">ncem.data</span> <span class="kn">import</span> \
+                <span class="n">DataLoaderCell2locationLymphnode</span> <span class="k">as</span> <span class="n">DataLoader</span>
 
             <span class="bp">self</span><span class="o">.</span><span class="n">undefined_node_types</span> <span class="o">=</span> <span class="kc">None</span>
 
@@ -301,8 +313,12 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">undefined_node_types</span> <span class="o">=</span> <span class="kc">None</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span>
-            <span class="n">data_path</span><span class="p">,</span> <span class="n">radius</span><span class="o">=</span><span class="n">radius</span><span class="p">,</span> <span class="n">coord_type</span><span class="o">=</span><span class="n">coord_type</span><span class="p">,</span> <span class="n">n_rings</span><span class="o">=</span><span class="n">n_rings</span><span class="p">,</span> <span class="n">label_selection</span><span class="o">=</span><span class="n">label_selection</span><span class="p">,</span>
-            <span class="n">n_top_genes</span><span class="o">=</span><span class="n">n_top_genes</span>
+            <span class="n">data_path</span><span class="p">,</span>
+            <span class="n">radius</span><span class="o">=</span><span class="n">radius</span><span class="p">,</span>
+            <span class="n">coord_type</span><span class="o">=</span><span class="n">coord_type</span><span class="p">,</span>
+            <span class="n">n_rings</span><span class="o">=</span><span class="n">n_rings</span><span class="p">,</span>
+            <span class="n">label_selection</span><span class="o">=</span><span class="n">label_selection</span><span class="p">,</span>
+            <span class="n">n_top_genes</span><span class="o">=</span><span class="n">n_top_genes</span><span class="p">,</span>
         <span class="p">)</span>
 
 <div class="viewcode-block" id="Estimator.get_data"><a class="viewcode-back" href="../../../api/ncem.estimators.Estimator.get_data.html#ncem.estimators.Estimator.get_data">[docs]</a>    <span class="k">def</span> <span class="nf">get_data</span><span class="p">(</span>
@@ -326,7 +342,7 @@
         <span class="n">resimulate_nodes_w_depdency</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">resimulate_nodes_sparsity_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Get data used in estimator classes.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get data used in estimator classes.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -377,21 +393,23 @@
             <span class="n">radius</span><span class="o">=</span><span class="n">radius</span><span class="p">,</span>
             <span class="n">n_rings</span><span class="o">=</span><span class="n">n_rings</span><span class="p">,</span>
             <span class="n">label_selection</span><span class="o">=</span><span class="n">labels_to_load</span><span class="p">,</span>
-            <span class="n">n_top_genes</span><span class="o">=</span><span class="n">n_top_genes</span>
+            <span class="n">n_top_genes</span><span class="o">=</span><span class="n">n_top_genes</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="n">robustness</span><span class="p">:</span>
             <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">robustness_seed</span><span class="p">)</span>
             <span class="n">n_images</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">img_celldata</span><span class="p">)</span> <span class="o">*</span> <span class="n">robustness</span><span class="p">)</span>
             <span class="nb">print</span><span class="p">(</span><span class="n">n_images</span><span class="p">)</span>
-            <span class="n">image_keys</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span>
-                <span class="n">a</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">img_celldata</span><span class="o">.</span><span class="n">keys</span><span class="p">()),</span>
-                <span class="n">size</span><span class="o">=</span><span class="n">n_images</span><span class="p">,</span>
-                <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-            <span class="p">))</span>
+            <span class="n">image_keys</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span>
+                    <span class="n">a</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">img_celldata</span><span class="o">.</span><span class="n">keys</span><span class="p">()),</span>
+                    <span class="n">size</span><span class="o">=</span><span class="n">n_images</span><span class="p">,</span>
+                    <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">img_celldata</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">img_celldata</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">image_keys</span><span class="p">}</span>
             <span class="n">metadata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">celldata</span><span class="o">.</span><span class="n">uns</span><span class="p">[</span><span class="s2">&quot;metadata&quot;</span><span class="p">]</span>
 
-            <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">celldata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">celldata</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">celldata</span><span class="o">.</span><span class="n">obs</span><span class="p">[</span><span class="n">metadata</span><span class="p">[</span><span class="s1">&#39;image_col&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">image_keys</span><span class="p">)]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">celldata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">celldata</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">celldata</span><span class="o">.</span><span class="n">obs</span><span class="p">[</span><span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;image_col&quot;</span><span class="p">]]</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">image_keys</span><span class="p">)]</span>
 
             <span class="nb">print</span><span class="p">(</span>
                 <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Attention: Running robustness model with a fraction </span><span class="si">%f</span><span class="s2"> images, so [</span><span class="si">%i</span><span class="s2">] images. </span><span class="se">\n</span><span class="s2">&quot;</span>
@@ -409,23 +427,19 @@
             <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">ad</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">img_celldata</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
                 <span class="n">size</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">(</span><span class="n">ad</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">node_fraction</span><span class="p">)</span>
                 <span class="n">random_indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">ad</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">size</span><span class="o">=</span><span class="n">size</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-                <span class="n">a</span> <span class="o">=</span> <span class="n">ad</span><span class="o">.</span><span class="n">obsp</span><span class="p">[</span><span class="s1">&#39;adjacency_matrix_connectivities&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">toarray</span><span class="p">()</span>
+                <span class="n">a</span> <span class="o">=</span> <span class="n">ad</span><span class="o">.</span><span class="n">obsp</span><span class="p">[</span><span class="s2">&quot;adjacency_matrix_connectivities&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">toarray</span><span class="p">()</span>
                 <span class="n">err_ad</span> <span class="o">=</span> <span class="n">ad</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
                 <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">random_indices</span><span class="p">:</span>
                     <span class="n">adj</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="p">:]</span>
-                    <span class="n">neigh_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">adj</span> <span class="o">==</span> <span class="mf">1.</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+                    <span class="n">neigh_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">adj</span> <span class="o">==</span> <span class="mf">1.0</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
                     <span class="n">err_ad</span><span class="o">.</span><span class="n">X</span><span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">ad</span><span class="o">.</span><span class="n">X</span><span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="p">:]</span> <span class="o">+</span> <span class="n">overflow_fraction</span> <span class="o">*</span> <span class="n">ad</span><span class="o">.</span><span class="n">X</span><span class="p">[</span><span class="n">neigh_idx</span><span class="p">,</span> <span class="p">:]</span>
-                    <span class="n">err_ad</span><span class="o">.</span><span class="n">X</span><span class="p">[</span><span class="n">neigh_idx</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">-</span> <span class="n">overflow_fraction</span><span class="p">)</span> <span class="o">*</span> <span class="n">ad</span><span class="o">.</span><span class="n">X</span><span class="p">[</span><span class="n">neigh_idx</span><span class="p">,</span> <span class="p">:]</span>
+                    <span class="n">err_ad</span><span class="o">.</span><span class="n">X</span><span class="p">[</span><span class="n">neigh_idx</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">overflow_fraction</span><span class="p">)</span> <span class="o">*</span> <span class="n">ad</span><span class="o">.</span><span class="n">X</span><span class="p">[</span><span class="n">neigh_idx</span><span class="p">,</span> <span class="p">:]</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">img_celldata</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">err_ad</span>
 
             <span class="nb">print</span><span class="p">(</span>
                 <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Attention: Running segmentation robustness model on </span><span class="si">%f</span><span class="s2"> of all nodes, so [</span><span class="si">%i</span><span class="s2">] nodes. </span><span class="se">\n</span><span class="s2">&quot;</span>
                 <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Signal overflow is set to </span><span class="si">%f</span><span class="s2"> . This adjusts img_celldata, celldata remains unchanged.</span><span class="se">\n</span><span class="s2">&quot;</span>
-                <span class="o">%</span> <span class="p">(</span>
-                    <span class="n">node_fraction</span><span class="p">,</span>
-                    <span class="n">total_size</span><span class="p">,</span>
-                    <span class="n">overflow_fraction</span>
-                <span class="p">)</span>
+                <span class="o">%</span> <span class="p">(</span><span class="n">node_fraction</span><span class="p">,</span> <span class="n">total_size</span><span class="p">,</span> <span class="n">overflow_fraction</span><span class="p">)</span>
             <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">simulation</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="k">if</span> <span class="n">resimulate_nodes</span><span class="p">:</span>
@@ -438,24 +452,28 @@
             <span class="n">futile_counter</span> <span class="o">=</span> <span class="mi">0</span>
             <span class="n">node_type_map_idx</span> <span class="o">=</span> <span class="kc">None</span>
             <span class="k">while</span> <span class="ow">not</span> <span class="n">found_all_types</span><span class="p">:</span>
-                <span class="n">node_type_map_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
-                    <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="n">n_target_cell_types</span><span class="p">)</span>
-                    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">celldata</span><span class="o">.</span><span class="n">uns</span><span class="p">[</span><span class="s2">&quot;node_type_names&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
-                <span class="p">])</span>
+                <span class="n">node_type_map_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+                    <span class="p">[</span>
+                        <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="n">n_target_cell_types</span><span class="p">)</span>
+                        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">celldata</span><span class="o">.</span><span class="n">uns</span><span class="p">[</span><span class="s2">&quot;node_type_names&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+                    <span class="p">]</span>
+                <span class="p">)</span>
                 <span class="n">futile_counter</span> <span class="o">+=</span> <span class="mi">1</span>
                 <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">([</span><span class="n">x</span> <span class="ow">in</span> <span class="n">node_type_map_idx</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_target_cell_types</span><span class="p">)]):</span>
                     <span class="n">found_all_types</span> <span class="o">=</span> <span class="kc">True</span>
                 <span class="k">if</span> <span class="n">futile_counter</span> <span class="o">&gt;</span> <span class="mi">100</span><span class="p">:</span>
                     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;did not manage to sample all target cell types&quot;</span><span class="p">)</span>
-            <span class="n">node_type_names</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">([</span>
-                <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s2">&quot;sim_&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">y</span><span class="p">))</span>
-                <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">celldata</span><span class="o">.</span><span class="n">uns</span><span class="p">[</span><span class="s2">&quot;node_type_names&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="n">node_type_map_idx</span><span class="p">)</span>
-            <span class="p">])</span>
+            <span class="n">node_type_names</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+                <span class="p">[</span>
+                    <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s2">&quot;sim_&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">y</span><span class="p">))</span>
+                    <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">celldata</span><span class="o">.</span><span class="n">uns</span><span class="p">[</span><span class="s2">&quot;node_type_names&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="n">node_type_map_idx</span><span class="p">)</span>
+                <span class="p">]</span>
+            <span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">celldata</span><span class="o">.</span><span class="n">uns</span><span class="p">[</span><span class="s2">&quot;node_type_names&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">node_type_names</span>
 
             <span class="n">nfeatures</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">img_celldata</span><span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">img_celldata</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">n_vars</span>
             <span class="c1"># Mean effect per simulated cell types:</span>
-            <span class="n">effect_ct</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mf">10.</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">n_target_cell_types</span><span class="p">,</span> <span class="n">nfeatures</span><span class="p">))</span>
+            <span class="n">effect_ct</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mf">10.0</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">n_target_cell_types</span><span class="p">,</span> <span class="n">nfeatures</span><span class="p">))</span>
             <span class="c1"># Create dependency structure of cell types.</span>
             <span class="c1"># Base line dependency structure with all dependencies as 0.</span>
             <span class="n">cov_ct</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_target_cell_types</span><span class="p">,</span> <span class="n">n_target_cell_types</span><span class="p">))</span>
@@ -463,51 +481,62 @@
                 <span class="c1"># Add dependencies_per_type for each cell type:</span>
                 <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_target_cell_types</span><span class="p">):</span>
                     <span class="c1"># Sample desired dependencies from non-self cell types:</span>
-                    <span class="n">js</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">a</span><span class="o">=</span><span class="p">[</span><span class="n">ii</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_target_cell_types</span><span class="p">)</span> <span class="k">if</span> <span class="n">i</span> <span class="o">!=</span> <span class="n">ii</span><span class="p">],</span>
-                                          <span class="n">size</span><span class="o">=</span><span class="n">dependencies_per_type</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-                    <span class="n">cov_ct</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">js</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.</span>
+                    <span class="n">js</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span>
+                        <span class="n">a</span><span class="o">=</span><span class="p">[</span><span class="n">ii</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_target_cell_types</span><span class="p">)</span> <span class="k">if</span> <span class="n">i</span> <span class="o">!=</span> <span class="n">ii</span><span class="p">],</span>
+                        <span class="n">size</span><span class="o">=</span><span class="n">dependencies_per_type</span><span class="p">,</span>
+                        <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="n">cov_ct</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">js</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
                 <span class="c1"># Pairwise dependencies: Effect (self cell type, neighbor cell type, feature)</span>
-                <span class="n">effect_neighbors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mf">4.</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mf">6.</span><span class="p">,</span>
-                                                     <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">n_target_cell_types</span><span class="p">,</span> <span class="n">n_target_cell_types</span><span class="p">,</span> <span class="n">nfeatures</span><span class="p">))</span>
+                <span class="n">effect_neighbors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span>
+                    <span class="n">low</span><span class="o">=</span><span class="mf">4.0</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">n_target_cell_types</span><span class="p">,</span> <span class="n">n_target_cell_types</span><span class="p">,</span> <span class="n">nfeatures</span><span class="p">)</span>
+                <span class="p">)</span>
                 <span class="c1"># Simulate sparse effects:</span>
                 <span class="n">sparsity_rate</span> <span class="o">=</span> <span class="n">resimulate_nodes_sparsity_rate</span>  <span class="c1"># fraction of zero effects</span>
-                <span class="n">effect_neighbors</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">binomial</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">sparsity_rate</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">effect_neighbors</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mf">1.</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.</span>
+                <span class="n">effect_neighbors</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">binomial</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">sparsity_rate</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">effect_neighbors</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mf">1.0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">effect_neighbors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_target_cell_types</span><span class="p">,</span> <span class="n">n_target_cell_types</span><span class="p">,</span> <span class="n">nfeatures</span><span class="p">))</span>
-            <span class="n">sigma_sq</span> <span class="o">=</span> <span class="mf">1.</span>
+            <span class="n">sigma_sq</span> <span class="o">=</span> <span class="mf">1.0</span>
 
             <span class="bp">self</span><span class="o">.</span><span class="n">_simulation_parameters</span> <span class="o">=</span> <span class="p">{</span>
                 <span class="s2">&quot;effect_ct&quot;</span><span class="p">:</span> <span class="n">effect_ct</span><span class="p">,</span>
                 <span class="s2">&quot;cov_ct&quot;</span><span class="p">:</span> <span class="n">cov_ct</span><span class="p">,</span>
                 <span class="s2">&quot;effect_neighbors&quot;</span><span class="p">:</span> <span class="n">effect_neighbors</span><span class="p">,</span>
                 <span class="s2">&quot;sigma_sq&quot;</span><span class="p">:</span> <span class="n">sigma_sq</span><span class="p">,</span>
-                <span class="s2">&quot;adatas&quot;</span><span class="p">:</span> <span class="p">{}</span>
+                <span class="s2">&quot;adatas&quot;</span><span class="p">:</span> <span class="p">{},</span>
             <span class="p">}</span>
             <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">ad</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">img_celldata</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                <span class="n">adj</span> <span class="o">=</span> <span class="n">ad</span><span class="o">.</span><span class="n">obsp</span><span class="p">[</span><span class="s1">&#39;adjacency_matrix_connectivities&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">toarray</span><span class="p">()</span>
+                <span class="n">adj</span> <span class="o">=</span> <span class="n">ad</span><span class="o">.</span><span class="n">obsp</span><span class="p">[</span><span class="s2">&quot;adjacency_matrix_connectivities&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">toarray</span><span class="p">()</span>
                 <span class="n">sim_ad</span> <span class="o">=</span> <span class="n">ad</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
                 <span class="n">nobs</span> <span class="o">=</span> <span class="n">sim_ad</span><span class="o">.</span><span class="n">n_obs</span>
                 <span class="c1"># Assign all cells from old cell type sets to corresponding new cell types, assumes one hot encoding.</span>
-                <span class="n">sim_ad</span><span class="o">.</span><span class="n">obsm</span><span class="p">[</span><span class="s2">&quot;node_types&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span>
-                    <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span>
-                        <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">sim_ad</span><span class="o">.</span><span class="n">obsm</span><span class="p">[</span><span class="s2">&quot;node_types&quot;</span><span class="p">][:,</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">node_type_map_idx</span> <span class="o">==</span> <span class="n">i</span><span class="p">)[</span><span class="mi">0</span><span class="p">]],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
-                        <span class="n">axis</span><span class="o">=</span><span class="mi">1</span>
-                    <span class="p">)</span>
-                    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_target_cell_types</span><span class="p">)</span>
-                <span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-                <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">sim_ad</span><span class="o">.</span><span class="n">obsm</span><span class="p">[</span><span class="s2">&quot;node_types&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="mf">1.</span><span class="p">)</span>
+                <span class="n">sim_ad</span><span class="o">.</span><span class="n">obsm</span><span class="p">[</span><span class="s2">&quot;node_types&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span>
+                    <span class="p">[</span>
+                        <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span>
+                            <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">sim_ad</span><span class="o">.</span><span class="n">obsm</span><span class="p">[</span><span class="s2">&quot;node_types&quot;</span><span class="p">][:,</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">node_type_map_idx</span> <span class="o">==</span> <span class="n">i</span><span class="p">)[</span><span class="mi">0</span><span class="p">]],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span>
+                        <span class="p">)</span>
+                        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_target_cell_types</span><span class="p">)</span>
+                    <span class="p">],</span>
+                    <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">sim_ad</span><span class="o">.</span><span class="n">obsm</span><span class="p">[</span><span class="s2">&quot;node_types&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="mf">1.0</span><span class="p">)</span>
                 <span class="c1"># Simulate count matrix:</span>
                 <span class="n">dmat_ct</span> <span class="o">=</span> <span class="n">sim_ad</span><span class="o">.</span><span class="n">obsm</span><span class="p">[</span><span class="s2">&quot;node_types&quot;</span><span class="p">]</span>
                 <span class="n">loc_neighbors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nobs</span><span class="p">,</span> <span class="n">nfeatures</span><span class="p">))</span>
                 <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nobs</span><span class="p">):</span>
-                    <span class="n">ct</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">dmat_ct</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span> <span class="o">==</span> <span class="mf">1.</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="n">ct</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">dmat_ct</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span> <span class="o">==</span> <span class="mf">1.0</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
                     <span class="n">ct</span> <span class="o">=</span> <span class="n">ct</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># flatten list of length 1</span>
-                    <span class="n">dmat_neighhors_i</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_target_cell_types</span><span class="p">,))</span>
+                    <span class="n">dmat_neighhors_i</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+                        <span class="p">(</span>
+                            <span class="mi">1</span><span class="p">,</span>
+                            <span class="n">n_target_cell_types</span><span class="p">,</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
                     <span class="k">if</span> <span class="n">resimulate_nodes_w_depdency</span><span class="p">:</span>
                         <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">adj</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:])</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">]:</span>
-                            <span class="n">ct_j</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">dmat_ct</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="p">:]</span> <span class="o">==</span> <span class="mf">1.</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+                            <span class="n">ct_j</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">dmat_ct</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="p">:]</span> <span class="o">==</span> <span class="mf">1.0</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
                             <span class="n">ct_j</span> <span class="o">=</span> <span class="n">ct_j</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># flatten list of length 1</span>
-                            <span class="n">dmat_neighhors_i</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">ct_j</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.</span>
+                            <span class="n">dmat_neighhors_i</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">ct_j</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
                     <span class="n">loc_neighbors</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">dmat_neighhors_i</span><span class="p">,</span> <span class="n">effect_neighbors</span><span class="p">[</span><span class="n">ct</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
                 <span class="n">loc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">dmat_ct</span><span class="p">,</span> <span class="n">effect_ct</span><span class="p">)</span> <span class="o">+</span> <span class="n">loc_neighbors</span>
                 <span class="n">sim_ad</span><span class="o">.</span><span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="n">loc</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">sigma_sq</span><span class="p">)</span>
@@ -549,7 +578,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">h_0</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">adata</span><span class="o">.</span><span class="n">X</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">adata</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">img_celldata</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
         <span class="k">elif</span> <span class="n">node_label_space_id</span> <span class="o">==</span> <span class="s2">&quot;type&quot;</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">h_0</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">adata</span><span class="o">.</span><span class="n">obsm</span><span class="p">[</span><span class="s2">&quot;node_types&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">adata</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">img_celldata</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
-        <span class="k">elif</span> <span class="n">node_label_space_id</span> <span class="o">==</span> <span class="s1">&#39;proportions&#39;</span><span class="p">:</span>
+        <span class="k">elif</span> <span class="n">node_label_space_id</span> <span class="o">==</span> <span class="s2">&quot;proportions&quot;</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">h_0</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">adata</span><span class="o">.</span><span class="n">obsm</span><span class="p">[</span><span class="s2">&quot;proportions&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">adata</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">img_celldata</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;node_label_space_id </span><span class="si">%s</span><span class="s2"> not recognized&quot;</span> <span class="o">%</span> <span class="n">node_label_space_id</span><span class="p">)</span>
@@ -649,7 +678,7 @@
         <span class="n">prefetch</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
         <span class="n">reinit_n_eval</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Prepare a dataset.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Prepare a dataset.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -681,7 +710,7 @@
         <span class="n">seed</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">prefetch</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Evaluate model based on resampled dataset for posterior resampling.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Evaluate model based on resampled dataset for posterior resampling.</span>
 
 <span class="sd">        node_1 + domain_1 -&gt; encoder -&gt; z_1 + domain_2 -&gt; decoder -&gt; reconstruction_2.</span>
 
@@ -702,7 +731,7 @@
 
 <div class="viewcode-block" id="Estimator.init_model"><a class="viewcode-back" href="../../../api/ncem.estimators.Estimator.init_model.html#ncem.estimators.Estimator.init_model">[docs]</a>    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
     <span class="k">def</span> <span class="nf">init_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize and compiles the model.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize and compiles the model.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -713,7 +742,7 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">patient_ids_bytarget</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Return patient identifiers by target.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return patient identifiers by target.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -723,7 +752,7 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">patient_ids_unique</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Return unique patient identifiers.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return unique patient identifiers.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -733,7 +762,7 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">img_keys_all</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Return all image keys.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return all image keys.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -743,7 +772,7 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">nodes_idx_all</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Return all node indices.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return all node indices.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -769,7 +798,7 @@
 
     <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_prepare_sf</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Prepare size factors.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Prepare size factors.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -795,7 +824,7 @@
         <span class="k">return</span> <span class="n">sf</span>
 
     <span class="k">def</span> <span class="nf">_compile_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">,</span> <span class="n">output_layer</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Compile all necessary models.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compile all necessary models.</span>
 
 <span class="sd">        ATTENTION: Decoder compiled with same optimizer instance as training model if an instance is passed!</span>
 
@@ -858,7 +887,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">decoder_sampling</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">optimizer</span><span class="o">=</span><span class="n">optimizer</span><span class="p">,</span> <span class="n">loss</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">loss</span><span class="p">,</span> <span class="n">metrics</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_remove_unidentified_nodes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node_idx</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Exclude undefined cells from data set.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Exclude undefined cells from data set.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -897,7 +926,7 @@
 <div class="viewcode-block" id="Estimator.split_data_given"><a class="viewcode-back" href="../../../api/ncem.estimators.Estimator.split_data_given.html#ncem.estimators.Estimator.split_data_given">[docs]</a>    <span class="k">def</span> <span class="nf">split_data_given</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">img_keys_test</span><span class="p">,</span> <span class="n">img_keys_train</span><span class="p">,</span> <span class="n">img_keys_eval</span><span class="p">,</span> <span class="n">nodes_idx_test</span><span class="p">,</span> <span class="n">nodes_idx_train</span><span class="p">,</span> <span class="n">nodes_idx_eval</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Split data by given partition.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Split data by given partition.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -923,7 +952,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">nodes_idx_eval</span> <span class="o">=</span> <span class="n">nodes_idx_eval</span></div>
 
 <div class="viewcode-block" id="Estimator.split_data_node"><a class="viewcode-back" href="../../../api/ncem.estimators.Estimator.split_data_node.html#ncem.estimators.Estimator.split_data_node">[docs]</a>    <span class="k">def</span> <span class="nf">split_data_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">test_split</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">validation_split</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Split nodes randomly into partitions.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Split nodes randomly into partitions.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -1031,7 +1060,7 @@
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;The train dataset is empty.&quot;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Estimator.split_data_target_cell"><a class="viewcode-back" href="../../../api/ncem.estimators.Estimator.split_data_target_cell.html#ncem.estimators.Estimator.split_data_target_cell">[docs]</a>    <span class="k">def</span> <span class="nf">split_data_target_cell</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target_cell</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">test_split</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">validation_split</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Split nodes randomly into partitions.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Split nodes randomly into partitions.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -1192,7 +1221,7 @@
         <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1234</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Train model.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Train model.</span>
 
 <span class="sd">        Use validation loss and maximum number of epochs as termination criteria.</span>
 
@@ -1371,7 +1400,7 @@
         <span class="n">reduce_lr_plateau</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Train model normal.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Train model normal.</span>
 
 <span class="sd">        Use validation loss and maximum number of epochs as termination criteria.</span>
 
@@ -1476,7 +1505,7 @@
         <span class="n">reduce_lr_plateau</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Pre-train decoder model.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Pre-train decoder model.</span>
 
 <span class="sd">        Use validation loss and maximum number of epochs as termination criteria.</span>
 
@@ -1588,7 +1617,7 @@
         <span class="n">aggressive_enc_patience</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
         <span class="n">aggressive_epochs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Train model aggressive.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Train model aggressive.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -1785,7 +1814,7 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">history</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span></div>
 
     <span class="k">def</span> <span class="nf">_get_dataset_test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Get test dataset.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get test dataset.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -1820,7 +1849,7 @@
         <span class="p">)</span>
 
 <div class="viewcode-block" id="Estimator.predict"><a class="viewcode-back" href="../../../api/ncem.estimators.Estimator.predict.html#ncem.estimators.Estimator.predict">[docs]</a>    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]:</span>
-        <span class="sd">&quot;&quot;&quot;Return observed labels and full predictions (including scale model) grouped exactly as in nodes_idx_test.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return observed labels and full predictions (including scale model) grouped exactly as in nodes_idx_test.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -1835,7 +1864,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">training_model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Estimator.evaluate_any"><a class="viewcode-back" href="../../../api/ncem.estimators.Estimator.evaluate_any.html#ncem.estimators.Estimator.evaluate_any">[docs]</a>    <span class="k">def</span> <span class="nf">evaluate_any</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">img_keys</span><span class="p">,</span> <span class="n">node_idx</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Evaluate model on any given data set.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Evaluate model on any given data set.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -1864,7 +1893,7 @@
         <span class="k">return</span> <span class="n">eval_dict</span></div>
 
 <div class="viewcode-block" id="Estimator.evaluate_per_node_type"><a class="viewcode-back" href="../../../api/ncem.estimators.Estimator.evaluate_per_node_type.html#ncem.estimators.Estimator.evaluate_per_node_type">[docs]</a>    <span class="k">def</span> <span class="nf">evaluate_per_node_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Evaluate model for each node type seperately.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Evaluate model for each node type seperately.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -1905,10 +1934,10 @@
 
 
 <div class="viewcode-block" id="EstimatorGraph"><a class="viewcode-back" href="../../../api/ncem.estimators.EstimatorGraph.html#ncem.estimators.EstimatorGraph">[docs]</a><span class="k">class</span> <span class="nc">EstimatorGraph</span><span class="p">(</span><span class="n">Estimator</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;EstimatorGraph class for spatial models.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;EstimatorGraph class for spatial models.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="EstimatorGraph.init_model"><a class="viewcode-back" href="../../../api/ncem.estimators.EstimatorGraph.init_model.html#ncem.estimators.EstimatorGraph.init_model">[docs]</a>    <span class="k">def</span> <span class="nf">init_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize EstimatorGraph.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize EstimatorGraph.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -1918,7 +1947,7 @@
         <span class="k">pass</span></div>
 
     <span class="k">def</span> <span class="nf">_get_output_signature</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">resampled</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Get output signatures.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get output signatures.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -1983,7 +2012,7 @@
         <span class="n">prefetch</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
         <span class="n">reinit_n_eval</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Prepare a dataset.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Prepare a dataset.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -2119,7 +2148,7 @@
         <span class="n">prefetch</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
         <span class="n">reinit_n_eval</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Evaluate model based on resampled dataset for posterior resampling.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Evaluate model based on resampled dataset for posterior resampling.</span>
 
 <span class="sd">        node_1 + domain_1 -&gt; encoder -&gt; z_1 + domain_2 -&gt; decoder -&gt; reconstruction_2.</span>
 
@@ -2273,10 +2302,10 @@
 
 
 <div class="viewcode-block" id="EstimatorNoGraph"><a class="viewcode-back" href="../../../api/ncem.estimators.EstimatorNoGraph.html#ncem.estimators.EstimatorNoGraph">[docs]</a><span class="k">class</span> <span class="nc">EstimatorNoGraph</span><span class="p">(</span><span class="n">Estimator</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;EstimatorNoGraph class for baseline models.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;EstimatorNoGraph class for baseline models.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="EstimatorNoGraph.init_model"><a class="viewcode-back" href="../../../api/ncem.estimators.EstimatorNoGraph.init_model.html#ncem.estimators.EstimatorNoGraph.init_model">[docs]</a>    <span class="k">def</span> <span class="nf">init_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize EstimatorNoGraph.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize EstimatorNoGraph.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -2286,7 +2315,7 @@
         <span class="k">pass</span></div>
 
     <span class="k">def</span> <span class="nf">_get_output_signature</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">resampled</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Get output signatures.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get output signatures.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -2343,7 +2372,7 @@
         <span class="n">prefetch</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
         <span class="n">reinit_n_eval</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Prepare a dataset.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Prepare a dataset.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -2454,7 +2483,7 @@
         <span class="n">prefetch</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
         <span class="n">reinit_n_eval</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Evaluate model based on resampled dataset for posterior resampling.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Evaluate model based on resampled dataset for posterior resampling.</span>
 
 <span class="sd">        node_1 + domain_1 -&gt; encoder -&gt; z_1 + domain_2 -&gt; decoder -&gt; reconstruction_2.</span>
 

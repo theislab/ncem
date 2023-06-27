@@ -1,14 +1,17 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="English" >
 <head>
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ncem.estimators.EstimatorED.pretrain_decoder &mdash; ncem 0.1.4 documentation</title>
+  <title>ncem.estimators.EstimatorED.pretrain_decoder &mdash; ncem 0.1.5 documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/custom.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/custom_cookietemple.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/sphinx_gallery.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/nbsphinx.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/dataframe.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/sg_gallery.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -16,13 +19,11 @@
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
-        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
-    <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="ncem.estimators.EstimatorED.split_data_given" href="ncem.estimators.EstimatorED.split_data_given.html" />
-    <link rel="prev" title="ncem.estimators.EstimatorED.predict" href="ncem.estimators.EstimatorED.predict.html" /> 
+    <link rel="search" title="Search" href="../search.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -30,67 +31,37 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../index.html" class="icon icon-home"> ncem
+
+          
+          
+          <a href="../index.html">
+            
+              <img src="../_static/ncem_logo.png" class="logo" alt="Logo"/>
           </a>
               <div class="version">
-                0.1.4
+                0.1.5
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
-<ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../readme.html">ncem</a></li>
+              <p class="caption"><span class="caption-text">General</span></p>
+<ul>
 <li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
-<li class="toctree-l1 current"><a class="reference internal" href="../usage.html">API</a><ul class="current">
-<li class="toctree-l2 current"><a class="reference internal" href="../usage.html#module-ncem.estimators">Estimator classes: <cite>estimators</cite></a><ul class="current">
-<li class="toctree-l3"><a class="reference internal" href="ncem.estimators.Estimator.html">ncem.estimators.Estimator</a></li>
-<li class="toctree-l3"><a class="reference internal" href="ncem.estimators.EstimatorGraph.html">ncem.estimators.EstimatorGraph</a></li>
-<li class="toctree-l3"><a class="reference internal" href="ncem.estimators.EstimatorNoGraph.html">ncem.estimators.EstimatorNoGraph</a></li>
-<li class="toctree-l3"><a class="reference internal" href="ncem.estimators.EstimatorCVAE.html">ncem.estimators.EstimatorCVAE</a></li>
-<li class="toctree-l3"><a class="reference internal" href="ncem.estimators.EstimatorCVAEncem.html">ncem.estimators.EstimatorCVAEncem</a></li>
-<li class="toctree-l3 current"><a class="reference internal" href="ncem.estimators.EstimatorED.html">ncem.estimators.EstimatorED</a><ul class="current">
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.EstimatorED.img_keys_all.html">ncem.estimators.EstimatorED.img_keys_all</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.EstimatorED.nodes_idx_all.html">ncem.estimators.EstimatorED.nodes_idx_all</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.EstimatorED.nodes_idx_eval.html">ncem.estimators.EstimatorED.nodes_idx_eval</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.EstimatorED.nodes_idx_test.html">ncem.estimators.EstimatorED.nodes_idx_test</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.EstimatorED.nodes_idx_train.html">ncem.estimators.EstimatorED.nodes_idx_train</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.EstimatorED.patient_ids_bytarget.html">ncem.estimators.EstimatorED.patient_ids_bytarget</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.EstimatorED.patient_ids_unique.html">ncem.estimators.EstimatorED.patient_ids_unique</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.EstimatorED.evaluate_any.html">ncem.estimators.EstimatorED.evaluate_any</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.EstimatorED.evaluate_per_node_type.html">ncem.estimators.EstimatorED.evaluate_per_node_type</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.EstimatorED.get_data.html">ncem.estimators.EstimatorED.get_data</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.EstimatorED.init_model.html">ncem.estimators.EstimatorED.init_model</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.EstimatorED.predict.html">ncem.estimators.EstimatorED.predict</a></li>
-<li class="toctree-l4 current"><a class="current reference internal" href="#">ncem.estimators.EstimatorED.pretrain_decoder</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.EstimatorED.split_data_given.html">ncem.estimators.EstimatorED.split_data_given</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.EstimatorED.split_data_node.html">ncem.estimators.EstimatorED.split_data_node</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.EstimatorED.split_data_target_cell.html">ncem.estimators.EstimatorED.split_data_target_cell</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.EstimatorED.train.html">ncem.estimators.EstimatorED.train</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.EstimatorED.train_aggressive.html">ncem.estimators.EstimatorED.train_aggressive</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.EstimatorED.train_normal.html">ncem.estimators.EstimatorED.train_normal</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="ncem.estimators.EstimatorEDncem.html">ncem.estimators.EstimatorEDncem</a></li>
-<li class="toctree-l3"><a class="reference internal" href="ncem.estimators.EstimatorInteractions.html">ncem.estimators.EstimatorInteractions</a></li>
-<li class="toctree-l3"><a class="reference internal" href="ncem.estimators.EstimatorLinear.html">ncem.estimators.EstimatorLinear</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../usage.html#module-ncem.models">Model classes: <cite>models</cite></a></li>
-<li class="toctree-l2"><a class="reference internal" href="../usage.html#module-ncem.train">Train: <cite>train</cite></a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="../tutorials.html">Tutorials</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../ecosystem.html">Ecosystem</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../reference.html">Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../contributing.html">Contributor Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ecosystem.html">Ecosystem</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../authors.html">Credits</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../code_of_conduct.html">Contributor Covenant Code of Conduct</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Methods</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../usage.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials.html">Tutorials</a></li>
 </ul>
 
         </div>
@@ -106,10 +77,8 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
-          <li><a href="../usage.html">API</a> &raquo;</li>
-          <li><a href="ncem.estimators.EstimatorED.html">ncem.estimators.EstimatorED</a> &raquo;</li>
-      <li>ncem.estimators.EstimatorED.pretrain_decoder</li>
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">ncem.estimators.EstimatorED.pretrain_decoder</li>
       <li class="wy-breadcrumbs-aside">
               <!-- User defined GitHub URL -->
               <a href="ncem.estimators.EstimatorED.pretrain_decoder" class="fa fa-github"> Edit on GitHub</a>
@@ -120,33 +89,57 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="ncem-estimators-estimatored-pretrain-decoder">
-<h1>ncem.estimators.EstimatorED.pretrain_decoder<a class="headerlink" href="#ncem-estimators-estimatored-pretrain-decoder" title="Permalink to this heading"></a></h1>
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<section id="ncem-estimators-estimatored-pretrain-decoder">
+<h1>ncem.estimators.EstimatorED.pretrain_decoder<a class="headerlink" href="#ncem-estimators-estimatored-pretrain-decoder" title="Permalink to this headline"></a></h1>
 <dl class="py method">
 <dt class="sig sig-object py" id="ncem.estimators.EstimatorED.pretrain_decoder">
-<span class="sig-prename descclassname"><span class="pre">EstimatorED.</span></span><span class="sig-name descname"><span class="pre">pretrain_decoder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">decoder_epochs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">patience</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lr_schedule_min_lr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lr_schedule_factor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lr_schedule_patience</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial_epoch</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">monitor_partition</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'val'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">monitor_metric</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'loss'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callbacks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">early_stopping</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reduce_lr_plateau</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ncem.estimators.EstimatorED.pretrain_decoder" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">EstimatorED.</span></span><span class="sig-name descname"><span class="pre">pretrain_decoder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">decoder_epochs</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">patience</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lr_schedule_min_lr</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.11)"><span class="pre">float</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1e-05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lr_schedule_factor</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.11)"><span class="pre">float</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lr_schedule_patience</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial_epoch</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">monitor_partition</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'val'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">monitor_metric</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'loss'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_dir</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callbacks</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.11)"><span class="pre">list</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">early_stopping</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.11)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reduce_lr_plateau</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.11)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ncem.estimators.EstimatorED.pretrain_decoder" title="Permalink to this definition"></a></dt>
 <dd><p>Pre-train decoder model.</p>
 <p>Use validation loss and maximum number of epochs as termination criteria.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>patience</strong> (<em>int</em>) – Number of epochs with no improvement. If unspecified, it will default to 20.</p></li>
-<li><p><strong>lr_schedule_min_lr</strong> (<em>float</em>) – Lower bound on the learning rate. If unspecified, it will default to 1e-5.</p></li>
-<li><p><strong>lr_schedule_factor</strong> (<em>float</em>) – Factor by which the learning rate will be reduced. new_lr = lr * factor. If unspecified, it will default
+<li><p><strong>patience</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><em>int</em></a>) -- Number of epochs with no improvement. If unspecified, it will default to 20.</p></li>
+<li><p><strong>lr_schedule_min_lr</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.11)"><em>float</em></a>) -- Lower bound on the learning rate. If unspecified, it will default to 1e-5.</p></li>
+<li><p><strong>lr_schedule_factor</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.11)"><em>float</em></a>) -- Factor by which the learning rate will be reduced. new_lr = lr * factor. If unspecified, it will default
 to 0.2.</p></li>
-<li><p><strong>lr_schedule_patience</strong> (<em>int</em>) – Number of epochs with no improvement after which learning rate will be reduced. If unspecified, it will
+<li><p><strong>lr_schedule_patience</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><em>int</em></a>) -- Number of epochs with no improvement after which learning rate will be reduced. If unspecified, it will
 default to 5.</p></li>
-<li><p><strong>initial_epoch</strong> (<em>int</em>) – Epoch at which to start training (useful for resuming a previous training run). If unspecified, it will
+<li><p><strong>initial_epoch</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><em>int</em></a>) -- Epoch at which to start training (useful for resuming a previous training run). If unspecified, it will
 default to 0.</p></li>
-<li><p><strong>monitor_partition</strong> (<em>str</em>) – Monitor partition.</p></li>
-<li><p><strong>monitor_metric</strong> (<em>str</em>) – Monitor metric.</p></li>
-<li><p><strong>log_dir</strong> (<em>str</em><em>, </em><em>optional</em>) – Logging directory.</p></li>
-<li><p><strong>callbacks</strong> (<em>list</em><em>, </em><em>optional</em>) – List of callbacks to be called during training.</p></li>
-<li><p><strong>early_stopping</strong> (<em>bool</em>) – Whether to activate early stopping.</p></li>
-<li><p><strong>reduce_lr_plateau</strong> (<em>bool</em>) – Whether to reduce learning rate on plateau.</p></li>
-<li><p><strong>decoder_epochs</strong> (<em>int</em>) – Integer number of times to iterate over the training data arrays in decoder pretraining. If unspecified, it
+<li><p><strong>monitor_partition</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><em>str</em></a>) -- Monitor partition.</p></li>
+<li><p><strong>monitor_metric</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><em>str</em></a>) -- Monitor metric.</p></li>
+<li><p><strong>log_dir</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><em>str</em></a><em>, </em><em>optional</em>) -- Logging directory.</p></li>
+<li><p><strong>callbacks</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.11)"><em>list</em></a><em>, </em><em>optional</em>) -- List of callbacks to be called during training.</p></li>
+<li><p><strong>early_stopping</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.11)"><em>bool</em></a>) -- Whether to activate early stopping.</p></li>
+<li><p><strong>reduce_lr_plateau</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.11)"><em>bool</em></a>) -- Whether to reduce learning rate on plateau.</p></li>
+<li><p><strong>decoder_epochs</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><em>int</em></a>) -- Integer number of times to iterate over the training data arrays in decoder pretraining. If unspecified, it
 will default to 1000.</p></li>
-<li><p><strong>kwargs</strong> – Arbitrary keyword arguments.</p></li>
+<li><p><strong>kwargs</strong> -- Arbitrary keyword arguments.</p></li>
 </ul>
 </dd>
 </dl>
@@ -157,10 +150,7 @@ will default to 1000.</p></li>
 
            </div>
           </div>
-          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="ncem.estimators.EstimatorED.predict.html" class="btn btn-neutral float-left" title="ncem.estimators.EstimatorED.predict" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="ncem.estimators.EstimatorED.split_data_given.html" class="btn btn-neutral float-right" title="ncem.estimators.EstimatorED.split_data_given" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
-    </div>
+          <footer>
 
   <hr/>
 

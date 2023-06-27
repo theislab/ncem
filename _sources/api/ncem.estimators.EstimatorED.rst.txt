@@ -42,13 +42,13 @@ ncem.estimators.EstimatorED
 
 .. autoclass:: EstimatorED
 
-   
-   
+
+
    .. rubric:: Attributes
 
    .. autosummary::
       :toctree: .
-   
+
       ~ncem.estimators.EstimatorED.img_keys_all
       ~ncem.estimators.EstimatorED.nodes_idx_all
       ~ncem.estimators.EstimatorED.nodes_idx_eval
@@ -88,16 +88,16 @@ ncem.estimators.EstimatorED
       ~ncem.estimators.EstimatorED.output_layer
       ~ncem.estimators.EstimatorED.steps_per_epoch
       ~ncem.estimators.EstimatorED.validation_steps
-   
-   
 
-   
-   
+
+
+
+
    .. rubric:: Methods
 
    .. autosummary::
       :toctree: .
-   
+
       ~ncem.estimators.EstimatorED.evaluate_any
       ~ncem.estimators.EstimatorED.evaluate_per_node_type
       ~ncem.estimators.EstimatorED.get_data
@@ -110,8 +110,8 @@ ncem.estimators.EstimatorED
       ~ncem.estimators.EstimatorED.train
       ~ncem.estimators.EstimatorED.train_aggressive
       ~ncem.estimators.EstimatorED.train_normal
-   
-   
+
+
 
    .. _sphx_glr_backref_ncem.estimators.EstimatorED:
 

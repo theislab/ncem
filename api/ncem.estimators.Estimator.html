@@ -1,14 +1,17 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="English" >
 <head>
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ncem.estimators.Estimator &mdash; ncem 0.1.4 documentation</title>
+  <title>ncem.estimators.Estimator &mdash; ncem 0.1.5 documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/custom.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/custom_cookietemple.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/sphinx_gallery.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/nbsphinx.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/dataframe.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/sg_gallery.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -16,13 +19,11 @@
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
-        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
-    <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="ncem.estimators.Estimator.img_keys_all" href="ncem.estimators.Estimator.img_keys_all.html" />
-    <link rel="prev" title="API" href="../usage.html" /> 
+    <link rel="search" title="Search" href="../search.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -30,99 +31,37 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../index.html" class="icon icon-home"> ncem
+
+          
+          
+          <a href="../index.html">
+            
+              <img src="../_static/ncem_logo.png" class="logo" alt="Logo"/>
           </a>
               <div class="version">
-                0.1.4
+                0.1.5
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
-<ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../readme.html">ncem</a></li>
+              <p class="caption"><span class="caption-text">General</span></p>
+<ul>
 <li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
-<li class="toctree-l1 current"><a class="reference internal" href="../usage.html">API</a><ul class="current">
-<li class="toctree-l2 current"><a class="reference internal" href="../usage.html#module-ncem.estimators">Estimator classes: <cite>estimators</cite></a><ul class="current">
-<li class="toctree-l3 current"><a class="current reference internal" href="#">ncem.estimators.Estimator</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.Estimator.img_keys_all.html">ncem.estimators.Estimator.img_keys_all</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.Estimator.nodes_idx_all.html">ncem.estimators.Estimator.nodes_idx_all</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.Estimator.nodes_idx_eval.html">ncem.estimators.Estimator.nodes_idx_eval</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.Estimator.nodes_idx_test.html">ncem.estimators.Estimator.nodes_idx_test</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.Estimator.nodes_idx_train.html">ncem.estimators.Estimator.nodes_idx_train</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.Estimator.patient_ids_bytarget.html">ncem.estimators.Estimator.patient_ids_bytarget</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.Estimator.patient_ids_unique.html">ncem.estimators.Estimator.patient_ids_unique</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.Estimator.img_to_patient_dict.html">ncem.estimators.Estimator.img_to_patient_dict</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.Estimator.complete_img_keys.html">ncem.estimators.Estimator.complete_img_keys</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.Estimator.a.html">ncem.estimators.Estimator.a</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.Estimator.h_0.html">ncem.estimators.Estimator.h_0</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.Estimator.h_1.html">ncem.estimators.Estimator.h_1</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.Estimator.size_factors.html">ncem.estimators.Estimator.size_factors</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.Estimator.graph_covar.html">ncem.estimators.Estimator.graph_covar</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.Estimator.node_covar.html">ncem.estimators.Estimator.node_covar</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.Estimator.domains.html">ncem.estimators.Estimator.domains</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.Estimator.covar_selection.html">ncem.estimators.Estimator.covar_selection</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.Estimator.node_types.html">ncem.estimators.Estimator.node_types</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.Estimator.node_type_names.html">ncem.estimators.Estimator.node_type_names</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.Estimator.graph_covar_names.html">ncem.estimators.Estimator.graph_covar_names</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.Estimator.node_feature_names.html">ncem.estimators.Estimator.node_feature_names</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.Estimator.n_features_type.html">ncem.estimators.Estimator.n_features_type</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.Estimator.n_features_standard.html">ncem.estimators.Estimator.n_features_standard</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.Estimator.n_features_0.html">ncem.estimators.Estimator.n_features_0</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.Estimator.n_features_1.html">ncem.estimators.Estimator.n_features_1</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.Estimator.n_graph_covariates.html">ncem.estimators.Estimator.n_graph_covariates</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.Estimator.n_node_covariates.html">ncem.estimators.Estimator.n_node_covariates</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.Estimator.n_domains.html">ncem.estimators.Estimator.n_domains</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.Estimator.max_nodes.html">ncem.estimators.Estimator.max_nodes</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.Estimator.n_eval_nodes_per_graph.html">ncem.estimators.Estimator.n_eval_nodes_per_graph</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.Estimator.vi_model.html">ncem.estimators.Estimator.vi_model</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.Estimator.log_transform.html">ncem.estimators.Estimator.log_transform</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.Estimator.model_type.html">ncem.estimators.Estimator.model_type</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.Estimator.adj_type.html">ncem.estimators.Estimator.adj_type</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.Estimator.cond_type.html">ncem.estimators.Estimator.cond_type</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.Estimator.cond_depth.html">ncem.estimators.Estimator.cond_depth</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.Estimator.output_layer.html">ncem.estimators.Estimator.output_layer</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.Estimator.steps_per_epoch.html">ncem.estimators.Estimator.steps_per_epoch</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.Estimator.validation_steps.html">ncem.estimators.Estimator.validation_steps</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.Estimator.evaluate_any.html">ncem.estimators.Estimator.evaluate_any</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.Estimator.evaluate_per_node_type.html">ncem.estimators.Estimator.evaluate_per_node_type</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.Estimator.get_data.html">ncem.estimators.Estimator.get_data</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.Estimator.init_model.html">ncem.estimators.Estimator.init_model</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.Estimator.predict.html">ncem.estimators.Estimator.predict</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.Estimator.pretrain_decoder.html">ncem.estimators.Estimator.pretrain_decoder</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.Estimator.split_data_given.html">ncem.estimators.Estimator.split_data_given</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.Estimator.split_data_node.html">ncem.estimators.Estimator.split_data_node</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.Estimator.split_data_target_cell.html">ncem.estimators.Estimator.split_data_target_cell</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.Estimator.train.html">ncem.estimators.Estimator.train</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.Estimator.train_aggressive.html">ncem.estimators.Estimator.train_aggressive</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ncem.estimators.Estimator.train_normal.html">ncem.estimators.Estimator.train_normal</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="ncem.estimators.EstimatorGraph.html">ncem.estimators.EstimatorGraph</a></li>
-<li class="toctree-l3"><a class="reference internal" href="ncem.estimators.EstimatorNoGraph.html">ncem.estimators.EstimatorNoGraph</a></li>
-<li class="toctree-l3"><a class="reference internal" href="ncem.estimators.EstimatorCVAE.html">ncem.estimators.EstimatorCVAE</a></li>
-<li class="toctree-l3"><a class="reference internal" href="ncem.estimators.EstimatorCVAEncem.html">ncem.estimators.EstimatorCVAEncem</a></li>
-<li class="toctree-l3"><a class="reference internal" href="ncem.estimators.EstimatorED.html">ncem.estimators.EstimatorED</a></li>
-<li class="toctree-l3"><a class="reference internal" href="ncem.estimators.EstimatorEDncem.html">ncem.estimators.EstimatorEDncem</a></li>
-<li class="toctree-l3"><a class="reference internal" href="ncem.estimators.EstimatorInteractions.html">ncem.estimators.EstimatorInteractions</a></li>
-<li class="toctree-l3"><a class="reference internal" href="ncem.estimators.EstimatorLinear.html">ncem.estimators.EstimatorLinear</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../usage.html#module-ncem.models">Model classes: <cite>models</cite></a></li>
-<li class="toctree-l2"><a class="reference internal" href="../usage.html#module-ncem.train">Train: <cite>train</cite></a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="../tutorials.html">Tutorials</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../ecosystem.html">Ecosystem</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../reference.html">Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../contributing.html">Contributor Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ecosystem.html">Ecosystem</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../authors.html">Credits</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../code_of_conduct.html">Contributor Covenant Code of Conduct</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Methods</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../usage.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials.html">Tutorials</a></li>
 </ul>
 
         </div>
@@ -138,9 +77,8 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
-          <li><a href="../usage.html">API</a> &raquo;</li>
-      <li>ncem.estimators.Estimator</li>
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">ncem.estimators.Estimator</li>
       <li class="wy-breadcrumbs-aside">
               <!-- User defined GitHub URL -->
               <a href="ncem.estimators.Estimator" class="fa fa-github"> Edit on GitHub</a>
@@ -151,15 +89,39 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="ncem-estimators-estimator">
-<h1>ncem.estimators.Estimator<a class="headerlink" href="#ncem-estimators-estimator" title="Permalink to this heading"></a></h1>
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<section id="ncem-estimators-estimator">
+<h1>ncem.estimators.Estimator<a class="headerlink" href="#ncem-estimators-estimator" title="Permalink to this headline"></a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="ncem.estimators.Estimator">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ncem.estimators.</span></span><span class="sig-name descname"><span class="pre">Estimator</span></span><a class="reference internal" href="../_modules/ncem/estimators/base_estimator.html#Estimator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ncem.estimators.Estimator" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">ncem.estimators.</span></span><span class="sig-name descname"><span class="pre">Estimator</span></span><a class="reference internal" href="../_modules/ncem/estimators/base_estimator.html#Estimator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ncem.estimators.Estimator" title="Permalink to this definition"></a></dt>
 <dd><p>Estimator class for models.</p>
 <p>Contains all necessary methods for data loading, model initialization, training, evaluation and prediction.</p>
 <p class="rubric">Attributes</p>
-<table class="autosummary longtable docutils align-default">
+<table class="longtable docutils align-default">
 <colgroup>
 <col style="width: 10%" />
 <col style="width: 90%" />
@@ -172,13 +134,13 @@
 <td><p>Return all node indices.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="ncem.estimators.Estimator.nodes_idx_eval.html#ncem.estimators.Estimator.nodes_idx_eval" title="ncem.estimators.Estimator.nodes_idx_eval"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nodes_idx_eval</span></code></a></p></td>
-<td><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>]</p></td>
+<td><p>alias of <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.11)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.11)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>]</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="ncem.estimators.Estimator.nodes_idx_test.html#ncem.estimators.Estimator.nodes_idx_test" title="ncem.estimators.Estimator.nodes_idx_test"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nodes_idx_test</span></code></a></p></td>
-<td><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>]</p></td>
+<td><p>alias of <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.11)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.11)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>]</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="ncem.estimators.Estimator.nodes_idx_train.html#ncem.estimators.Estimator.nodes_idx_train" title="ncem.estimators.Estimator.nodes_idx_train"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nodes_idx_train</span></code></a></p></td>
-<td><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>]</p></td>
+<td><p>alias of <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.11)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.11)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>]</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="ncem.estimators.Estimator.patient_ids_bytarget.html#ncem.estimators.Estimator.patient_ids_bytarget" title="ncem.estimators.Estimator.patient_ids_bytarget"><code class="xref py py-obj docutils literal notranslate"><span class="pre">patient_ids_bytarget</span></code></a></p></td>
 <td><p>Return patient identifiers by target.</p></td>
@@ -186,106 +148,10 @@
 <tr class="row-odd"><td><p><a class="reference internal" href="ncem.estimators.Estimator.patient_ids_unique.html#ncem.estimators.Estimator.patient_ids_unique" title="ncem.estimators.Estimator.patient_ids_unique"><code class="xref py py-obj docutils literal notranslate"><span class="pre">patient_ids_unique</span></code></a></p></td>
 <td><p>Return unique patient identifiers.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="ncem.estimators.Estimator.img_to_patient_dict.html#ncem.estimators.Estimator.img_to_patient_dict" title="ncem.estimators.Estimator.img_to_patient_dict"><code class="xref py py-obj docutils literal notranslate"><span class="pre">img_to_patient_dict</span></code></a></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="ncem.estimators.Estimator.complete_img_keys.html#ncem.estimators.Estimator.complete_img_keys" title="ncem.estimators.Estimator.complete_img_keys"><code class="xref py py-obj docutils literal notranslate"><span class="pre">complete_img_keys</span></code></a></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="ncem.estimators.Estimator.a.html#ncem.estimators.Estimator.a" title="ncem.estimators.Estimator.a"><code class="xref py py-obj docutils literal notranslate"><span class="pre">a</span></code></a></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="ncem.estimators.Estimator.h_0.html#ncem.estimators.Estimator.h_0" title="ncem.estimators.Estimator.h_0"><code class="xref py py-obj docutils literal notranslate"><span class="pre">h_0</span></code></a></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="ncem.estimators.Estimator.h_1.html#ncem.estimators.Estimator.h_1" title="ncem.estimators.Estimator.h_1"><code class="xref py py-obj docutils literal notranslate"><span class="pre">h_1</span></code></a></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="ncem.estimators.Estimator.size_factors.html#ncem.estimators.Estimator.size_factors" title="ncem.estimators.Estimator.size_factors"><code class="xref py py-obj docutils literal notranslate"><span class="pre">size_factors</span></code></a></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="ncem.estimators.Estimator.graph_covar.html#ncem.estimators.Estimator.graph_covar" title="ncem.estimators.Estimator.graph_covar"><code class="xref py py-obj docutils literal notranslate"><span class="pre">graph_covar</span></code></a></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="ncem.estimators.Estimator.node_covar.html#ncem.estimators.Estimator.node_covar" title="ncem.estimators.Estimator.node_covar"><code class="xref py py-obj docutils literal notranslate"><span class="pre">node_covar</span></code></a></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="ncem.estimators.Estimator.domains.html#ncem.estimators.Estimator.domains" title="ncem.estimators.Estimator.domains"><code class="xref py py-obj docutils literal notranslate"><span class="pre">domains</span></code></a></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="ncem.estimators.Estimator.covar_selection.html#ncem.estimators.Estimator.covar_selection" title="ncem.estimators.Estimator.covar_selection"><code class="xref py py-obj docutils literal notranslate"><span class="pre">covar_selection</span></code></a></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="ncem.estimators.Estimator.node_types.html#ncem.estimators.Estimator.node_types" title="ncem.estimators.Estimator.node_types"><code class="xref py py-obj docutils literal notranslate"><span class="pre">node_types</span></code></a></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="ncem.estimators.Estimator.node_type_names.html#ncem.estimators.Estimator.node_type_names" title="ncem.estimators.Estimator.node_type_names"><code class="xref py py-obj docutils literal notranslate"><span class="pre">node_type_names</span></code></a></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="ncem.estimators.Estimator.graph_covar_names.html#ncem.estimators.Estimator.graph_covar_names" title="ncem.estimators.Estimator.graph_covar_names"><code class="xref py py-obj docutils literal notranslate"><span class="pre">graph_covar_names</span></code></a></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="ncem.estimators.Estimator.node_feature_names.html#ncem.estimators.Estimator.node_feature_names" title="ncem.estimators.Estimator.node_feature_names"><code class="xref py py-obj docutils literal notranslate"><span class="pre">node_feature_names</span></code></a></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="ncem.estimators.Estimator.n_features_type.html#ncem.estimators.Estimator.n_features_type" title="ncem.estimators.Estimator.n_features_type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">n_features_type</span></code></a></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="ncem.estimators.Estimator.n_features_standard.html#ncem.estimators.Estimator.n_features_standard" title="ncem.estimators.Estimator.n_features_standard"><code class="xref py py-obj docutils literal notranslate"><span class="pre">n_features_standard</span></code></a></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="ncem.estimators.Estimator.n_features_0.html#ncem.estimators.Estimator.n_features_0" title="ncem.estimators.Estimator.n_features_0"><code class="xref py py-obj docutils literal notranslate"><span class="pre">n_features_0</span></code></a></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="ncem.estimators.Estimator.n_features_1.html#ncem.estimators.Estimator.n_features_1" title="ncem.estimators.Estimator.n_features_1"><code class="xref py py-obj docutils literal notranslate"><span class="pre">n_features_1</span></code></a></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="ncem.estimators.Estimator.n_graph_covariates.html#ncem.estimators.Estimator.n_graph_covariates" title="ncem.estimators.Estimator.n_graph_covariates"><code class="xref py py-obj docutils literal notranslate"><span class="pre">n_graph_covariates</span></code></a></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="ncem.estimators.Estimator.n_node_covariates.html#ncem.estimators.Estimator.n_node_covariates" title="ncem.estimators.Estimator.n_node_covariates"><code class="xref py py-obj docutils literal notranslate"><span class="pre">n_node_covariates</span></code></a></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="ncem.estimators.Estimator.n_domains.html#ncem.estimators.Estimator.n_domains" title="ncem.estimators.Estimator.n_domains"><code class="xref py py-obj docutils literal notranslate"><span class="pre">n_domains</span></code></a></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="ncem.estimators.Estimator.max_nodes.html#ncem.estimators.Estimator.max_nodes" title="ncem.estimators.Estimator.max_nodes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">max_nodes</span></code></a></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="ncem.estimators.Estimator.n_eval_nodes_per_graph.html#ncem.estimators.Estimator.n_eval_nodes_per_graph" title="ncem.estimators.Estimator.n_eval_nodes_per_graph"><code class="xref py py-obj docutils literal notranslate"><span class="pre">n_eval_nodes_per_graph</span></code></a></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="ncem.estimators.Estimator.vi_model.html#ncem.estimators.Estimator.vi_model" title="ncem.estimators.Estimator.vi_model"><code class="xref py py-obj docutils literal notranslate"><span class="pre">vi_model</span></code></a></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="ncem.estimators.Estimator.log_transform.html#ncem.estimators.Estimator.log_transform" title="ncem.estimators.Estimator.log_transform"><code class="xref py py-obj docutils literal notranslate"><span class="pre">log_transform</span></code></a></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="ncem.estimators.Estimator.model_type.html#ncem.estimators.Estimator.model_type" title="ncem.estimators.Estimator.model_type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">model_type</span></code></a></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="ncem.estimators.Estimator.adj_type.html#ncem.estimators.Estimator.adj_type" title="ncem.estimators.Estimator.adj_type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">adj_type</span></code></a></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="ncem.estimators.Estimator.cond_type.html#ncem.estimators.Estimator.cond_type" title="ncem.estimators.Estimator.cond_type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cond_type</span></code></a></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="ncem.estimators.Estimator.cond_depth.html#ncem.estimators.Estimator.cond_depth" title="ncem.estimators.Estimator.cond_depth"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cond_depth</span></code></a></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="ncem.estimators.Estimator.output_layer.html#ncem.estimators.Estimator.output_layer" title="ncem.estimators.Estimator.output_layer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">output_layer</span></code></a></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="ncem.estimators.Estimator.steps_per_epoch.html#ncem.estimators.Estimator.steps_per_epoch" title="ncem.estimators.Estimator.steps_per_epoch"><code class="xref py py-obj docutils literal notranslate"><span class="pre">steps_per_epoch</span></code></a></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="ncem.estimators.Estimator.validation_steps.html#ncem.estimators.Estimator.validation_steps" title="ncem.estimators.Estimator.validation_steps"><code class="xref py py-obj docutils literal notranslate"><span class="pre">validation_steps</span></code></a></p></td>
-<td><p></p></td>
-</tr>
 </tbody>
 </table>
 <p class="rubric">Methods</p>
-<table class="autosummary longtable docutils align-default">
+<table class="longtable docutils align-default">
 <colgroup>
 <col style="width: 10%" />
 <col style="width: 90%" />
@@ -336,10 +202,7 @@
 
            </div>
           </div>
-          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="../usage.html" class="btn btn-neutral float-left" title="API" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="ncem.estimators.Estimator.img_keys_all.html" class="btn btn-neutral float-right" title="ncem.estimators.Estimator.img_keys_all" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
-    </div>
+          <footer>
 
   <hr/>
 

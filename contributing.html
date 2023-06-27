@@ -1,14 +1,17 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="English" >
 <head>
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Contributor Guide &mdash; ncem 0.1.4 documentation</title>
+  <title>Contributor Guide &mdash; ncem 0.1.5 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/custom.css" type="text/css" />
-      <link rel="stylesheet" href="_static/custom_cookietemple.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/sphinx_gallery.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/nbsphinx.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/dataframe.css" type="text/css" />
+      <link rel="stylesheet" href="_static/sg_gallery.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -16,13 +19,13 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
-        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Credits" href="authors.html" />
-    <link rel="prev" title="Reference" href="reference.html" /> 
+    <link rel="next" title="Ecosystem" href="ecosystem.html" />
+    <link rel="prev" title="Installation" href="installation.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -30,27 +33,27 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="index.html" class="icon icon-home"> ncem
+
+          
+          
+          <a href="index.html">
+            
+              <img src="_static/ncem_logo.png" class="logo" alt="Logo"/>
           </a>
               <div class="version">
-                0.1.4
+                0.1.5
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+              <p class="caption"><span class="caption-text">General</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="readme.html">ncem</a></li>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="usage.html">API</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorials.html">Tutorials</a></li>
-<li class="toctree-l1"><a class="reference internal" href="ecosystem.html">Ecosystem</a></li>
-<li class="toctree-l1"><a class="reference internal" href="reference.html">Reference</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Contributor Guide</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#how-to-add-a-dataloader">How to add a dataloader</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#how-to-report-a-bug">How to report a bug</a></li>
@@ -60,8 +63,15 @@
 <li class="toctree-l2"><a class="reference internal" href="#how-to-submit-changes">How to submit changes</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="ecosystem.html">Ecosystem</a></li>
 <li class="toctree-l1"><a class="reference internal" href="authors.html">Credits</a></li>
+<li class="toctree-l1"><a class="reference internal" href="references.html">References</a></li>
 <li class="toctree-l1"><a class="reference internal" href="code_of_conduct.html">Contributor Covenant Code of Conduct</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Methods</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials.html">Tutorials</a></li>
 </ul>
 
         </div>
@@ -77,8 +87,8 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
-      <li>Contributor Guide</li>
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Contributor Guide</li>
       <li class="wy-breadcrumbs-aside">
               <a href="https://github.com/theislab/ncem/blob/main/docs/contributing.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
@@ -88,8 +98,32 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="contributor-guide">
-<h1>Contributor Guide<a class="headerlink" href="#contributor-guide" title="Permalink to this heading"></a></h1>
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<section id="contributor-guide">
+<h1>Contributor Guide<a class="headerlink" href="#contributor-guide" title="Permalink to this headline"></a></h1>
 <p>Thank you for your interest in improving this project.
 This project is open-source under the <a class="reference external" href="https://opensource.org/licenses/BSD">BSD license</a> and
 highly welcomes contributions in the form of bug reports, feature requests, and pull requests.</p>
@@ -101,7 +135,7 @@ highly welcomes contributions in the form of bug reports, feature requests, and 
 <li><p><a class="reference external" href="CODE_OF_CONDUCT.rst">Code of Conduct</a></p></li>
 </ul>
 <section id="how-to-add-a-dataloader">
-<h2>How to add a dataloader<a class="headerlink" href="#how-to-add-a-dataloader" title="Permalink to this heading"></a></h2>
+<h2>How to add a dataloader<a class="headerlink" href="#how-to-add-a-dataloader" title="Permalink to this headline"></a></h2>
 <p>Overview of contributing dataloaders to ncem.</p>
 <ol class="arabic simple">
 <li><dl class="simple">
@@ -123,7 +157,7 @@ highly welcomes contributions in the form of bug reports, feature requests, and 
 <dt>Create a new dataloader in <cite>data.py</cite></dt><dd><p>Your dataloader should be a new class in <cite>data.py</cite> (ideally named by first author, e.g. DataLoaderZhang) and
 should contain the following functions <cite>_register_celldata</cite>, <cite>_register_img_celldata</cite> and <cite>_register_graph_features</cite>.</p>
 <p><cite>_register_celldata</cite> creates an AnnData object called <cite>celldata</cite> of the complete dataset with feature names
-stored in <cite>celldata.var_names</cite>. Cell type annotations are stored in <cite>celldata.obs</cite>. <cite>celldata.uns[‘metadata’]</cite>
+stored in <cite>celldata.var_names</cite>. Cell type annotations are stored in <cite>celldata.obs</cite>. <cite>celldata.uns['metadata']</cite>
 should contain the naming conventions of files and columns in obs.</p>
 <p><cite>_register_img_celldata</cite> then automatically splits the <cite>celldata</cite> into a dictionary of AnnData object with one
 AnnData object per image in the dataset.</p>
@@ -155,15 +189,15 @@ Note that you can also just keep the data loader in your local installation if y
 <p>In any case, feel free to open an GitHub issue on on the <a class="reference external" href="https://github.com/theislab/ncem/issues">Issue Tracker</a>.</p>
 </section>
 <section id="how-to-report-a-bug">
-<h2>How to report a bug<a class="headerlink" href="#how-to-report-a-bug" title="Permalink to this heading"></a></h2>
+<h2>How to report a bug<a class="headerlink" href="#how-to-report-a-bug" title="Permalink to this headline"></a></h2>
 <p>Report bugs on the <a class="reference external" href="https://github.com/theislab/ncem/issues">Issue Tracker</a>.</p>
 </section>
 <section id="how-to-request-a-feature">
-<h2>How to request a feature<a class="headerlink" href="#how-to-request-a-feature" title="Permalink to this heading"></a></h2>
+<h2>How to request a feature<a class="headerlink" href="#how-to-request-a-feature" title="Permalink to this headline"></a></h2>
 <p>Request features on the <a class="reference external" href="https://github.com/theislab/ncem/issues">Issue Tracker</a>.</p>
 </section>
 <section id="how-to-set-up-your-development-environment">
-<h2>How to set up your development environment<a class="headerlink" href="#how-to-set-up-your-development-environment" title="Permalink to this heading"></a></h2>
+<h2>How to set up your development environment<a class="headerlink" href="#how-to-set-up-your-development-environment" title="Permalink to this headline"></a></h2>
 <p>You need Python 3.7+ and the following tools:</p>
 <ul class="simple">
 <li><p><a class="reference external" href="https://python-poetry.org/">Poetry</a></p></li>
@@ -171,40 +205,40 @@ Note that you can also just keep the data loader in your local installation if y
 <li><p><a class="reference external" href="https://nox-poetry.readthedocs.io/">nox-poetry</a></p></li>
 </ul>
 <p>You can install them with:</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>pip install poetry nox nox-poetry
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>pip<span class="w"> </span>install<span class="w"> </span>poetry<span class="w"> </span>nox<span class="w"> </span>nox-poetry
 </pre></div>
 </div>
 <p>Install the package with development requirements:</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>make install
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>make<span class="w"> </span>install
 </pre></div>
 </div>
 <p>You can now run an interactive Python session,
 or the command-line interface:</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>poetry run python
-<span class="gp">$ </span>poetry run ncem
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>poetry<span class="w"> </span>run<span class="w"> </span>python
+<span class="gp">$ </span>poetry<span class="w"> </span>run<span class="w"> </span>ncem
 </pre></div>
 </div>
 </section>
 <section id="how-to-test-the-project">
-<h2>How to test the project<a class="headerlink" href="#how-to-test-the-project" title="Permalink to this heading"></a></h2>
+<h2>How to test the project<a class="headerlink" href="#how-to-test-the-project" title="Permalink to this headline"></a></h2>
 <p>Run the full test suite:</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>nox
 </pre></div>
 </div>
 <p>List the available Nox sessions:</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>nox --list-sessions
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>nox<span class="w"> </span>--list-sessions
 </pre></div>
 </div>
 <p>You can also run a specific Nox session.
 For example, invoke the unit test suite like this:</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>nox --session<span class="o">=</span>tests
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>nox<span class="w"> </span>--session<span class="o">=</span>tests
 </pre></div>
 </div>
 <p>Unit tests are located in the <code class="docutils literal notranslate"><span class="pre">tests</span></code> directory,
 and are written using the <a class="reference external" href="https://pytest.readthedocs.io/">pytest</a> testing framework.</p>
 </section>
 <section id="how-to-submit-changes">
-<h2>How to submit changes<a class="headerlink" href="#how-to-submit-changes" title="Permalink to this heading"></a></h2>
+<h2>How to submit changes<a class="headerlink" href="#how-to-submit-changes" title="Permalink to this headline"></a></h2>
 <p>Open a <a class="reference external" href="https://github.com/theislab/ncem/pulls">pull request</a> to submit changes to this project against the <code class="docutils literal notranslate"><span class="pre">development</span></code> branch.</p>
 <p>Your pull request needs to meet the following guidelines for acceptance:</p>
 <ul class="simple">
@@ -213,7 +247,7 @@ and are written using the <a class="reference external" href="https://pytest.rea
 <li><p>If your changes add functionality, update the documentation accordingly.</p></li>
 </ul>
 <p>To run linting and code formatting checks before committing your change, you can install pre-commit as a Git hook by running the following command:</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>nox --session<span class="o">=</span>pre-commit -- install
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>nox<span class="w"> </span>--session<span class="o">=</span>pre-commit<span class="w"> </span>--<span class="w"> </span>install
 </pre></div>
 </div>
 <p>It is recommended to open an issue before starting work on anything.
@@ -225,8 +259,8 @@ This will allow a chance to talk it over with the owners and validate your appro
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="reference.html" class="btn btn-neutral float-left" title="Reference" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="authors.html" class="btn btn-neutral float-right" title="Credits" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="installation.html" class="btn btn-neutral float-left" title="Installation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="ecosystem.html" class="btn btn-neutral float-right" title="Ecosystem" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

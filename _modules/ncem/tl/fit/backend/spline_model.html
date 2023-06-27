@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="English" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ncem.tl.fit.backend.spline_model &mdash; ncem 0.1.5 documentation</title>
+      <link rel="stylesheet" href="../../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../../_static/css/custom.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../../_static/css/sphinx_gallery.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../../_static/css/nbsphinx.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../../_static/css/dataframe.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../../_static/sg_gallery.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../../../" id="documentation_options" src="../../../../../_static/documentation_options.js"></script>
+        <script src="../../../../../_static/jquery.js"></script>
+        <script src="../../../../../_static/underscore.js"></script>
+        <script src="../../../../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../../index.html">
+            
+              <img src="../../../../../_static/ncem_logo.png" class="logo" alt="Logo"/>
+          </a>
+              <div class="version">
+                0.1.5
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">General</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../contributing.html">Contributor Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../ecosystem.html">Ecosystem</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../authors.html">Credits</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../references.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../code_of_conduct.html">Contributor Covenant Code of Conduct</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Methods</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../usage.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../tutorials.html">Tutorials</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../../index.html">ncem</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ncem.tl.fit.backend.spline_model</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ncem.tl.fit.backend.spline_model</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span> <span class="nn">anndata</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">patsy</span>
+
+<span class="kn">from</span> <span class="nn">ncem.tl.fit.backend.linear_model</span> <span class="kn">import</span> <span class="p">(</span><span class="n">differential_ncem</span><span class="p">,</span>
+                                              <span class="n">differential_ncem_deconvoluted</span><span class="p">,</span>
+                                              <span class="n">linear_ncem</span><span class="p">,</span>
+                                              <span class="n">linear_ncem_deconvoluted</span><span class="p">)</span>
+<span class="kn">from</span> <span class="nn">ncem.tl.fit.backend.testing</span> <span class="kn">import</span> <span class="n">test_deconvoluted</span><span class="p">,</span> <span class="n">test_standard</span>
+<span class="kn">from</span> <span class="nn">ncem.tl.fit.backend.utils</span> <span class="kn">import</span> <span class="n">read_uns</span><span class="p">,</span> <span class="n">write_uns</span>
+<span class="kn">from</span> <span class="nn">ncem.tl.fit.constants</span> <span class="kn">import</span> <span class="p">(</span><span class="n">PREFIX_INDEX</span><span class="p">,</span> <span class="n">UNS_KEY_CELL_TYPES</span><span class="p">,</span>
+                                   <span class="n">UNS_KEY_PER_INDEX</span><span class="p">,</span> <span class="n">UNS_KEY_SPLINE_COEFS</span><span class="p">,</span>
+                                   <span class="n">UNS_KEY_SPLINE_DF</span><span class="p">,</span> <span class="n">UNS_KEY_SPLINE_FAMILY</span><span class="p">,</span>
+                                   <span class="n">UNS_KEY_SPLINE_KEY_1D</span><span class="p">,</span>
+                                   <span class="n">VARM_KEY_FDR_PVALS_SPLINE</span><span class="p">,</span> <span class="n">VARM_KEY_PARAMS</span><span class="p">,</span>
+                                   <span class="n">VARM_KEY_PVALS_SPLINE</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">get_spline_basis</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">key_1d_coord</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">obs</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">spline_family</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">spline_family</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;bs&quot;</span><span class="p">:</span>
+        <span class="n">dmat_spline</span> <span class="o">=</span> <span class="n">patsy</span><span class="o">.</span><span class="n">dmatrix</span><span class="p">(</span>
+            <span class="s2">&quot;bs(&quot;</span> <span class="o">+</span> <span class="n">key_1d_coord</span> <span class="o">+</span> <span class="s2">&quot;, df=&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">df</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;, degree=3, include_intercept=False) - 1&quot;</span><span class="p">,</span> <span class="n">obs</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="n">spline_family</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;cr&quot;</span><span class="p">:</span>
+        <span class="n">dmat_spline</span> <span class="o">=</span> <span class="n">patsy</span><span class="o">.</span><span class="n">dmatrix</span><span class="p">(</span><span class="s2">&quot;cr(&quot;</span> <span class="o">+</span> <span class="n">key_1d_coord</span> <span class="o">+</span> <span class="s2">&quot;, df=&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">df</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;, constraints=&#39;center&#39;) - 1&quot;</span><span class="p">,</span> <span class="n">obs</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">spline_family</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;cc&quot;</span><span class="p">:</span>
+        <span class="n">dmat_spline</span> <span class="o">=</span> <span class="n">patsy</span><span class="o">.</span><span class="n">dmatrix</span><span class="p">(</span><span class="s2">&quot;cc(&quot;</span> <span class="o">+</span> <span class="n">key_1d_coord</span> <span class="o">+</span> <span class="s2">&quot;, df=&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">df</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;, constraints=&#39;center&#39;) - 1&quot;</span><span class="p">,</span> <span class="n">obs</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;spline basis </span><span class="si">%s</span><span class="s2"> not recognized&quot;</span> <span class="o">%</span> <span class="n">spline_family</span><span class="p">)</span>
+    <span class="n">dmat_spline</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">dmat_spline</span><span class="p">),</span> <span class="n">index</span><span class="o">=</span><span class="n">obs</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">dmat_spline</span><span class="o">.</span><span class="n">design_info</span><span class="o">.</span><span class="n">column_names</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">dmat_spline</span>
+
+
+<span class="k">def</span> <span class="nf">_spline_ncem_base</span><span class="p">(</span>
+    <span class="n">adata</span><span class="p">:</span> <span class="n">anndata</span><span class="o">.</span><span class="n">AnnData</span><span class="p">,</span>
+    <span class="n">f</span><span class="p">,</span>
+    <span class="n">df</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">key_1d_coord</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">spline_family</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">type_specific_confounders</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[],</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Add a spline fit to any NCEM model.</span>
+
+<span class="sd">    Saves fits and Wald test output into instance.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        adata: AnnData instance with data and annotation.</span>
+<span class="sd">        f: NCEM fit function.</span>
+<span class="sd">        df: Degrees of freedom of the spline model, i.e. the number of spline basis vectors.</span>
+<span class="sd">        kwargs: Kwargs for NCEM function f.</span>
+<span class="sd">        spline_family: The type of sline basis to use, refer also to:</span>
+<span class="sd">            https://patsy.readthedocs.io/en/latest/spline-regression.html</span>
+
+<span class="sd">                - &quot;bs&quot;: B-splines</span>
+<span class="sd">                - &quot;cr&quot;: natural cubic splines</span>
+<span class="sd">                - &quot;cc&quot;: natural cyclic splines</span>
+<span class="sd">        type_specific_confounders: List of confounding terms in .obs to be added with an interaction term to cell</span>
+<span class="sd">            types, ie confounders that act on the cell type level. Global confounders can be added in the formula.</span>
+
+<span class="sd">    Returns:</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Prepare spline basis:</span>
+    <span class="n">dmat_spline</span> <span class="o">=</span> <span class="n">get_spline_basis</span><span class="p">(</span><span class="n">df</span><span class="o">=</span><span class="n">df</span><span class="p">,</span> <span class="n">key_1d_coord</span><span class="o">=</span><span class="n">key_1d_coord</span><span class="p">,</span> <span class="n">obs</span><span class="o">=</span><span class="n">adata</span><span class="o">.</span><span class="n">obs</span><span class="p">,</span> <span class="n">spline_family</span><span class="o">=</span><span class="n">spline_family</span><span class="p">)</span>
+    <span class="n">adata</span><span class="o">.</span><span class="n">obs</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">adata</span><span class="o">.</span><span class="n">obs</span><span class="p">,</span> <span class="n">dmat_spline</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">spline_coefs</span> <span class="o">=</span> <span class="n">dmat_spline</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+    <span class="c1"># Save key spline hyper-parameters:</span>
+    <span class="n">write_uns</span><span class="p">(</span><span class="n">adata</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">UNS_KEY_SPLINE_COEFS</span><span class="p">,</span> <span class="n">v</span><span class="o">=</span><span class="n">spline_coefs</span><span class="p">)</span>
+    <span class="n">write_uns</span><span class="p">(</span><span class="n">adata</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">UNS_KEY_SPLINE_DF</span><span class="p">,</span> <span class="n">v</span><span class="o">=</span><span class="n">df</span><span class="p">)</span>
+    <span class="n">write_uns</span><span class="p">(</span><span class="n">adata</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">UNS_KEY_SPLINE_FAMILY</span><span class="p">,</span> <span class="n">v</span><span class="o">=</span><span class="n">spline_family</span><span class="p">)</span>
+    <span class="n">write_uns</span><span class="p">(</span><span class="n">adata</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">UNS_KEY_SPLINE_KEY_1D</span><span class="p">,</span> <span class="n">v</span><span class="o">=</span><span class="n">key_1d_coord</span><span class="p">)</span>
+    <span class="n">type_specific_confounders</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">spline_coefs</span><span class="p">)</span>
+    <span class="c1"># Fit NCEM with added spline terms:</span>
+    <span class="n">adata</span> <span class="o">=</span> <span class="n">f</span><span class="p">(</span><span class="n">adata</span><span class="o">=</span><span class="n">adata</span><span class="p">,</span> <span class="n">type_specific_confounders</span><span class="o">=</span><span class="n">type_specific_confounders</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="c1"># Perform differential expression along spline:</span>
+    <span class="c1"># This is saved in addition to the differential expression from the NCEM.</span>
+    <span class="n">cell_types</span> <span class="o">=</span> <span class="n">read_uns</span><span class="p">(</span><span class="n">adata</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">UNS_KEY_CELL_TYPES</span><span class="p">)</span>
+    <span class="n">spline_coefs_by_type</span> <span class="o">=</span> <span class="p">{</span><span class="sa">f</span><span class="s2">&quot;spline_</span><span class="si">{</span><span class="n">x</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">:</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">PREFIX_INDEX</span><span class="si">}{</span><span class="n">x</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">y</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">spline_coefs</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">cell_types</span><span class="p">}</span>
+    <span class="n">per_index_type</span> <span class="o">=</span> <span class="n">read_uns</span><span class="p">(</span><span class="n">adata</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">UNS_KEY_PER_INDEX</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">per_index_type</span><span class="p">:</span>
+        <span class="n">adata</span> <span class="o">=</span> <span class="n">test_deconvoluted</span><span class="p">(</span>
+            <span class="n">adata</span><span class="o">=</span><span class="n">adata</span><span class="p">,</span>
+            <span class="n">cell_types</span><span class="o">=</span><span class="n">cell_types</span><span class="p">,</span>
+            <span class="n">coef_to_test</span><span class="o">=</span><span class="n">spline_coefs_by_type</span><span class="p">,</span>
+            <span class="n">key_coef</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">key_pval</span><span class="o">=</span><span class="n">VARM_KEY_PVALS_SPLINE</span><span class="p">,</span>
+            <span class="n">key_fdr_pval</span><span class="o">=</span><span class="n">VARM_KEY_FDR_PVALS_SPLINE</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">adata</span> <span class="o">=</span> <span class="n">test_standard</span><span class="p">(</span>
+            <span class="n">adata</span><span class="o">=</span><span class="n">adata</span><span class="p">,</span>
+            <span class="n">coef_to_test</span><span class="o">=</span><span class="n">spline_coefs_by_type</span><span class="p">,</span>
+            <span class="n">key_coef</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">key_pval</span><span class="o">=</span><span class="n">VARM_KEY_PVALS_SPLINE</span><span class="p">,</span>
+            <span class="n">key_fdr_pval</span><span class="o">=</span><span class="n">VARM_KEY_FDR_PVALS_SPLINE</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">adata</span>
+
+
+<div class="viewcode-block" id="spline_differential_ncem"><a class="viewcode-back" href="../../../../../api/ncem.tl.spline_differential_ncem.html#ncem.tl.spline_differential_ncem">[docs]</a><span class="k">def</span> <span class="nf">spline_differential_ncem</span><span class="p">(</span>
+    <span class="n">adata</span><span class="p">:</span> <span class="n">anndata</span><span class="o">.</span><span class="n">AnnData</span><span class="p">,</span>
+    <span class="n">df</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">key_1d_coord</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">key_differential</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">key_graph</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">key_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">formula</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;~0&quot;</span><span class="p">,</span>
+    <span class="n">spline_family</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;cr&quot;</span><span class="p">,</span>
+    <span class="n">type_specific_confounders</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[],</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Fit a differential NCEM based on an adata instance and save fits in instance.</span>
+
+<span class="sd">    Saves fits and Wald test output into instance.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        adata: AnnData instance with data and annotation.</span>
+<span class="sd">        df: Degrees of freedom of the spline model, i.e. the number of spline basis vectors.</span>
+<span class="sd">        formula: Description of batch covariates as linear model. Do not include intercept, cell type, niche, or the</span>
+<span class="sd">            differential term as this is automatically added.</span>
+<span class="sd">        key_1d_coord: Key of numeric 1D coordinate of each observation in .obs. This will be used to build the spline.</span>
+<span class="sd">        key_differential: Key of condition annotation in .obs. This will be used for testing.</span>
+<span class="sd">        key_graph: Key of spatial neighborhood graph in .obsp.</span>
+<span class="sd">        key_type: Key of type annotation in .obs.</span>
+<span class="sd">        spline_family: The type of sline basis to use, refer also to:</span>
+<span class="sd">            https://patsy.readthedocs.io/en/latest/spline-regression.html</span>
+
+<span class="sd">                - &quot;bs&quot;: B-splines</span>
+<span class="sd">                - &quot;cr&quot;: natural cubic splines</span>
+<span class="sd">                - &quot;cc&quot;: natural cyclic splines</span>
+<span class="sd">        type_specific_confounders: List of confounding terms in .obs to be added with an interaction term to cell</span>
+<span class="sd">            types, ie confounders that act on the cell type level. Global confounders can be added in the formula.</span>
+
+<span class="sd">    Returns:</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">adata</span> <span class="o">=</span> <span class="n">_spline_ncem_base</span><span class="p">(</span>
+        <span class="n">adata</span><span class="o">=</span><span class="n">adata</span><span class="p">,</span>
+        <span class="n">df</span><span class="o">=</span><span class="n">df</span><span class="p">,</span>
+        <span class="n">f</span><span class="o">=</span><span class="n">differential_ncem</span><span class="p">,</span>
+        <span class="n">formula</span><span class="o">=</span><span class="n">formula</span><span class="p">,</span>
+        <span class="n">key_1d_coord</span><span class="o">=</span><span class="n">key_1d_coord</span><span class="p">,</span>
+        <span class="n">key_differential</span><span class="o">=</span><span class="n">key_differential</span><span class="p">,</span>
+        <span class="n">key_graph</span><span class="o">=</span><span class="n">key_graph</span><span class="p">,</span>
+        <span class="n">key_type</span><span class="o">=</span><span class="n">key_type</span><span class="p">,</span>
+        <span class="n">spline_family</span><span class="o">=</span><span class="n">spline_family</span><span class="p">,</span>
+        <span class="n">type_specific_confounders</span><span class="o">=</span><span class="n">type_specific_confounders</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">adata</span></div>
+
+
+<div class="viewcode-block" id="spline_differential_ncem_deconvoluted"><a class="viewcode-back" href="../../../../../api/ncem.tl.spline_differential_ncem_deconvoluted.html#ncem.tl.spline_differential_ncem_deconvoluted">[docs]</a><span class="k">def</span> <span class="nf">spline_differential_ncem_deconvoluted</span><span class="p">(</span>
+    <span class="n">adata</span><span class="p">:</span> <span class="n">anndata</span><span class="o">.</span><span class="n">AnnData</span><span class="p">,</span>
+    <span class="n">df</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">key_1d_coord</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">key_differential</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">key_deconvolution</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">formula</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;~0&quot;</span><span class="p">,</span>
+    <span class="n">spline_family</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;cr&quot;</span><span class="p">,</span>
+    <span class="n">type_specific_confounders</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[],</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Fit a differential NCEM based on deconvoluted data in an adata instance and save fits in instance.</span>
+
+<span class="sd">    Saves fits and Wald test output into instance.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        adata: AnnData instance with data and annotation. Note on placement of deconvolution output:</span>
+
+<span class="sd">                - type abundances must in be in .obsm[key_deconvolution] with cell type names as columns</span>
+<span class="sd">                - spot- and type-specific gene expression results must be layers named after types</span>
+<span class="sd">        df: Degrees of freedom of the spline model, i.e. the number of spline basis vectors.</span>
+<span class="sd">        formula: Description of batch covariates as linear model. Do not include intercept, cell type, niche, or the</span>
+<span class="sd">            differential term as this is automatically added.</span>
+<span class="sd">        key_1d_coord: Key of numeric 1D coordinate of each observation in .obs. This will be used to build the spline.</span>
+<span class="sd">        key_deconvolution: Key of type deconvolution in .obsm.</span>
+<span class="sd">        key_differential: Key of condition annotation in .obs. This will be used for testing.</span>
+<span class="sd">        spline_family: The type of sline basis to use, refer also to:</span>
+<span class="sd">            https://patsy.readthedocs.io/en/latest/spline-regression.html</span>
+
+<span class="sd">                - &quot;bs&quot;: B-splines</span>
+<span class="sd">                - &quot;cr&quot;: natural cubic splines</span>
+<span class="sd">                - &quot;cc&quot;: natural cyclic splines</span>
+<span class="sd">        type_specific_confounders: List of confounding terms in .obs to be added with an interaction term to cell</span>
+<span class="sd">            types, ie confounders that act on the cell type level. As the formula is used for each index cell, this</span>
+<span class="sd">            is equivalent to adding these terms into the formula.</span>
+
+<span class="sd">    Returns:</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">adata</span> <span class="o">=</span> <span class="n">_spline_ncem_base</span><span class="p">(</span>
+        <span class="n">adata</span><span class="o">=</span><span class="n">adata</span><span class="p">,</span>
+        <span class="n">df</span><span class="o">=</span><span class="n">df</span><span class="p">,</span>
+        <span class="n">f</span><span class="o">=</span><span class="n">differential_ncem_deconvoluted</span><span class="p">,</span>
+        <span class="n">formula</span><span class="o">=</span><span class="n">formula</span><span class="p">,</span>
+        <span class="n">key_1d_coord</span><span class="o">=</span><span class="n">key_1d_coord</span><span class="p">,</span>
+        <span class="n">key_deconvolution</span><span class="o">=</span><span class="n">key_deconvolution</span><span class="p">,</span>
+        <span class="n">key_differential</span><span class="o">=</span><span class="n">key_differential</span><span class="p">,</span>
+        <span class="n">spline_family</span><span class="o">=</span><span class="n">spline_family</span><span class="p">,</span>
+        <span class="n">type_specific_confounders</span><span class="o">=</span><span class="n">type_specific_confounders</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">adata</span></div>
+
+
+<div class="viewcode-block" id="spline_linear_ncem"><a class="viewcode-back" href="../../../../../api/ncem.tl.spline_linear_ncem.html#ncem.tl.spline_linear_ncem">[docs]</a><span class="k">def</span> <span class="nf">spline_linear_ncem</span><span class="p">(</span>
+    <span class="n">adata</span><span class="p">:</span> <span class="n">anndata</span><span class="o">.</span><span class="n">AnnData</span><span class="p">,</span>
+    <span class="n">df</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">key_1d_coord</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">key_graph</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">key_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">formula</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;~0&quot;</span><span class="p">,</span>
+    <span class="n">spline_family</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;cr&quot;</span><span class="p">,</span>
+    <span class="n">type_specific_confounders</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[],</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Fit a linear NCEM based on an adata instance and save fits in instance.</span>
+
+<span class="sd">    Saves fits and Wald test output into instance.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        adata: AnnData instance with data and annotation.</span>
+<span class="sd">        df: Degrees of freedom of the spline model, i.e. the number of spline basis vectors.</span>
+<span class="sd">        formula: Description of batch covariates as linear model. Do not include intercept, cell type, or niche as</span>
+<span class="sd">            this is automatically added.</span>
+<span class="sd">        key_1d_coord: Key of numeric 1D coordinate of each observation in .obs. This will be used to build the spline.</span>
+<span class="sd">        key_type: Key of type annotation in .obs.</span>
+<span class="sd">        key_graph: Key of spatial neighborhood graph in .obsp.</span>
+<span class="sd">        spline_family: The type of sline basis to use, refer also to:</span>
+<span class="sd">            https://patsy.readthedocs.io/en/latest/spline-regression.html</span>
+
+<span class="sd">                - &quot;bs&quot;: B-splines</span>
+<span class="sd">                - &quot;cr&quot;: natural cubic splines</span>
+<span class="sd">                - &quot;cc&quot;: natural cyclic splines</span>
+<span class="sd">        type_specific_confounders: List of confounding terms in .obs to be added with an interaction term to cell</span>
+<span class="sd">            types, ie confounders that act on the cell type level. Global confounders can be added in the formula.</span>
+
+<span class="sd">    Returns:</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">adata</span> <span class="o">=</span> <span class="n">_spline_ncem_base</span><span class="p">(</span>
+        <span class="n">adata</span><span class="o">=</span><span class="n">adata</span><span class="p">,</span>
+        <span class="n">df</span><span class="o">=</span><span class="n">df</span><span class="p">,</span>
+        <span class="n">f</span><span class="o">=</span><span class="n">linear_ncem</span><span class="p">,</span>
+        <span class="n">formula</span><span class="o">=</span><span class="n">formula</span><span class="p">,</span>
+        <span class="n">key_1d_coord</span><span class="o">=</span><span class="n">key_1d_coord</span><span class="p">,</span>
+        <span class="n">key_graph</span><span class="o">=</span><span class="n">key_graph</span><span class="p">,</span>
+        <span class="n">key_type</span><span class="o">=</span><span class="n">key_type</span><span class="p">,</span>
+        <span class="n">spline_family</span><span class="o">=</span><span class="n">spline_family</span><span class="p">,</span>
+        <span class="n">type_specific_confounders</span><span class="o">=</span><span class="n">type_specific_confounders</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">adata</span></div>
+
+
+<div class="viewcode-block" id="spline_linear_ncem_deconvoluted"><a class="viewcode-back" href="../../../../../api/ncem.tl.spline_linear_ncem_deconvoluted.html#ncem.tl.spline_linear_ncem_deconvoluted">[docs]</a><span class="k">def</span> <span class="nf">spline_linear_ncem_deconvoluted</span><span class="p">(</span>
+    <span class="n">adata</span><span class="p">:</span> <span class="n">anndata</span><span class="o">.</span><span class="n">AnnData</span><span class="p">,</span>
+    <span class="n">df</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">key_1d_coord</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">key_deconvolution</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">formula</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;~0&quot;</span><span class="p">,</span>
+    <span class="n">spline_family</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;cr&quot;</span><span class="p">,</span>
+    <span class="n">type_specific_confounders</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[],</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Fit a linear NCEM based on deconvoluted data in an adata instance and save fits in instance.</span>
+
+<span class="sd">    Saves fits and Wald test output into instance.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        adata: AnnData instance with data and annotation. Note on placement of deconvolution output:</span>
+
+<span class="sd">                - type abundances must in be in .obsm[key_deconvolution] with cell type names as columns</span>
+<span class="sd">                - spot- and type-specific gene expression results must be layers named after types</span>
+<span class="sd">        df: Degrees of freedom of the spline model, i.e. the number of spline basis vectors.</span>
+<span class="sd">        formula: Description of batch covariates as linear model. Do not include intercept, cell type, or niche as</span>
+<span class="sd">            this is automatically added.</span>
+<span class="sd">        key_1d_coord: Key of numeric 1D coordinate of each observation in .obs. This will be used to build the spline.</span>
+<span class="sd">        key_deconvolution: Key of type deconvolution in .obsm.</span>
+<span class="sd">        spline_family: The type of sline basis to use, refer also to:</span>
+<span class="sd">            https://patsy.readthedocs.io/en/latest/spline-regression.html</span>
+
+<span class="sd">                - &quot;bs&quot;: B-splines</span>
+<span class="sd">                - &quot;cr&quot;: natural cubic splines</span>
+<span class="sd">                - &quot;cc&quot;: natural cyclic splines</span>
+<span class="sd">        type_specific_confounders: List of confounding terms in .obs to be added with an interaction term to cell</span>
+<span class="sd">            types, ie confounders that act on the cell type level. As the formula is used for each index cell, this</span>
+<span class="sd">            is equivalent to adding these terms into the formula.</span>
+
+<span class="sd">    Returns:</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">adata</span> <span class="o">=</span> <span class="n">_spline_ncem_base</span><span class="p">(</span>
+        <span class="n">adata</span><span class="o">=</span><span class="n">adata</span><span class="p">,</span>
+        <span class="n">df</span><span class="o">=</span><span class="n">df</span><span class="p">,</span>
+        <span class="n">f</span><span class="o">=</span><span class="n">linear_ncem_deconvoluted</span><span class="p">,</span>
+        <span class="n">formula</span><span class="o">=</span><span class="n">formula</span><span class="p">,</span>
+        <span class="n">key_1d_coord</span><span class="o">=</span><span class="n">key_1d_coord</span><span class="p">,</span>
+        <span class="n">key_deconvolution</span><span class="o">=</span><span class="n">key_deconvolution</span><span class="p">,</span>
+        <span class="n">spline_family</span><span class="o">=</span><span class="n">spline_family</span><span class="p">,</span>
+        <span class="n">type_specific_confounders</span><span class="o">=</span><span class="n">type_specific_confounders</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">adata</span></div>
+
+
+<span class="k">def</span> <span class="nf">get_spline_interpolation</span><span class="p">(</span><span class="n">adata</span><span class="p">:</span> <span class="n">anndata</span><span class="o">.</span><span class="n">AnnData</span><span class="p">,</span> <span class="n">genes</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span> <span class="n">cell_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    # Spline fit only, including type-wise intercept but not confounding- or coupling-coefficients.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        adata: AnnData instance after NCEM fit.</span>
+<span class="sd">        genes: Genes to return fit for.</span>
+<span class="sd">        cell_type: Cell type to return fit for.</span>
+
+<span class="sd">    Returns: Data frame with spline fit at evaluation points.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">genes</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">genes</span> <span class="o">=</span> <span class="p">[</span><span class="n">genes</span><span class="p">]</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">cell_type</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span> <span class="s2">&quot;only supply one cell types as string&quot;</span>
+    <span class="n">spline_coefs</span> <span class="o">=</span> <span class="n">read_uns</span><span class="p">(</span><span class="n">adata</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">UNS_KEY_SPLINE_COEFS</span><span class="p">)</span>
+    <span class="c1"># Generated interpolated spline bases to replace cells (many and varying density!) as evaluation points.</span>
+    <span class="n">key_1d_coord</span> <span class="o">=</span> <span class="n">read_uns</span><span class="p">(</span><span class="n">adata</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">UNS_KEY_SPLINE_KEY_1D</span><span class="p">)</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">read_uns</span><span class="p">(</span><span class="n">adata</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">UNS_KEY_SPLINE_DF</span><span class="p">)</span>
+    <span class="n">spline_family</span> <span class="o">=</span> <span class="n">read_uns</span><span class="p">(</span><span class="n">adata</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">UNS_KEY_SPLINE_FAMILY</span><span class="p">)</span>
+    <span class="n">obs_auxiliary</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+        <span class="p">{</span><span class="n">key_1d_coord</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">adata</span><span class="o">.</span><span class="n">obs</span><span class="p">[</span><span class="n">key_1d_coord</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">adata</span><span class="o">.</span><span class="n">obs</span><span class="p">[</span><span class="n">key_1d_coord</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">),</span> <span class="mi">100</span><span class="p">)}</span>
+    <span class="p">)</span>
+    <span class="n">dmat_spline</span> <span class="o">=</span> <span class="n">get_spline_basis</span><span class="p">(</span><span class="n">df</span><span class="o">=</span><span class="n">df</span><span class="p">,</span> <span class="n">key_1d_coord</span><span class="o">=</span><span class="n">key_1d_coord</span><span class="p">,</span> <span class="n">obs</span><span class="o">=</span><span class="n">obs_auxiliary</span><span class="p">,</span> <span class="n">spline_family</span><span class="o">=</span><span class="n">spline_family</span><span class="p">)</span>
+    <span class="n">dmat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="mi">100</span><span class="p">,</span> <span class="mi">1</span><span class="p">]),</span>  <span class="c1"># intercept</span>
+            <span class="n">dmat_spline</span><span class="p">,</span>  <span class="c1"># spline</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+    <span class="c1"># We have one spline per cell type and iterate over cell types here:</span>
+    <span class="c1"># Cell-type wise intercept is called directly after cell type.</span>
+    <span class="n">spline_coefs_type</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">PREFIX_INDEX</span><span class="si">}{</span><span class="n">cell_type</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">y</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">spline_coefs</span><span class="p">]</span>
+    <span class="n">coef_names</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">PREFIX_INDEX</span><span class="si">}{</span><span class="n">cell_type</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">spline_coefs_type</span>
+    <span class="n">theta</span> <span class="o">=</span> <span class="n">adata</span><span class="o">.</span><span class="n">varm</span><span class="p">[</span><span class="n">VARM_KEY_PARAMS</span><span class="p">]</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">genes</span><span class="p">,</span> <span class="n">coef_names</span><span class="p">]</span><span class="o">.</span><span class="n">T</span>
+    <span class="n">yhat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">dmat</span><span class="p">,</span> <span class="n">theta</span><span class="p">)</span>
+    <span class="n">yhat</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">yhat</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">obs_auxiliary</span><span class="p">[</span><span class="n">key_1d_coord</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">genes</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">yhat</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, theislab.</p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
