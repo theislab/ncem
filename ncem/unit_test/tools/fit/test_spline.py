@@ -4,20 +4,16 @@ import pandas as pd
 import pytest
 
 from ncem.tl.fit.backend.utils import read_uns
-from ncem.tl.fit.constants import (UNS_KEY_CELL_TYPES,
-                                   VARM_KEY_FDR_PVALS_SPLINE,
-                                   VARM_KEY_PVALS_SPLINE)
-from ncem.tl.fit.glm import (get_spline_interpolation,
-                             spline_differential_ncem,
-                             spline_differential_ncem_deconvoluted,
-                             spline_linear_ncem,
-                             spline_linear_ncem_deconvoluted)
-from ncem.unit_test.data_for_tests import (KEY_1D, KEY_ADJACENCY, KEY_BATCH,
-                                           KEY_COND, KEY_DECONV, KEY_TYPE,
-                                           get_adata_1d)
-from ncem.unit_test.tools.fit.test_glm import (_assert_slot_dimension,
-                                               _assert_slot_domain,
-                                               _assert_slot_keys)
+from ncem.tl.fit.constants import UNS_KEY_CELL_TYPES, VARM_KEY_FDR_PVALS_SPLINE, VARM_KEY_PVALS_SPLINE
+from ncem.tl.fit.glm import (
+    get_spline_interpolation,
+    spline_differential_ncem,
+    spline_differential_ncem_deconvoluted,
+    spline_linear_ncem,
+    spline_linear_ncem_deconvoluted,
+)
+from ncem.unit_test.data_for_tests import KEY_1D, KEY_ADJACENCY, KEY_BATCH, KEY_COND, KEY_DECONV, KEY_TYPE, get_adata_1d
+from ncem.unit_test.tools.fit.test_glm import _assert_slot_dimension, _assert_slot_domain, _assert_slot_keys
 
 HYPERPARAMS_SPLINE = {"df": 3, "spline_family": "cr", "key_1d_coord": KEY_1D}
 

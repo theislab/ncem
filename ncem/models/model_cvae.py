@@ -1,8 +1,7 @@
 import numpy as np
 import tensorflow as tf
 
-from ncem.models.layers import (Decoder, Encoder, PreprocInput, SamplingPrior,
-                                get_out)
+from ncem.models.layers import Decoder, Encoder, PreprocInput, SamplingPrior, get_out
 
 
 class ModelCVAE:

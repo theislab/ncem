@@ -3,8 +3,7 @@ from typing import Union
 import numpy as np
 import tensorflow as tf
 
-from ncem.models.layers import (CondDecoder, CondEncoder, GCNLayer, MaxLayer,
-                                PreprocInput, SamplingPrior, get_out)
+from ncem.models.layers import CondDecoder, CondEncoder, GCNLayer, MaxLayer, PreprocInput, SamplingPrior, get_out
 
 
 class ModelCVAEncem:

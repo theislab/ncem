@@ -1,10 +1,7 @@
 import tensorflow as tf
 
 from ncem.models.layers import Decoder, get_out
-from ncem.models.layers.single_gnn_layers import (SingleGatLayer,
-                                                  SingleGcnLayer,
-                                                  SingleLrGatLayer,
-                                                  SingleMaxLayer)
+from ncem.models.layers.single_gnn_layers import SingleGatLayer, SingleGcnLayer, SingleLrGatLayer, SingleMaxLayer
 
 
 class ModelEd2Ncem:

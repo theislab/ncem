@@ -2,10 +2,16 @@ import os
 import pickle
 from typing import Union
 
-from ncem.estimators import (EstimatorCVAE, EstimatorCVAEncem,
-                             EstimatorDeconvolution, EstimatorED,
-                             EstimatorEDncem, EstimatorEdNcemNeighborhood,
-                             EstimatorInteractions, EstimatorLinear)
+from ncem.estimators import (
+    EstimatorCVAE,
+    EstimatorCVAEncem,
+    EstimatorDeconvolution,
+    EstimatorED,
+    EstimatorEDncem,
+    EstimatorEdNcemNeighborhood,
+    EstimatorInteractions,
+    EstimatorLinear,
+)
 
 
 class TrainModel:

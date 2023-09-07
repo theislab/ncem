@@ -2,8 +2,7 @@ from typing import Union
 
 import tensorflow as tf
 
-from ncem.models.layers import (DenseInteractions, LinearConstDispOutput,
-                                LinearOutput)
+from ncem.models.layers import DenseInteractions, LinearConstDispOutput, LinearOutput
 
 
 class ModelInteractions:

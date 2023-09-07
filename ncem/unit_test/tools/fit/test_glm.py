@@ -1,17 +1,19 @@
 import numpy as np
 import pytest
 
-from ncem.tl.fit.constants import (PREFIX_INDEX, PREFIX_NEIGHBOR,
-                                   VARM_KEY_FDR_PVALS,
-                                   VARM_KEY_FDR_PVALS_DIFFERENTIAL,
-                                   VARM_KEY_PARAMS, VARM_KEY_PVALS,
-                                   VARM_KEY_PVALS_DIFFERENTIAL,
-                                   VARM_KEY_TESTED_PARAMS,
-                                   VARM_KEY_TESTED_PARAMS_DIFFERENTIAL)
-from ncem.tl.fit.glm import (differential_ncem, differential_ncem_deconvoluted,
-                             linear_ncem, linear_ncem_deconvoluted)
-from ncem.unit_test.data_for_tests import (KEY_ADJACENCY, KEY_BATCH, KEY_COND,
-                                           KEY_DECONV, KEY_TYPE, get_adata)
+from ncem.tl.fit.constants import (
+    PREFIX_INDEX,
+    PREFIX_NEIGHBOR,
+    VARM_KEY_FDR_PVALS,
+    VARM_KEY_FDR_PVALS_DIFFERENTIAL,
+    VARM_KEY_PARAMS,
+    VARM_KEY_PVALS,
+    VARM_KEY_PVALS_DIFFERENTIAL,
+    VARM_KEY_TESTED_PARAMS,
+    VARM_KEY_TESTED_PARAMS_DIFFERENTIAL,
+)
+from ncem.tl.fit.glm import differential_ncem, differential_ncem_deconvoluted, linear_ncem, linear_ncem_deconvoluted
+from ncem.unit_test.data_for_tests import KEY_ADJACENCY, KEY_BATCH, KEY_COND, KEY_DECONV, KEY_TYPE, get_adata
 
 
 def _assert_slot_keys(adata, differential: bool):
