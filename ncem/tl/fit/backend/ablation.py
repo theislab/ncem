@@ -7,8 +7,7 @@ import pandas as pd
 import squidpy as sq
 from scipy.stats import linregress
 
-from ncem.tl.fit.constants import (OBS_KEY_SPLIT, OBSM_KEY_DMAT,
-                                   UNS_KEY_ABLATION, VARM_KEY_PARAMS)
+from ncem.tl.fit.constants import OBS_KEY_SPLIT, OBSM_KEY_DMAT, UNS_KEY_ABLATION, VARM_KEY_PARAMS
 from ncem.tl.fit.glm import linear_ncem
 
 

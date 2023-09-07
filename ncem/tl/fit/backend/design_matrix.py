@@ -296,7 +296,9 @@ def get_dmats_from_deconvoluted(
         obs_full = pd.concat([obs, obs_index_type_x, obs_niche], axis=1)
         dmats[x] = patsy.dmatrix(formulas[x], obs_full)
         # ensure that column names start with index type name
-        dmat_columns = [col if col.startswith(PREFIX_INDEX) else PREFIX_INDEX+x+col for col in dmats[x].design_info.column_names]
+        dmat_columns = [
+            col if col.startswith(PREFIX_INDEX) else PREFIX_INDEX + x + col for col in dmats[x].design_info.column_names
+        ]
         dmats[x] = pd.DataFrame(np.asarray(dmats[x]), index=obs.index, columns=dmat_columns)
     return dmats
 
