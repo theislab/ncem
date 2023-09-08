@@ -247,8 +247,12 @@ def get_dmat_from_obs(obs: pd.DataFrame, obs_niche: pd.DataFrame, formula: str, 
     obs_niche.columns = [PREFIX_NEIGHBOR + x for x in obs_niche.columns]
     # Merge sample annotation:
     obs_full = pd.concat([obs, obs_index_type, obs_niche], axis=1)
+    columns_names = formula.replace('~0+','').split('+')
+    
     dmat = patsy.dmatrix(formula, obs_full)
-    dmat = pd.DataFrame(np.asarray(dmat), index=obs.index, columns=dmat.design_info.column_names)
+    # Simplify names, this is necessary for patsy to accept these as terms later.
+    column_names = [f"{x.split('[')[0]}{x.split('[')[1].split(']')[-1]}" for x in dmat.design_info.column_names]
+    dmat = pd.DataFrame(np.asarray(dmat), index=obs.index, columns=column_names)
     return dmat
 
 
