@@ -303,6 +303,7 @@ def get_dmats_from_deconvoluted(
         dmat_columns = [
             col if col.startswith(PREFIX_INDEX) else PREFIX_INDEX + x + col for col in dmats[x].design_info.column_names
         ]
+        dmat_columns = [f"{x.split('[')[0]}{x.split('[')[1].split(']')[-1]}" for x in dmat_columns]
         dmats[x] = pd.DataFrame(np.asarray(dmats[x]), index=obs.index, columns=dmat_columns)
     return dmats
 
