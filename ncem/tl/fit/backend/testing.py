@@ -150,6 +150,7 @@ def test_deconvoluted(
             for y in coef_to_test:
                 if y in parameter_names:
                     idx = parameter_names.index(y)
+                    print(idx)
                     theta_mle = params.values[:, idx]
                     theta_sd = fisher_inv[:, idx, idx]
                     theta_sd = np.nextafter(0, np.inf, out=theta_sd, where=theta_sd < np.nextafter(0, np.inf))

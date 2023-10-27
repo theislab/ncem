@@ -4,6 +4,7 @@ import anndata
 import numpy as np
 import pandas as pd
 import patsy
+from formulaic import Formula
 
 from ncem.tl.fit.constants import PREFIX_INDEX, PREFIX_NEIGHBOR
 
@@ -248,11 +249,9 @@ def get_dmat_from_obs(obs: pd.DataFrame, obs_niche: pd.DataFrame, formula: str, 
     # Merge sample annotation:
     obs_full = pd.concat([obs, obs_index_type, obs_niche], axis=1)
     columns_names = formula.replace('~0+','').split('+')
-    
-    dmat = patsy.dmatrix(formula, obs_full)
-    # Simplify names, this is necessary for patsy to accept these as terms later.
-    column_names = [f"{x.split('[')[0]}{x.split('[')[1].split(']')[-1]}" for x in dmat.design_info.column_names]
-    dmat = pd.DataFrame(np.asarray(dmat), index=obs.index, columns=column_names)
+
+    dmat = Formula(formula).get_model_matrix(obs_full)
+    dmat = pd.DataFrame(np.asarray(dmat), index=obs.index, columns=dmat.columns)
     return dmat
 
 
@@ -298,13 +297,8 @@ def get_dmats_from_deconvoluted(
         obs_index_type_x.index = obs.index
         # Merge sample annotation:
         obs_full = pd.concat([obs, obs_index_type_x, obs_niche], axis=1)
-        dmats[x] = patsy.dmatrix(formulas[x], obs_full)
-        # ensure that column names start with index type name
-        dmat_columns = [
-            col if col.startswith(PREFIX_INDEX) else PREFIX_INDEX + x + col for col in dmats[x].design_info.column_names
-        ]
-        dmat_columns = [f"{x.split('[')[0]}{x.split('[')[1].split(']')[-1]}" for x in dmat_columns]
-        dmats[x] = pd.DataFrame(np.asarray(dmats[x]), index=obs.index, columns=dmat_columns)
+        dmats[x] = Formula(formulas[x]).get_model_matrix(obs_full)
+        dmats[x] = pd.DataFrame(np.asarray(dmats[x]), index=obs.index, columns=dmats[x].columns)
     return dmats
 
 
@@ -353,7 +347,8 @@ def get_dmat_global_from_deconvoluted(obs: pd.DataFrame, deconv: pd.DataFrame, f
         obs_index_type[x].index = obs.index
         # Merge sample annotation:
         obs_full = pd.concat([obs, obs_index_type_x, obs_niche], axis=1)
-        dmat_x = patsy.dmatrix(formula, obs_full)
-        dmats.append(pd.DataFrame(np.asarray(dmat_x), index=obs.index, columns=dmat_x.design_info.column_names))
+
+        dmat_x = Formula(formula).get_model_matrix(obs_full)
+        dmats.append(pd.DataFrame(np.asarray(dmat_x), index=obs.index, columns=dmat_x.columns))
     dmat = pd.concat(dmats, axis=0)
     return dmat

@@ -274,7 +274,6 @@ def linear_ncem_deconvoluted(
     )
     dmats = get_dmats_from_deconvoluted(deconv=adata.obsm[key_deconvolution], formulas=formulas, obs=adata.obs)
     for k, v in dmats.items():
-        print(k)
         dmat_key = f"{OBSM_KEY_DMAT}_{k}"
         adata.obsm[dmat_key] = v
         params = ols_fit(x_=adata.obsm[dmat_key].values, y_=adata.layers[k])
