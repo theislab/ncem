@@ -5,20 +5,30 @@ import numpy as np
 import pandas as pd
 
 from ncem.tl.fit.backend.design_matrix import (
-    extend_formula_differential_ncem, extend_formula_ncem,
-    get_binary_sample_annotation_conditions, get_dmat_from_obs,
-    get_dmats_from_deconvoluted, get_obs_niche_from_graph)
+    extend_formula_differential_ncem,
+    extend_formula_ncem,
+    get_binary_sample_annotation_conditions,
+    get_dmat_from_obs,
+    get_dmats_from_deconvoluted,
+    get_obs_niche_from_graph,
+)
 from ncem.tl.fit.backend.ols_fit import ols_fit
 from ncem.tl.fit.backend.testing import test_deconvoluted, test_standard
 from ncem.tl.fit.backend.utils import write_uns
-from ncem.tl.fit.constants import (OBSM_KEY_DMAT, OBSM_KEY_DMAT_NICHE,
-                                   UNS_KEY_CELL_TYPES, UNS_KEY_CONDITIONS,
-                                   UNS_KEY_PER_INDEX, VARM_KEY_FDR_PVALS,
-                                   VARM_KEY_FDR_PVALS_DIFFERENTIAL,
-                                   VARM_KEY_PARAMS, VARM_KEY_PVALS,
-                                   VARM_KEY_PVALS_DIFFERENTIAL,
-                                   VARM_KEY_TESTED_PARAMS,
-                                   VARM_KEY_TESTED_PARAMS_DIFFERENTIAL)
+from ncem.tl.fit.constants import (
+    OBSM_KEY_DMAT,
+    OBSM_KEY_DMAT_NICHE,
+    UNS_KEY_CELL_TYPES,
+    UNS_KEY_CONDITIONS,
+    UNS_KEY_PER_INDEX,
+    VARM_KEY_FDR_PVALS,
+    VARM_KEY_FDR_PVALS_DIFFERENTIAL,
+    VARM_KEY_PARAMS,
+    VARM_KEY_PVALS,
+    VARM_KEY_PVALS_DIFFERENTIAL,
+    VARM_KEY_TESTED_PARAMS,
+    VARM_KEY_TESTED_PARAMS_DIFFERENTIAL,
+)
 
 
 def _validate_formula(formula: str, auto_keys: List[str] = []):
@@ -264,7 +274,6 @@ def linear_ncem_deconvoluted(
     )
     dmats = get_dmats_from_deconvoluted(deconv=adata.obsm[key_deconvolution], formulas=formulas, obs=adata.obs)
     for k, v in dmats.items():
-        print(k)
         dmat_key = f"{OBSM_KEY_DMAT}_{k}"
         adata.obsm[dmat_key] = v
         params = ols_fit(x_=adata.obsm[dmat_key].values, y_=adata.layers[k])

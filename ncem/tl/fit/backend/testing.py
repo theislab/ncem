@@ -127,7 +127,7 @@ def test_deconvoluted(
             for k, y in coef_to_test.items():
                 if np.all([z in parameter_names for z in y]):
                     params_idx = np.sort([parameter_names.index(z) for z in y])
-                    #theta_mle = params.values[:, params_idx]
+                    # theta_mle = params.values[:, params_idx]
                     for idx, coef in enumerate(y):
                         theta_mle = params.values[:, idx]
                         theta_sd = fisher_inv[:, idx, idx]
@@ -135,21 +135,22 @@ def test_deconvoluted(
                         theta_sd = np.sqrt(theta_sd)
                         theta_sd = np.expand_dims(theta_sd, axis=0)
                         theta_mle = np.expand_dims(theta_mle, axis=0)
-                        #pvals[x] = wald_test(theta_mle=theta_mle, theta_sd=theta_sd, theta0=0)
-                        #fisher_inv_subset = fisher_inv[:, idx, :][:, :, idx]
+                        # pvals[x] = wald_test(theta_mle=theta_mle, theta_sd=theta_sd, theta0=0)
+                        # fisher_inv_subset = fisher_inv[:, idx, :][:, :, idx]
                         assert coef not in pvals.keys()
                         pvals[coef] = wald_test(theta_mle=theta_mle, theta_sd=theta_sd, theta0=0)
                         qvals[coef] = correct(pvals[coef].flatten()).reshape(pvals[coef].shape)
                         tested_coefficients[coef] = theta_mle
-                        #pvals[k] = wald_test_chisq(theta_mle=theta_mle.T, theta_covar=fisher_inv_subset)
-                        #if len(idx) == 1:
+                        # pvals[k] = wald_test_chisq(theta_mle=theta_mle.T, theta_covar=fisher_inv_subset)
+                        # if len(idx) == 1:
                         #    tested_coefficients[k] = theta_mle[:, 0]
-                        #else:
+                        # else:
                         #    tested_coefficients[k] = np.zeros_like(theta_mle[:, 0]) + np.nan
         else:
             for y in coef_to_test:
                 if y in parameter_names:
                     idx = parameter_names.index(y)
+                    print(idx)
                     theta_mle = params.values[:, idx]
                     theta_sd = fisher_inv[:, idx, idx]
                     theta_sd = np.nextafter(0, np.inf, out=theta_sd, where=theta_sd < np.nextafter(0, np.inf))
@@ -163,9 +164,9 @@ def test_deconvoluted(
     qvals_arr = np.concatenate(list(qvals.values()), axis=0).T
     adata.varm[key_pval] = pd.DataFrame(pvals_arr, index=adata.var_names, columns=list(pvals.keys()))
     adata.varm[key_fdr_pval] = pd.DataFrame(qvals_arr, index=adata.var_names, columns=list(pvals.keys()))
-    #pvals_flat = np.hstack(list(pvals.values()))
-    #qvals_flat = np.hstack(list(qvals.values()))
-    #qvals_flat = correct(pvals_flat)
+    # pvals_flat = np.hstack(list(pvals.values()))
+    # qvals_flat = np.hstack(list(qvals.values()))
+    # qvals_flat = correct(pvals_flat)
     # qvals = qvals_flat.reshape((-1, len(test_keys)))
     # Write results to object:
     if key_coef is not None:

@@ -4,8 +4,7 @@ import pytest
 
 import ncem.api as ncem
 from ncem.estimators import Estimator
-from ncem.unit_test.directories import (DATA_PATH_DESTVI, DATA_PATH_HARTMANN,
-                                        DATA_PATH_LU, DATA_PATH_ZHANG)
+from ncem.unit_test.directories import DATA_PATH_DESTVI, DATA_PATH_HARTMANN, DATA_PATH_LU, DATA_PATH_ZHANG
 
 
 class HelperTestEstimator:

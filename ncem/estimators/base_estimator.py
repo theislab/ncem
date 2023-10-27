@@ -7,12 +7,20 @@ import numpy as np
 import tensorflow as tf
 
 from ncem.utils.losses import GaussianLoss, KLLoss, NegBinLoss
-from ncem.utils.metrics import (custom_kl, custom_mae, custom_mean_sd,
-                                custom_mse, custom_mse_scaled,
-                                gaussian_reconstruction_loss, logp1_custom_mse,
-                                logp1_r_squared, logp1_r_squared_linreg,
-                                nb_reconstruction_loss, r_squared,
-                                r_squared_linreg)
+from ncem.utils.metrics import (
+    custom_kl,
+    custom_mae,
+    custom_mean_sd,
+    custom_mse,
+    custom_mse_scaled,
+    gaussian_reconstruction_loss,
+    logp1_custom_mse,
+    logp1_r_squared,
+    logp1_r_squared_linreg,
+    nb_reconstruction_loss,
+    r_squared,
+    r_squared_linreg,
+)
 
 
 def transfer_layers(model1, model2):
@@ -212,8 +220,7 @@ class Estimator:
 
         elif data_origin.startswith("cell2location_lymphnode"):
             self.targeted_assay = False
-            from ncem.data import \
-                DataLoaderCell2locationLymphnode as DataLoader
+            from ncem.data import DataLoaderCell2locationLymphnode as DataLoader
 
             self.undefined_node_types = None
 
