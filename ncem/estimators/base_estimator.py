@@ -307,7 +307,7 @@ class Estimator:
         )
         if robustness:
             np.random.seed(robustness_seed)
-            n_images = np.int(len(self.data.img_celldata) * robustness)
+            n_images = int(len(self.data.img_celldata) * robustness)
             print(n_images)
             image_keys = list(
                 np.random.choice(
@@ -332,10 +332,10 @@ class Estimator:
         if segmentation_robustness:
             node_fraction = segmentation_robustness[0]
             overflow_fraction = segmentation_robustness[1]
-            total_size = np.int(self.data.celldata.shape[0] * node_fraction)
+            total_size = int(self.data.celldata.shape[0] * node_fraction)
 
             for key, ad in self.data.img_celldata.items():
-                size = np.int(ad.shape[0] * node_fraction)
+                size = int(ad.shape[0] * node_fraction)
                 random_indices = np.random.choice(ad.shape[0], size=size, replace=False)
                 a = ad.obsp["adjacency_matrix_connectivities"].toarray()
                 err_ad = ad.copy()

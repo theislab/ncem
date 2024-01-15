@@ -247,7 +247,7 @@ class GraphTools:
             mean_d = [np.mean(degree) for degree in degrees]
             print(np.mean(mean_d))
             mean_degree += mean_d
-            distances += [np.int(dist * lateral_resolution)] * len(mean_d)
+            distances += [int(dist * lateral_resolution)] * len(mean_d)
 
         sns_data = pd.DataFrame(
             {
